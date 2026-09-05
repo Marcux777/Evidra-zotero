@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "evidra-engine"
+version = "0.1.0"
+description = "Local, scoped research notebooks for Zotero"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi==0.141.1", "uvicorn==0.52.4", "pydantic==2.13.5",
+  "httpx==0.28.1", "pypdfium2==5.13.0", "numpy==2.5.2",
+  "mcp==2.1.1", "keyring==25.7.0", "jsonschema==4.26.0"
+]
+
+[project.scripts]
+evidra-engine = "evidra.__main__:main"
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1", "pytest-asyncio==1.4.0", "hypothesis==6.167.1",
+  "ruff==0.16.6", "mypy==2.3.1", "pyinstaller==6.22.2"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/evidra"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+testpaths = ["tests", "../../tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["evidra"]
+mypy_path = "src"
