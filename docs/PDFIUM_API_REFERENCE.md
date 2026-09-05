@@ -1,0 +1,11 @@
+# PDFium implementation reference
+
+Read-only verification on 2026-09-05: installed pypdfium2 5.13.0 matches its [official Python API documentation](https://pypdfium2.readthedocs.io/en/stable/python_api.html). This is API research, not parser acceptance evidence.
+
+PDFium calls cannot run concurrently in threads; isolate expensive parsing/rendering in processes and close owned document/page/text/bitmap objects explicitly. `PdfDocument` accepts a seekable binary stream, enabling extraction from a verified file handle rather than reopening an unchecked path. It exposes physical page count and `get_page_label(index)`.
+
+`get_text_bounded` supports full Unicode. `get_text_range` has UCS-2 limits and returned string positions can differ from PDFium's internal character indices. The raw text/character index conversion APIs must be considered before attaching character rectangles. `get_charbox` uses PDF left/bottom/right/top coordinates; `get_bbox` intersects crop/media bounds; rotation is clockwise. Render cropping occurs after rotation. PDFium supplies no full layout analysis. These facts rule out assuming that a Python string offset is a character-box index, or that extraction order proves table structure. Use page precision when exact mapping cannot be verified.
+
+Locally inspected signatures confirm `get_text_bounded(..., errors='ignore')`, `get_text_range(index=0,count=-1,errors='ignore')` and `PdfPage.render(scale=1,rotation=0,crop=(0,0,0,0),...)`; deliberate error handling must replace silent decoding loss where required. Pillow 12.3.0 is now installed for PNG encoding; see DEPENDENCIES.md.
+
+For Windows resource limits, [Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects) group owned processes and support configured limits through SetInformationJobObject. JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE closes owned descendants, while nested-job rules can affect effective limits. These are resource/lifecycle controls, not a same-user malware security boundary. A parser must verify that limits are applied before handling document input and preserve failures instead of proceeding without them. The implementation and real limit/cancellation tests remain Task 4 work.
