@@ -12,7 +12,7 @@ export function nativeEngine(g: NativeGlobals): EnginePlatform {
         throw new Error('WINDOWS_PATHS_UNAVAILABLE');
     const system = g.PathUtils.join(systemRoot, 'System32');
     async function command(executable: string, args: string[], env?: Record<string, string>): Promise<string> {
-        const process = await subprocess.call({ command: g.PathUtils.join(system, executable), arguments: args, stderr: 'pipe', ...(env ? { environment: env, environmentAppend: true } : {}) });
+        const process = await subprocess.call({ command: g.PathUtils.join(system, ...executable.split('\\')), arguments: args, stderr: 'pipe', ...(env ? { environment: env, environmentAppend: true } : {}) });
         let timedOut = false;
         const timeout = g.setTimeout(() => { timedOut = true; void process.kill(0); }, 10000);
         const readAll = async (stream: {

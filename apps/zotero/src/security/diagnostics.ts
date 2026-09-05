@@ -2,7 +2,7 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 const choose = (value: unknown, allowed: readonly string[], otherwise = 'REDACTED') => typeof value === 'string' && allowed.includes(value) ? value : otherwise;
 const codes = ['ACL_ERROR', 'INVALID_HANDSHAKE', 'UNSAFE_PATH', 'INVALID_RUNTIME', 'RESERVED_PORT', 'ENGINE_START_FAILED', 'ENGINE_START_TIMEOUT', 'ENGINE_EXITED', 'NATIVE_COMMAND_FAILED', 'NATIVE_COMMAND_TIMEOUT', 'OPERATION_FAILED', 'PROTOCOL_MISMATCH', 'INVALID_CONNECTION_RECEIPT', 'PAYLOAD_HASH_MISMATCH', 'PAYLOAD_CHANGED', 'START_CANCELLED', 'HEARTBEAT_FAILED', 'INVALID_ENGINE_MANIFEST', 'UNSAFE_PAYLOAD_PATH', 'MISSING_ENTRYPOINT', 'PAYLOAD_FILE_SET_MISMATCH', 'PAYLOAD_CHANGED_DURING_HASH', 'MANIFEST_TOO_LARGE', 'PAYLOAD_TOO_LARGE', 'UNAUTHENTICATED', 'FORBIDDEN', 'BRIDGE_EXPIRED', 'ENGINE_HTTP_ERROR'];
 const operations = ['consume_handshake', 'serve_engine', 'protect_acl', 'validate_acl', 'startup', 'engine_http', 'powershell.exe', 'WindowsPowerShell\\v1.0\\powershell.exe', 'whoami.exe', 'icacls.exe'];
-const types = ['Error', 'TypeError', 'DOMException', 'EvidraError', 'CalledProcessError', 'ValidationError', 'OSError', 'PermissionError', 'FileNotFoundError', 'TimeoutExpired', 'NotFoundError', 'NotAllowedError', 'NotReadableError', 'AbortError', 'NetworkError', 'SecurityError', 'SyntaxError'];
+const types = ['Error', 'TypeError', 'DOMException', 'EvidraError', 'CalledProcessError', 'ValidationError', 'OSError', 'PermissionError', 'FileNotFoundError', 'TimeoutExpired', 'NotFoundError', 'NotAllowedError', 'NotReadableError', 'ReadOnlyError', 'NoModificationAllowedError', 'OperationError', 'UnknownError', 'AbortError', 'NetworkError', 'SecurityError', 'SyntaxError'];
 const fields = ['protocol_version', 'profile_instance_id', 'session_token', 'data_dir', 'port', 'connection_path', '<unrecognized-field>'];
 const numeric = (value: unknown): number | null => typeof value === 'number' && Number.isFinite(value) ? value : null;
 function engineProjection(value: unknown) {
@@ -52,7 +52,7 @@ export function nativeDiagnostic(error: unknown) {
         if (source.reason !== undefined)
             cause.reason = choose(source.reason, ['UNSAFE_NATIVE_PATH', 'OUTPUT_REDACTED']);
         for (const key of ['exitCode', 'timeout_seconds', 'errno', 'winerror', 'result', 'http_status'])
-            if (Object.hasOwn(source, key))
+            if (source[key] !== undefined)
                 cause[key] = numeric(source[key]);
         if (source.diagnostic)
             cause.diagnostic = engineProjection(source.diagnostic);

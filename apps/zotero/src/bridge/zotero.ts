@@ -108,9 +108,10 @@ export class ZoteroBridge {
         iframe.style.cssText = 'inline-size:100%;block-size:100%;min-block-size:28rem;border:0;';
         iframe.src = `chrome://evidra/content/ui.html${compact ? '?surface=reader' : ''}`;
         let active = true;
+        let frameWindow: Window | null = null;
         const pending = new Set<string>();
         const listener = (event: MessageEvent) => {
-            if (!active || !isUiEvent(event, iframe.contentWindow) || typeof event.data !== 'string' || event.data.length > 16384)
+            if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string' || event.data.length > 16384)
                 return;
             let envelope: {
                 channel?: unknown;
@@ -123,17 +124,26 @@ export class ZoteroBridge {
             catch {
                 return;
             }
-            if (envelope.channel !== 'evidra-ui-v1' || typeof envelope.id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(envelope.id) || Object.keys(envelope).sort().join(',') !== 'channel,id,request' || pending.has(envelope.id) || pending.size >= 16)
+            if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope) || envelope.channel !== 'evidra-ui-v1' || typeof envelope.id !== 'string' || !/^[a-z0-9-]{1,80}$/.test(envelope.id) || Object.keys(envelope).sort().join(',') !== 'channel,id,request' || pending.has(envelope.id) || pending.size >= 16)
                 return;
             const id = envelope.id;
             pending.add(id);
             const send = (result: unknown, error: string | null) => { pending.delete(id); if (active)
-                iframe.contentWindow?.postMessage(JSON.stringify({ channel: 'evidra-ui-v1', id, result, error }), '*'); };
+                frameWindow?.postMessage(JSON.stringify({ channel: 'evidra-ui-v1', id, result, error }), '*'); };
             void Promise.resolve().then(() => this.dispatch(parseUiMessage(envelope.request), window, close)).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
         };
-        window.addEventListener('message', listener);
+        const loaded = (event: Event) => {
+            if (!active || event.target !== iframe || frameWindow) return;
+            frameWindow = iframe.contentWindow;
+            if (!frameWindow) return;
+            frameWindow.addEventListener('message', listener);
+            frameWindow.postMessage(JSON.stringify({ channel: 'evidra-ui-v1', ready: true }), '*');
+        };
+        // Opt in to the owned content frame's load event in privileged Gecko.
+        const addLoadListener = iframe.addEventListener as (type: string, listener: EventListener, options: AddEventListenerOptions, wantsUntrusted: boolean) => void;
+        addLoadListener.call(iframe, 'load', loaded, { once: true }, true);
         parent.append(iframe);
-        const cleanup = () => { active = false; pending.clear(); window.removeEventListener('message', listener); iframe.remove(); this.#frames.delete(cleanup); };
+        const cleanup = () => { active = false; pending.clear(); iframe.removeEventListener('load', loaded); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
         this.#frames.add(cleanup);
         return cleanup;
     }

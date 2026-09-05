@@ -3,6 +3,7 @@ import { webcrypto } from 'node:crypto';
 import { Lifecycle } from '../src/bootstrap/lifecycle';
 import { ZoteroBridge } from '../src/bridge/zotero';
 import type { NativeGlobals } from '../src/bridge/native-types';
+import { nativeDiagnostic } from '../src/security/diagnostics';
 function host() {
     const prefs = new Map<string, string>();
     let profile = 'C:\\isolated\\profile-a';
@@ -73,6 +74,9 @@ test('saved-package verification records safe causal diagnostics while the UI re
         expect(logs[0]!.message).not.toContain(token);
         expect(logs[0]!.message).not.toContain('private');
         expect(JSON.stringify(status)).not.toContain(token);
+        const nativeCause = Object.create({ name: 'OperationError', message: `C:\\private\\package ${token}`, result: 2152923168, code: 0 });
+        expect(nativeDiagnostic(nativeCause)).toMatchObject({ causes: [{ type: 'OperationError', result: 2152923168, system_code: 0 }] });
+        expect(JSON.stringify(nativeDiagnostic(nativeCause))).not.toContain(token);
     }
     finally { await bridge.shutdown(); }
 });
