@@ -3,7 +3,10 @@
 import importlib.util
 import json
 import sqlite3
+import subprocess
+import sys
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any
 
@@ -48,18 +51,29 @@ def make_app(path: Path, clock: Any, profile: str = "profile-a") -> Any:
         ({"X-Evidra-Client": "mcp"}, None, 0, 403),
         ({}, None, 30, 200),
         ({}, None, 30.001, 503),
+        pytest.param({}, None, (0, 31), 503, id="expires-during-body"),
     ],
 )
 def test_auth_boundary(
-    tmp_path: Path, extra: dict[str, str], remove: str | None, elapsed: float, expected: int
+    tmp_path: Path,
+    extra: dict[str, str],
+    remove: str | None,
+    elapsed: float | tuple[float, float],
+    expected: int,
 ) -> None:
     clock = [0.0]
     with TestClient(make_app(tmp_path, clock), base_url="http://127.0.0.1:49200") as client:
         headers = HEADERS | extra
         if remove:
             del headers[remove]
-        clock[0] = elapsed
-        response = client.get("/v1/status", headers=headers)
+        before_body, after_body = elapsed if isinstance(elapsed, tuple) else (elapsed, elapsed)
+        clock[0] = before_body
+
+        def incoming_body() -> Any:
+            clock[0] = after_body
+            yield b"{}"
+
+        response = client.request("GET", "/v1/status", headers=headers, content=incoming_body())
         assert response.status_code == expected
         assert TOKEN not in response.text
         if expected != 200:
@@ -290,3 +304,68 @@ def test_receipt_cleanup_rejects_substitution(tmp_path: Path) -> None:
     current = receipt.stat()
     security.remove_connection_receipt(receipt, (current.st_dev, current.st_ino))
     assert not receipt.exists()
+
+
+@pytest.mark.parametrize("failure", ["missing-handshake", "invalid-handshake", "occupied-port"])
+def test_cli_failure_diagnostics_are_causal_and_secret_safe(tmp_path: Path, failure: str) -> None:
+    from evidra.__main__ import bind_loopback
+    from evidra.security.handshake import protect_path
+
+    private = tmp_path / "session"
+    private.mkdir()
+    protect_path(private)
+    handshake = private / "handshake.json"
+    invalid_secret = "sensitive-invalid-session"
+    provider_secret = "sensitive-provider-value"
+    with ExitStack() as resources:
+        body = {
+            "protocol_version": 1,
+            "profile_instance_id": "disposable-failure-profile",
+            "session_token": TOKEN,
+            "data_dir": str(tmp_path / "data"),
+            "port": 0,
+            "connection_path": str(private / "connection.json"),
+        }
+        if failure == "occupied-port":
+            listener = resources.enter_context(bind_loopback(0))
+            body["port"] = listener.getsockname()[1]
+        if failure == "invalid-handshake":
+            body["session_token"] = invalid_secret
+            body[provider_secret] = provider_secret
+        if failure != "missing-handshake":
+            handshake.write_text(json.dumps(body), encoding="utf-8")
+        process = subprocess.run(
+            [sys.executable, "-m", "evidra", "serve", "--handshake", str(handshake)],
+            capture_output=True,
+            timeout=15,
+            creationflags=subprocess.CREATE_NO_WINDOW,
+        )
+    assert process.returncode != 0
+    assert process.stdout == b""
+    for secret in (TOKEN, invalid_secret, provider_secret, str(private)):
+        assert secret.encode() not in process.stderr
+    assert process.stderr.startswith(b"{"), "CLI must retain structured causal diagnostics"
+    diagnostic = json.loads(process.stderr)
+    assert diagnostic["operation"] == (
+        "serve_engine" if failure == "occupied-port" else "consume_handshake"
+    )
+    if failure == "missing-handshake":
+        assert diagnostic["causes"][0]["code"] == "ACL_ERROR"
+        cause = diagnostic["causes"][-1]
+        assert cause["type"] == "CalledProcessError" and cause["returncode"] != 0
+        assert cause["acl"]["category"] == "ObjectNotFound"
+        assert cause["acl"]["line"] > 0
+        assert cause["acl"]["exception_type"].endswith("ItemNotFoundException")
+    elif failure == "invalid-handshake":
+        assert diagnostic["causes"][0]["code"] == "INVALID_HANDSHAKE"
+        cause = diagnostic["causes"][-1]
+        assert cause["type"] == "ValidationError"
+        assert {error["field"] for error in cause["errors"]} == {
+            "session_token",
+            "<unrecognized-field>",
+        }
+    else:
+        cause = diagnostic["causes"][-1]
+        assert cause["type"] == "OSError"
+        assert cause["errno"] != 0 and cause["winerror"] == 10048
+    print(json.dumps({"case": failure, "exit_code": process.returncode, "diagnostic": diagnostic}))

@@ -106,13 +106,30 @@ foreach ($rule in $acl.GetAccessRules($true, $true,
 if (-not $hasAccess) { throw 'No private access rule' }
 """
 
+_ACL_DIAGNOSTIC = r"""
+} catch {
+  $reason = 'ACL_OPERATION_FAILED'
+  switch -Exact ($_.Exception.Message) {
+    'Reparse point' { $reason = 'REPARSE_POINT' }
+    'Unexpected owner' { $reason = 'UNEXPECTED_OWNER' }
+    'Unexpected ACL principal' { $reason = 'UNEXPECTED_PRINCIPAL' }
+    'No private access rule' { $reason = 'NO_PRIVATE_ACCESS' }
+  }
+  $fields = @($reason, $_.Exception.GetType().FullName, $_.CategoryInfo.Category.ToString(),
+              $_.InvocationInfo.ScriptLineNumber, $_.Exception.HResult)
+  [Console]::Error.WriteLine('EVIDRA_ACL_DIAGNOSTIC:' + [string]::Join('|', $fields))
+  exit 1
+}
+"""
+
 
 def _acl_operation(path: Path, *, protect: bool) -> None:
     if os.name != "nt":
         raise EvidraError("UNSUPPORTED_PLATFORM", "Windows ACL support is required.")
     assert_no_reparse_points(path)
     executable = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
-    script = _ACL_COMMON + (_ACL_PROTECT if protect else "") + _ACL_VALIDATE
+    script = "try {\n" + _ACL_COMMON + (_ACL_PROTECT if protect else "")
+    script += _ACL_VALIDATE + _ACL_DIAGNOSTIC
     try:
         subprocess.run(
             [str(executable), "-NoProfile", "-NonInteractive", "-Command", script],
@@ -123,7 +140,11 @@ def _acl_operation(path: Path, *, protect: bool) -> None:
             creationflags=subprocess.CREATE_NO_WINDOW,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        raise EvidraError("ACL_ERROR", "Windows private ACL verification failed.") from exc
+        raise EvidraError(
+            "ACL_ERROR",
+            "Windows private ACL verification failed.",
+            details={"operation": "protect_acl" if protect else "validate_acl"},
+        ) from exc
 
 
 def protect_path(path: Path) -> None:

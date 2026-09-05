@@ -102,6 +102,8 @@ class SessionGuard:
                 delivered = True
                 return {"type": "http.request", "body": bytes(body), "more_body": False}
 
+            if scope["path"] != "/health":
+                scope["app"].state.services.session.assert_current()
             await self.app(scope, bounded_receive, send)
         except EvidraError as exc:
             await JSONResponse(

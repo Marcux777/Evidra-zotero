@@ -2,11 +2,16 @@
 
 import argparse
 import asyncio
+import json
+import re
 import socket
+import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import uvicorn
+from pydantic import ValidationError
 
 from evidra.api.app import create_app
 from evidra.domain.errors import EvidraError
@@ -17,6 +22,69 @@ from evidra.security.handshake import (
     write_connection_receipt,
 )
 from evidra.security.runtime import RuntimeSettings
+
+
+def startup_diagnostic(operation: str, error: BaseException) -> dict[str, Any]:
+    """Project the original cause chain onto safe fields; never serialize exception input."""
+    causes: list[dict[str, Any]] = []
+    current: BaseException | None = error
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        cause: dict[str, Any] = {"type": type(current).__name__}
+        if isinstance(current, EvidraError):
+            cause["code"] = current.code
+            if current.details and current.details.get("operation") in {
+                "protect_acl",
+                "validate_acl",
+            }:
+                cause["operation"] = current.details["operation"]
+        elif isinstance(current, ValidationError):
+            cause["errors"] = [
+                {
+                    "type": item["type"],
+                    "field": item["loc"][0]
+                    if item["loc"] and item["loc"][0] in Handshake.model_fields
+                    else "<unrecognized-field>",
+                }
+                for item in current.errors(
+                    include_input=False, include_context=False, include_url=False
+                )
+            ]
+        elif isinstance(current, OSError):
+            cause["errno"] = current.errno
+            cause["winerror"] = getattr(current, "winerror", None)
+        elif isinstance(current, subprocess.CalledProcessError):
+            cause["returncode"] = current.returncode
+            # This fixed producer sends only reason/type/category/position/numeric fields.
+            # Raw PowerShell stderr may include paths, commands or inputs and is never emitted.
+            stderr = current.stderr
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode("ascii", errors="replace")
+            match = re.fullmatch(
+                r"EVIDRA_ACL_DIAGNOSTIC:(ACL_OPERATION_FAILED|REPARSE_POINT|UNEXPECTED_OWNER|"
+                r"UNEXPECTED_PRINCIPAL|NO_PRIVATE_ACCESS)\|"
+                r"(System\.[A-Za-z0-9_.]{1,160})\|([A-Za-z]{1,40})\|(\d{1,6})\|(-?\d{1,12})",
+                stderr.strip() if isinstance(stderr, str) else "",
+            )
+            if match:
+                reason, exception_type, category, line, hresult = match.groups()
+                cause["acl"] = {
+                    "reason": reason,
+                    "exception_type": exception_type,
+                    "category": category,
+                    "line": int(line),
+                    "hresult": int(hresult),
+                }
+            else:
+                cause["stderr_redacted"] = True
+        elif isinstance(current, subprocess.TimeoutExpired):
+            cause["timeout_seconds"] = current.timeout
+        causes.append(cause)
+        current = current.__cause__ or (
+            current.__context__ if not current.__suppress_context__ else None
+        )
+    return {"operation": operation, "causes": causes}
 
 
 def bind_loopback(port: int) -> socket.socket:
@@ -95,13 +163,13 @@ def main() -> None:
     serve_parser = commands.add_parser("serve")
     serve_parser.add_argument("--handshake", type=Path, required=True)
     args = parser.parse_args()
+    operation = "consume_handshake"
     try:
         handshake = consume_handshake(args.handshake)
+        operation = "serve_engine"
         asyncio.run(serve(handshake))
     except (EvidraError, OSError) as exc:
-        # ValidationError and nested OS diagnostics are kept as causes, never printed with input.
-        code = exc.code if isinstance(exc, EvidraError) else "ENGINE_START_FAILED"
-        print(f"Evidra engine failed: {code}", file=sys.stderr)
+        print(json.dumps(startup_diagnostic(operation, exc)), file=sys.stderr)
         raise SystemExit(1) from None
 
 
