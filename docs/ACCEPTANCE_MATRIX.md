@@ -4,7 +4,7 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
-| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | Not yet implemented | Not yet executed | NOT_VERIFIED |
+| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | 15 controlled checks and adapter smoke passed at4240646; independent review clean after fixes. Actual native Zotero execution pending. | PARTIAL |
 | A02 | Selecionar múltiplas coleções usa APIs plurais e não confunde cabeçalhos da lista com itens. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A03 | Item em coleções sobrepostas entra uma vez; itens homônimos de bibliotecas diferentes não se fundem. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A04 | Subcoleções/filtros/buscas salvas/exclusões produzem exatamente o snapshot esperado. | Not yet implemented | Not yet executed | NOT_VERIFIED |
@@ -31,12 +31,12 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 | A25 | LOCAL rejeita endpoints/modelos explicitamente remotos e funciona em smoke com rede externa bloqueada. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A26 | Cada adaptador tem teste de protocolo correto, streaming, schema inválido, quota, timeout e cancelamento. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A27 | MCP só serve o caderno autorizado; sessão read-only não cria propostas; nenhuma ferramenta aplica notas. | Not yet implemented | Not yet executed | NOT_VERIFIED |
-| A28 | HTML/PDF com prompt injection não expande fontes, executa scripts, lê arquivos nem aciona escrita. | Not yet implemented | Not yet executed | NOT_VERIFIED |
+| A28 | HTML/PDF com prompt injection não expande fontes, executa scripts, lê arquivos nem aciona escrita. | `apps/zotero/src/security`, typed bridge | Controlled Markdown/message checks passed; real Gecko isolation, PDF/parser and model/tool scope pending. | PARTIAL |
 | A29 | Host/Origin indevido, token ausente e symlink/path forjado são recusados. | `security/runtime.py`, `security/handshake.py` | Task 1 auth/ACL cases and `.local/task-1/path-security-receipt.json` pass for startup; future registered-source path boundary pending. | PARTIAL |
 | A30 | Segredos não aparecem em logs, backup, argumentos de processo ou configurações exportadas. | Task 1 runtime/handshake/CLI | `.local/task-1/smoke-receipt.json`: token absent from command arguments/receipt/logs; provider secrets, exports and backup pending. | PARTIAL |
 | A31 | CSV neutraliza fórmulas textuais; backup malicioso não escreve fora do destino. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A32 | Backup/restauração preserva decisões e versões; não presume que IDs de outro perfil são válidos. | Not yet implemented | Not yet executed | NOT_VERIFIED |
-| A33 | Engine empacotado roda em Windows limpo sem Python/Node, com protocolo compatível. | Not yet implemented | Not yet executed | NOT_VERIFIED |
+| A33 | Engine empacotado roda em Windows limpo sem Python/Node, com protocolo compatível. | Preliminary M0 PyInstaller onedir under `.local/native-smoke/` | `smoke-be843d60f511/smoke-receipt.json`: actual binary flow/cleanup passed with PATH only System32; final package and clean-Windows host pending. | PARTIAL |
 | A34 | UI distingue fonte indisponível, falha, resultado parcial, rascunho e dado aprovado; teclado funciona. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A35 | Performance real medida com corpus e hardware declarados, sem números inventados. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A36 | Um fluxo real completo gera uma matriz, abre uma evidência e exporta resultado a partir de Zotero. | Not yet implemented | Not yet executed | NOT_VERIFIED |

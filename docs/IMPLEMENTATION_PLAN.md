@@ -71,15 +71,17 @@ Routes live below `/v1`; scoped content routes use `/v1/notebooks/{notebook_id}/
 
 **Requirements:** Native Zotero workspace tab/panel and reader section, lifecycle cleanup on every window and uninstall, correct plugin manifest, no future dummy tabs. Implement first-use engine choice, manifest/hash verification and explicit executable consent; changed binary requires renewed consent. Start own helper only, protected handshake, heartbeat, bounded startup failure and protocol mismatch diagnostics. React local bundle loads under restrictive CSP; markdown-it HTML off + DOMPurify allowlist excludes images/scripts/events and validates links. Wide workspace initially implements real notebook creation/listing. Both locales and keyboard/focus/dark mode on this vertical.
 
-- [ ] Write focused Vitest checks for typed-message rejection/token non-exposure and malicious Markdown rendering, plus the first notebook flow through a real React component with a controlled bridge boundary. Example:
+- [x] Write focused Vitest checks for typed-message rejection/token non-exposure and malicious Markdown rendering, plus the first notebook flow through a real React component with a controlled bridge boundary. Example:
   ```ts
   expect(() => parseUiMessage({ op: 'read_file', path: 'C:\\secret' })).toThrow();
   expect(renderSafeMarkdown('<img src=x onerror=alert(1)>')).not.toContain('<img');
   ```
-- [ ] Run `rtk npm test -- apps/zotero/tests` to observe the missing behavior; implement target APIs verified from official source, bundled React and onboarding. Do not guess runtime globals.
-- [ ] Generate OpenAPI/types, run `rtk npm run typecheck`, `rtk npm test`, `rtk npm run build:plugin`; inspect XPI zip paths, manifest and packaged resources.
+- [x] Run `rtk npm test -- apps/zotero/tests` to observe the missing behavior; implement target APIs verified from official source, bundled React and onboarding. Do not guess runtime globals.
+- [x] Generate OpenAPI/types, run `rtk npm run typecheck`, `rtk npm test`, `rtk npm run build:plugin`; inspect XPI zip paths, manifest and packaged resources.
 - [ ] Native smoke in a separate authorized test profile: load plugin, create/reopen notebook, reader/workspace lifecycle and disable cleanup. If the permitted helper cannot support test-profile installation/startup, record the exact blocked operation rather than automating Zotero UI or touching the personal profile. Continue independently executable work.
-- [ ] Record screenshots only from real plugin operation when possible; otherwise label native criteria NOT_VERIFIED. Commit owned changes and report verification.
+- [x] Record screenshots only from real plugin operation when possible; otherwise label native criteria NOT_VERIFIED. Commit owned changes and report verification.
+
+Task 2 source/review gate passed at4240646 after one fix round. The separate native operation above remains NOT_VERIFIED and is tracked in NATIVE_VALIDATION_PLAN.md; the user authorized its local-policy exception on2026-09-05. Later source tasks continue as explicitly allowed by that step.
 
 ## Task 3: M1 source resolution, identities and immutable scoped snapshots
 
