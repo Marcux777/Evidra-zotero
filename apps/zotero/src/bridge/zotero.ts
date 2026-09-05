@@ -106,7 +106,8 @@ export class ZoteroBridge {
         iframe.setAttribute('sandbox', 'allow-scripts');
         iframe.setAttribute('title', 'Evidra');
         iframe.style.cssText = 'inline-size:100%;block-size:100%;min-block-size:28rem;border:0;';
-        iframe.src = `chrome://evidra/content/ui.html${compact ? '?surface=reader' : ''}`;
+        const uiUri = `chrome://evidra/content/ui.html${compact ? '?surface=reader' : ''}`;
+        iframe.src = uiUri;
         let active = true;
         let frameWindow: Window | null = null;
         const pending = new Set<string>();
@@ -133,17 +134,22 @@ export class ZoteroBridge {
             void Promise.resolve().then(() => this.dispatch(parseUiMessage(envelope.request), window, close)).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
         };
         const loaded = (event: Event) => {
-            if (!active || event.target !== iframe || frameWindow) return;
+            if (!active || !event.isTrusted || frameWindow) return;
+            const document = iframe.contentDocument;
+            if (!document || event.target !== document || document.documentURI !== uiUri || document.readyState !== 'complete') return;
             frameWindow = iframe.contentWindow;
             if (!frameWindow) return;
+            removeLoadListener();
             frameWindow.addEventListener('message', listener);
             frameWindow.postMessage(JSON.stringify({ channel: 'evidra-ui-v1', ready: true }), '*');
         };
-        // Opt in to the owned content frame's load event in privileged Gecko.
+        const removeLoadListener = () => iframe.removeEventListener('load', loaded, true);
+        // Gecko chrome captures the child document's load; earlier resource loads
+        // must not consume readiness or initialize the bridge for another document.
         const addLoadListener = iframe.addEventListener as (type: string, listener: EventListener, options: AddEventListenerOptions, wantsUntrusted: boolean) => void;
-        addLoadListener.call(iframe, 'load', loaded, { once: true }, true);
+        addLoadListener.call(iframe, 'load', loaded, { capture: true }, true);
         parent.append(iframe);
-        const cleanup = () => { active = false; pending.clear(); iframe.removeEventListener('load', loaded); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
+        const cleanup = () => { active = false; pending.clear(); removeLoadListener(); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
         this.#frames.add(cleanup);
         return cleanup;
     }

@@ -11,9 +11,34 @@ test('opaque UI waits for native readiness and exchanges only admitted messages 
     const bridge = new ZoteroBridge({ Zotero: { logError: (error: unknown) => { logs.push(error); } } } as unknown as NativeGlobals, () => {});
     const dispatch = vi.spyOn(bridge, 'dispatch').mockImplementation(async request => ({ operation: request.op }));
     const parent = document.createElement('div'); document.body.append(parent);
-    const unmount = bridge.mount(parent, window, false, () => {});
-    const frame = parent.querySelector('iframe')!;
+    const frame = document.createElement('iframe');
+    // Gecko propagates child document load through the embedding iframe only in
+    // capture phase. jsdom does not implement this native browsing-context path.
+    const loads = new Set<{ callback: EventListenerOrEventListenerObject; capture: boolean; once: boolean }>();
+    const capture = (options?: boolean | EventListenerOptions) => typeof options === 'boolean' ? options : options?.capture === true;
+    const loadAdd = vi.spyOn(frame, 'addEventListener').mockImplementation((type, callback, options) => {
+        if (type !== 'load' || !callback) throw new Error('UNEXPECTED_FRAME_LISTENER');
+        loads.add({ callback, capture: capture(options), once: typeof options === 'object' && options.once === true });
+    });
+    const loadRemove = vi.spyOn(frame, 'removeEventListener').mockImplementation((type, callback, options) => {
+        if (type !== 'load') throw new Error('UNEXPECTED_FRAME_LISTENER');
+        for (const load of loads) if (load.callback === callback && load.capture === capture(options)) loads.delete(load);
+    });
+    const create = vi.spyOn(document, 'createElementNS').mockReturnValueOnce(frame);
+    const unmount = bridge.mount(parent, window, true, () => {});
+    create.mockRestore();
     const child = frame.contentWindow!;
+    const childDocument = frame.contentDocument!;
+    const documentUri = vi.spyOn(childDocument, 'documentURI', 'get').mockReturnValue('chrome://evidra/content/ui.html?surface=reader');
+    const readyState = vi.spyOn(childDocument, 'readyState', 'get').mockReturnValue('complete');
+    const deliverLoad = (target: EventTarget, isTrusted = true) => {
+        const event = { type: 'load', target, originalTarget: target, currentTarget: frame, eventPhase: 1, isTrusted } as unknown as Event;
+        for (const load of [...loads]) if (load.capture) {
+            if (load.once) loads.delete(load);
+            if (typeof load.callback === 'function') load.callback.call(frame, event);
+            else load.callback.handleEvent(event);
+        }
+    };
     const listeners = new Map<string, Set<EventListener>>();
     const add = vi.spyOn(child, 'addEventListener').mockImplementation((type, callback) => {
         if (!listeners.has(type)) listeners.set(type, new Set());
@@ -32,13 +57,25 @@ test('opaque UI waits for native readiness and exchanges only admitted messages 
     });
     const transport = createUiTransport(child);
     try {
-        const first = transport.bridge.request({ op: 'status' });
+        const first = transport.bridge.request({ op: 'status' }).then(result => ({ result }), error => ({ error }));
         const ready = JSON.stringify({ channel: 'evidra-ui-v1', ready: true });
         for (const invalid of [{ source: child }, { origin: 'null' }, { isTrusted: false }])
             deliver({ data: ready, source: null, origin: '', isTrusted: true, ...invalid });
         expect(outgoing).toEqual([]);
-        frame.dispatchEvent(new Event('load'));
-        await expect(first).resolves.toEqual({ operation: 'status' });
+        deliverLoad(childDocument.createElement('link'));
+        deliverLoad(document);
+        deliverLoad(childDocument, false);
+        documentUri.mockReturnValue('chrome://evidra/content/ui.html');
+        deliverLoad(childDocument);
+        documentUri.mockReturnValue('chrome://evidra/content/ui.html?surface=reader');
+        readyState.mockReturnValue('interactive');
+        deliverLoad(childDocument);
+        expect(outgoing).toEqual([]);
+        readyState.mockReturnValue('complete');
+        deliverLoad(childDocument);
+        expect(outgoing).toContain(ready);
+        expect(loads.size).toBe(0);
+        await expect(first).resolves.toEqual({ result: { operation: 'status' } });
         expect(dispatch).toHaveBeenCalledTimes(1);
         const request = JSON.stringify({ channel: 'evidra-ui-v1', id: 'foreign', request: { op: 'status' } });
         expect(() => deliver({ data: 'null', source: child, origin: 'null', isTrusted: true })).not.toThrow();
@@ -65,6 +102,7 @@ test('opaque UI waits for native readiness and exchanges only admitted messages 
         expect(logs).toEqual([]);
     } finally {
         transport.close(); unmount(); post.mockRestore(); add.mockRestore(); remove.mockRestore(); parent.remove();
+        loadAdd.mockRestore(); loadRemove.mockRestore(); documentUri.mockRestore(); readyState.mockRestore();
     }
 });
 
