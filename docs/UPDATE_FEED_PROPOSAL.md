@@ -15,4 +15,10 @@ The first native attempt failed before bootstrap and the isolated instance was c
 
 GitHub connector and installed CLI both identify the authenticated account as `Marcux777`. Read-only repository search found no accessible `evidra-zotero` repository and the local checkout had no Git remote before this publication. If the named repository already exists at creation time, stop and inspect rather than overwrite it. Creation, pushed commit and feed readback will be recorded separately.
 
+## Executed publication
+
+On2026-09-05, created public `https://github.com/Marcux777/Evidra-zotero`, verified `private=false`/`visibility=public`, added its HTTPS Git URL as the local origin, and pushed exact commit `344fbc1f1dbdf59680f8ad6852434622a30090e9` to `main`. The remote ref readback matched. Task3's uncommitted files were preserved locally. No separate update repository was created.
+
+The canonical HTTPS feed returned200 and exactly the approved77bytes with SHA256 `901686d6fab93aba6f5b115b5002f7fa630af72c09a2d59402b15549c14bd96a`, zero updates. Receipt `.local/publication/first-publication.json`, verified2026-09-05T22:49:10Z. Native admission/update-channel verification still belongs to the corrected XPI test; publication alone is not a native pass.
+
 Authorization was required by SPEC.md:719, “Não publicar releases ou registrar atualizador remoto sem autorização”, and AGENTS.md's explicit target/scope/confirmation rule for remote writes. The user answered “Autorizo essa publicação limitada”, then requested the named project repository and corrected “privado” to “publico*”. This explicit publication authority is separate from the isolated-profile test permission.

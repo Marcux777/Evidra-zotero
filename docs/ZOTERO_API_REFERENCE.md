@@ -21,7 +21,7 @@ Target inspected: Zotero 10.0.1 / Firefox 140 ESR, 2026-09-05. This is a source 
 | Owned helper | Mozilla Subprocess.call/wait/kill | [Subprocess docs](https://firefox-source-docs.mozilla.org/toolkit/modules/subprocess/toolkit_modules/subprocess/index.html). Arrays of arguments, no shell, pipe logs without secrets, kill only owned child if necessary. |
 | Privileged local I/O | IOUtils.readJSON/writeJSON/writeUTF8/stat/remove/makeDirectory | [IOUtils docs](https://firefox-source-docs.mozilla.org/dom/ioutils_migration.html). Atomic temp file doesn't establish Windows DACL security by itself. |
 
-Operational policy remains separate: the agent may use only the personal local Zotero helper for actual Zotero operations, with no UI automation or personal-library mutation. That helper currently supports base-URL/executable environment overrides but not a profile-selecting startup argument. Native test-profile launch/installation must not silently bypass that boundary.
+Operational policy remains separate: ordinary Zotero operations use only the personal local helper, which lacks profile-selecting startup arguments. The user explicitly authorized the exact isolated-profile native test exception in NATIVE_VALIDATION_PLAN.md; that exception does not authorize personal-profile UI automation or library mutation.
 
 ## Test-profile isolation reference
 
@@ -36,3 +36,11 @@ Two ancillary raw-source lookups for `defaults/preferences/prefs.js` and `app/as
 The target sync runner marks a retained group `archived=true` when group access or membership disappears. Evidra's current-access requirement therefore treats an archived or missing library as unavailable, even when Zotero retains its local files. This is an implementation ruling inferred from [syncRunner.js](https://raw.githubusercontent.com/zotero/zotero/10.0.1/chrome/content/zotero/xpcom/sync/syncRunner.js), not a new remote permission check. The bridge observes Zotero's current local state; it cannot detect an unsynced remote membership change without Zotero reporting it. Revalidate known selected libraries/items on operations and revoke on relevant notifications; never call cloud APIs or scan unrelated libraries to discover changes.
 
 The initial lookup of `xpcom/libraries.js` returned Internal Error; the verified registry is `xpcom/data/libraries.js`. The failed URL supplied no evidence and caused no Zotero operation.
+
+## Measured Gecko transport and path behavior
+
+The isolated native experiment at23:18Z confirms that a sandboxed content page cannot call its chrome parent's postMessage. A self-posted request can reach a privileged listener attached to that exact contentWindow: source is the child, origin is `null`, and isTrusted is true. The privileged reply arrives with source=null, empty origin and isTrusted=true. Receipt `.local/native-smoke/task2-native-transport-package-diagnostic-bounded.json` preserves both directions and the opaque principal. [MDN documents the null source for privileged postMessage](https://developer.mozilla.org/en-US/docs/Web/API/Window/postMessage#using_window.postmessage_in_extensions); the empty origin is a measured target behavior, not a portable browser assumption. A native-ready signal must precede queued UI requests, and synthetic/unexpected senders must be rejected.
+
+The same experiment found `PathUtils.join(system, 'WindowsPowerShell\\v1.0\\powershell.exe')` throws OperationError/NS_ERROR_FILE_UNRECOGNIZED_PATH. Pass each fixed path component separately. Preserve OperationError/UnknownError and the numeric DOMException result in structural diagnostics; [Mozilla documents the IOUtils exception categories](https://firefox-source-docs.mozilla.org/dom/ioutils_migration.html#errors-are-reported-as-domexceptions). Raw native messages may contain paths and are not suitable for public error payloads.
+
+Installed `omni.ja/modules/subprocess/subprocess_common.sys.mjs:495-526` confirms readString without a length returns an empty string at EOF and decodes successive chunks in streaming mode. This matches the adapter's pipe-drain contract; supplying an exact length has different EOF rejection behavior.
