@@ -20,4 +20,7 @@ with zipfile.ZipFile(target) as archive:
     manifest = json.loads(archive.read("manifest.json"))
     if manifest["applications"]["zotero"]["strict_max_version"] != "10.0.*":
         raise RuntimeError("XPI_COMPATIBILITY_MISMATCH")
-    print(json.dumps({"files": names, "resource_count": len(names), "bytes": target.stat().st_size}))
+    update_url = manifest["applications"]["zotero"].get("update_url")
+    if update_url != "https://raw.githubusercontent.com/Marcux777/Evidra-zotero/main/updates.json":
+        raise RuntimeError("XPI_UPDATE_URL_MISMATCH")
+    print(json.dumps({"files": names, "resource_count": len(names), "bytes": target.stat().st_size, "update_url": update_url}))
