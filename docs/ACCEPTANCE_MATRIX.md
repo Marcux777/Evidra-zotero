@@ -1,6 +1,6 @@
 # Acceptance matrix
 
-Statuses require executed evidence. Initial state: no acceptance criterion has been verified.
+Statuses require executed evidence. PARTIAL means only the named sub-boundary has evidence; it does not pass the complete acceptance criterion. Task 1 passed independent review after one fix round.
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
@@ -32,8 +32,8 @@ Statuses require executed evidence. Initial state: no acceptance criterion has b
 | A26 | Cada adaptador tem teste de protocolo correto, streaming, schema inválido, quota, timeout e cancelamento. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A27 | MCP só serve o caderno autorizado; sessão read-only não cria propostas; nenhuma ferramenta aplica notas. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A28 | HTML/PDF com prompt injection não expande fontes, executa scripts, lê arquivos nem aciona escrita. | Not yet implemented | Not yet executed | NOT_VERIFIED |
-| A29 | Host/Origin indevido, token ausente e symlink/path forjado são recusados. | Not yet implemented | Not yet executed | NOT_VERIFIED |
-| A30 | Segredos não aparecem em logs, backup, argumentos de processo ou configurações exportadas. | Not yet implemented | Not yet executed | NOT_VERIFIED |
+| A29 | Host/Origin indevido, token ausente e symlink/path forjado são recusados. | `security/runtime.py`, `security/handshake.py` | Task 1 auth/ACL cases and `.local/task-1/path-security-receipt.json` pass for startup; future registered-source path boundary pending. | PARTIAL |
+| A30 | Segredos não aparecem em logs, backup, argumentos de processo ou configurações exportadas. | Task 1 runtime/handshake/CLI | `.local/task-1/smoke-receipt.json`: token absent from command arguments/receipt/logs; provider secrets, exports and backup pending. | PARTIAL |
 | A31 | CSV neutraliza fórmulas textuais; backup malicioso não escreve fora do destino. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A32 | Backup/restauração preserva decisões e versões; não presume que IDs de outro perfil são válidos. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A33 | Engine empacotado roda em Windows limpo sem Python/Node, com protocolo compatível. | Not yet implemented | Not yet executed | NOT_VERIFIED |

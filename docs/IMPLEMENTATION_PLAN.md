@@ -49,7 +49,7 @@ Routes live below `/v1`; scoped content routes use `/v1/notebooks/{notebook_id}/
 
 **Requirements:** Validate Host/Origin and required `X-Evidra-Client: bridge` header plus Bearer authentication; health exposes only minimal protocol status. Deny wrong host, all unapproved web origins, invalid token and expired bridge. Bounded JSON body size. Use WAL/foreign keys, transactional schema versioning and backup before subsequent migrations; future schema versions are rejected. CLI protects/consumes handshake atomically, validates schema, sends no secrets to stdout/logs, starts lazily and shuts down its owned resources. Windows ACL helpers must fail closed on ACL errors. No parser/models at startup.
 
-- [ ] Write `test_runtime_notebooks.py` with one parametrized auth boundary test and one persistence/idempotency test using temporary real SQLite. Direct example:
+- [x] Write `test_runtime_notebooks.py` with one parametrized auth boundary test and one persistence/idempotency test using temporary real SQLite. Direct example:
   ```python
   response = client.post('/v1/notebooks', headers=bridge_headers,
                          json={'name': 'Revisão', 'idempotency_key': 'create-1'})
@@ -58,10 +58,10 @@ Routes live below `/v1`; scoped content routes use `/v1/notebooks/{notebook_id}/
   assert reopened_client.get(f'/v1/notebooks/{notebook_id}', headers=bridge_headers).json()['name'] == 'Revisão'
   assert client.get('/v1/notebooks', headers={'Host': 'attacker.test'}).status_code == 403
   ```
-- [ ] Run `rtk uv run --project services/engine --no-sync pytest services/engine/tests/test_runtime_notebooks.py -q` and capture the expected missing behavior failure. A missing dependency is a blocker, not a red proof.
-- [ ] Implement the production contracts and CLI; real heartbeat expiry via injected clock, transactional creation, body/auth guards. Use `hmac.compare_digest` for credentials and stdlib `secrets` for generated IDs/tokens.
-- [ ] Run focused pytest, Ruff and mypy on owned modules; run a real loopback subprocess health/notebook/restart smoke using disposable handshake/data. Record stderr, exit, ports and process cleanup, redacting secrets.
-- [ ] Self-review, inspect git status/branch/root/worktrees, commit owned changes, and write the task report with exact RED/GREEN commands and counts. M0 native acceptance is still pending Task 2.
+- [x] Run `rtk uv run --project services/engine --no-sync pytest services/engine/tests/test_runtime_notebooks.py -q` and capture the expected missing behavior failure. A missing dependency is a blocker, not a red proof.
+- [x] Implement the production contracts and CLI; real heartbeat expiry via injected clock, transactional creation, body/auth guards. Use `hmac.compare_digest` for credentials and stdlib `secrets` for generated IDs/tokens.
+- [x] Run focused pytest, Ruff and mypy on owned modules; run a real loopback subprocess health/notebook/restart smoke using disposable handshake/data. Record stderr, exit, ports and process cleanup, redacting secrets.
+- [x] Self-review, inspect git status/branch/root/worktrees, commit owned changes, and write the task report with exact RED/GREEN commands and counts. M0 native acceptance is still pending Task 2.
 
 ## Task 2: M0 native XPI, safe UI bridge and first notebook
 

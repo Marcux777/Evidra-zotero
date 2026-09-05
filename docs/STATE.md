@@ -2,7 +2,7 @@
 
 Updated: 2026-09-05. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
 
-The full v1 implementation is in progress, not complete. No milestone or acceptance test has passed yet. The supplied SPEC.md is preserved unchanged and IMPLEMENTATION_PLAN.md decomposes M0–M7 into twelve tasks.
+The full v1 implementation is in progress, not complete. Task 1's engine implementation and focused Windows checks passed independent review after one fix round. No complete native milestone or end-to-end acceptance criterion is declared passed. The supplied SPEC.md is preserved unchanged and IMPLEMENTATION_PLAN.md decomposes M0–M7 into twelve tasks.
 
 ## Environment and authorizations
 
@@ -16,8 +16,14 @@ The full v1 implementation is in progress, not complete. No milestone or accepta
 
 ## Current files and verification
 
-Created source spec/plan/ADR, package manifests/lockfiles, ignores and empty engine package. No behavior tests yet; setup/configuration changes do not justify permanent tests under the local testing policy. Source/spec hash verified with hashlib.
+Task 1 commit `2759afbae9638e742bf96aa2174e26b2e3efbca8` adds the authenticated loopback engine, heartbeat, private one-use Windows handshake, versioned SQLite storage and persistent/idempotent notebooks. Nine permanent test functions collect 21 cases; all passed. Ruff and strict mypy passed on 16 source files. The upstream Starlette/AnyIO deprecation warning remains visible and documented.
+
+Review fix `a47c06e3870b8e0715dfff3a68b69fd449c36681` corrects slow-body heartbeat expiry and adds sanitized causal CLI diagnostics. The final covering run passed 18 cases (seven unrelated cases not repeated); changed-file Ruff/mypy passed. There are now 25 cases in ten functions. Scoped independent re-review found both findings addressed and no new Critical/Important breakage; see the appended fix report for exact RED/GREEN evidence.
+
+Two real hidden engine processes exercised restart persistence, authentication, heartbeat expiration and cleanup against synthetic data. Both exited 0, consumed their handshakes, removed their receipts and closed their sockets. A built Python wheel contains the migration. This does not verify the eventual Windows executable distribution or native Zotero interface. See TEST_REPORT.md and `.superpowers/sdd/IMPLEMENTATION_PLAN/task-1-report.md` for exact logs and hashes.
+
+Official target-source inspection found that unknown custom tab types can break Zotero session restore after plugin removal. ADR 0002 selects the spec's allowed native in-window panel plus supported reader section. No Zotero session methods are patched. Provider protocol research is recorded in PROVIDER_PROTOCOL_REFERENCE.md; no live model calls were made.
 
 ## Next step
 
-Implement Task 1: real authenticated loopback engine, heartbeat, protected handshake, persistent notebooks and focused tests. Then native plugin vertical, sources, parser, providers, matrix/jobs/research, MCP, exports and distribution as recorded in the plan. Native smoke must use a separate synthetic profile and permitted local services; personal-profile plugin installation is not authorized.
+Implement Task 2's native plugin vertical, followed by sources, parser, providers, matrix/jobs/research, MCP, exports and distribution as recorded in the plan. Native smoke must use a separate synthetic profile. The authorized personal helper does not expose profile-specific startup/install commands; that operation remains blocked until a concrete harness and narrow authorization are available. Personal-profile plugin installation is not authorized.
