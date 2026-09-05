@@ -1,0 +1,2 @@
+# Resource inventory only. Zotero 10 uses bootstrap.js runtime chrome registration.
+# Fluent catalogs under locale/ are registered automatically by Zotero.Plugins.

@@ -1,0 +1,15 @@
+import { execFileSync } from 'node:child_process';
+import { readFile, writeFile } from 'node:fs/promises';
+import openapiTS, { astToString } from 'openapi-typescript';
+import Ajv2020 from 'ajv/dist/2020.js';
+import standaloneCode from 'ajv/dist/standalone/index.js';
+import { build } from 'esbuild';
+execFileSync('uv', ['run', '--project', 'services/engine', '--no-sync', 'python', 'scripts/export-contracts.py'], {stdio:'inherit'});
+const schema=JSON.parse(await readFile('packages/contracts/generated/openapi.json','utf8'));
+await writeFile('packages/contracts/generated/api.ts',astToString(await openapiTS(schema)));
+const manifest=JSON.parse(await readFile('packages/contracts/generated/engine-manifest.schema.json','utf8'));
+const ajv=new Ajv2020({code:{source:true,esm:true},allErrors:false});
+const compiled=await build({stdin:{contents:standaloneCode(ajv,ajv.compile(manifest)),resolveDir:process.cwd(),sourcefile:'validate-manifest.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+await writeFile('packages/contracts/generated/validate-manifest.js',compiled.outputFiles[0].text);
+await writeFile('packages/contracts/generated/validate-manifest.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['EngineManifest'];\n`);
+console.log('Generated OpenAPI and TypeScript from Pydantic (no service startup).');

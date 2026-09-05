@@ -1,0 +1,86 @@
+{
+  "$defs": {
+    "PayloadFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "maxLength": 240,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_./ -]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "size": {
+          "minimum": 0,
+          "title": "Size",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "size",
+        "sha256"
+      ],
+      "title": "PayloadFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "manifest_version": {
+      "const": 1,
+      "title": "Manifest Version",
+      "type": "integer"
+    },
+    "protocol_version": {
+      "const": 1,
+      "title": "Protocol Version",
+      "type": "integer"
+    },
+    "engine_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "platform": {
+      "const": "win32",
+      "title": "Platform",
+      "type": "string"
+    },
+    "architecture": {
+      "const": "x86_64",
+      "title": "Architecture",
+      "type": "string"
+    },
+    "entrypoint": {
+      "const": "evidra-engine.exe",
+      "title": "Entrypoint",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/PayloadFile"
+      },
+      "maxItems": 10000,
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_version",
+    "protocol_version",
+    "engine_version",
+    "platform",
+    "architecture",
+    "entrypoint",
+    "files"
+  ],
+  "title": "EngineManifest",
+  "type": "object"
+}
