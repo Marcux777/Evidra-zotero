@@ -1,4 +1,4 @@
-﻿# Evidra test report
+# Evidra test report
 
 Date: 2026-09-05. Status: implementation in progress. No acceptance criterion is declared passed by environment setup alone.
 
@@ -57,4 +57,3 @@ Setup commit added no permanent tests: only approved specifications, configurati
 Task 1: 1 added test file, 9 test functions, 21 collected/executed cases; 0 pre-existing tests modified or removed. The report maps each function to a separate material invariant: session authorization, durable idempotency/profile isolation, bounded/redacted input, transactional sanitized storage errors, migration lifecycle, concurrent creation, credential file ACL/claim, exclusive listener binding, and safe receipt cleanup.
 
 Task 1 fix round 1: one existing function gained one delayed-body case; one new function has three real CLI failure cases; no tests removed. The file now contains 10 functions and 25 cases. Eighteen covering cases were executed after the fix; seven unrelated persistence/lifecycle cases retain their earlier execution evidence. The final full-project check will report its own count at its exact revision.
-
