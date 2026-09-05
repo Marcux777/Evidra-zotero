@@ -48,6 +48,7 @@ export interface EnginePlatform {
     start(root: string, profile: string): Promise<OwnedSession>;
     fetch(url: string, init: RequestInit): Promise<Response>;
     every(fn: () => void, ms: number): () => void;
+    reportError(error: unknown): void;
 }
 export class EngineController {
     #platform: EnginePlatform;
@@ -112,7 +113,11 @@ export class EngineController {
                 throw new Error('PROTOCOL_MISMATCH');
             this.#preview = { ...current, consentRequired: false };
             this.#cancelHeartbeat = this.#platform.every(() => { if (this.#heartbeatBusy)
-                return; this.#heartbeatBusy = true; void this.request('POST', '/v1/bridge/heartbeat').catch(async () => { await this.stop(); this.#state = 'failed'; this.#error = 'HEARTBEAT_FAILED'; }).finally(() => { this.#heartbeatBusy = false; }); }, 10000);
+                return; this.#heartbeatBusy = true; void this.request('POST', '/v1/bridge/heartbeat').catch(async error => {
+                    const failure = new Error('HEARTBEAT_FAILED', { cause: error });
+                    this.#platform.reportError(failure);
+                    await this.stop(); this.#state = 'failed'; this.#error = failure.message;
+                }).finally(() => { this.#heartbeatBusy = false; }); }, 10000);
         }
         catch (error) {
             await this.#closeSession();
@@ -139,7 +144,7 @@ export class EngineController {
                 const error = await response.json() as {
                     code?: unknown;
                 };
-                throw new Error(typeof error.code === 'string' && /^[A-Z_]{1,80}$/.test(error.code) ? error.code : 'ENGINE_HTTP_ERROR');
+                throw new Error(typeof error.code === 'string' && /^[A-Z_]{1,80}$/.test(error.code) ? error.code : 'ENGINE_HTTP_ERROR', { cause: { operation: 'engine_http', http_status: response.status } });
             }
             return await response.json();
         }

@@ -10,15 +10,49 @@ export function App({ bridge, compact = false }: {
     const [name, setName] = useState(''), [invalid, setInvalid] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
     const [locale, setLocale] = useState<Locale>('pt-BR'), [theme, setTheme] = useState<Theme>('system'), [mode, setMode] = useState<Mode>('LOCAL');
     const input = useRef<HTMLInputElement>(null), heading = useRef<HTMLHeadingElement>(null), key = useRef<string | null>(null);
+    const dataVersion = useRef(0), pageOffset = useRef(0), actionBusy = useRef(false);
     const t = catalog(locale);
     function onError(error: unknown) { setError(error instanceof Error ? error.message : 'OPERATION_FAILED'); }
-    async function load(offset = page.offset) { setPage(await bridge.request({ op: 'notebook.list', offset }) as NotebookPage); }
-    async function refresh() { const next = await bridge.request({ op: 'status' }) as BridgeStatus; setStatus(next);setError(next.error??''); setLocale(next.locale); setTheme(next.theme); setMode(next.mode); if (next.state === 'running')
-        await load(); }
-    useEffect(() => { void refresh().catch(onError); }, []);
-    useEffect(()=>{let active=true;const timer=setInterval(()=>{void bridge.request({op:'status'}).then(value=>{if(active){const next=value as BridgeStatus;setStatus(next);if(next.error)setError(next.error);}},error=>{if(active)onError(error);});},10000);return()=>{active=false;clearInterval(timer);};},[bridge]);
+    function beginAction() { ++dataVersion.current; actionBusy.current = true; setBusy(true); }
+    function endAction() { actionBusy.current = false; setBusy(false); }
+    async function load(offset: number) {
+        const version = ++dataVersion.current;
+        try {
+            const next = await bridge.request({ op: 'notebook.list', offset }) as NotebookPage;
+            if (version !== dataVersion.current) return;
+            pageOffset.current = next.offset;
+            setPage(next);
+        }
+        catch (error) { if (version === dataVersion.current) throw error; }
+    }
+    async function refresh(applyPreferences = true) {
+        const version = ++dataVersion.current, offset = pageOffset.current;
+        try {
+            const next = await bridge.request({ op: 'status' }) as BridgeStatus;
+            if (version !== dataVersion.current) return;
+            const nextPage = next.state === 'running'
+                ? await bridge.request({ op: 'notebook.list', offset }) as NotebookPage
+                : { items: [], offset: 0, limit: 50, total: 0 };
+            if (version !== dataVersion.current) return;
+            setStatus(next); setPage(nextPage); pageOffset.current = nextPage.offset;
+            if (applyPreferences || next.error) setError(next.error ?? '');
+            if (applyPreferences) { setLocale(next.locale); setTheme(next.theme); setMode(next.mode); }
+        }
+        catch (error) { if (version === dataVersion.current) throw error; }
+    }
+    useEffect(() => {
+        let active = true, polling = false;
+        void refresh().catch(onError);
+        const timer = setInterval(() => {
+            if (!active || polling || actionBusy.current) return;
+            polling = true;
+            void refresh(false).catch(onError).finally(() => { polling = false; });
+        }, 10000);
+        return () => { active = false; ++dataVersion.current; clearInterval(timer); };
+    }, [bridge]);
     useEffect(() => { document.documentElement.lang = locale; document.documentElement.dataset.theme = theme; document.title = status?.selected?.name ?? 'Evidra'; }, [locale, theme, status?.selected?.name]);
-    async function select(id: string) { setBusy(true); setError(''); try {
+    async function navigate(offset: number) { beginAction(); try { await load(offset); } catch (error) { onError(error); } finally { endAction(); } }
+    async function select(id: string) { beginAction(); setError(''); try {
         const selected = await bridge.request({ op: 'notebook.select', id }) as Notebook;
         setStatus(old => old && ({ ...old, selected }));
         requestAnimationFrame(() => heading.current?.focus());
@@ -27,13 +61,13 @@ export function App({ bridge, compact = false }: {
         onError(error);
     }
     finally {
-        setBusy(false);
+        endAction();
     } }
     async function create(event: React.FormEvent) { event.preventDefault(); if (!name.trim() || name.trim().length > 200) {
         setInvalid(true);
         input.current?.focus();
         return;
-    } setBusy(true); setInvalid(false); setError(''); try {
+    } beginAction(); setInvalid(false); setError(''); try {
         key.current ??= crypto.randomUUID();
         const created = await bridge.request({ op: 'notebook.create', name: name.trim(), idempotency_key: key.current }) as Notebook;
         const selected = await bridge.request({op:'notebook.select',id:created.id}) as Notebook;
@@ -47,9 +81,9 @@ export function App({ bridge, compact = false }: {
         onError(error);
     }
     finally {
-        setBusy(false);
+        endAction();
     } }
-    async function preferences() { setBusy(true); try {
+    async function preferences() { beginAction(); try {
         await bridge.request({ op: 'preferences', locale, theme, mode });
         await refresh();
         setNotice(t.saved);
@@ -58,12 +92,12 @@ export function App({ bridge, compact = false }: {
         onError(error);
     }
     finally {
-        setBusy(false);
+        endAction();
     } }
     return <><a className="skip" href="#main">{t.skip}</a><header className="top"><strong>Evidra</strong><span role="status">{status ? t[status.state] : t.loading}</span><button onClick={() => void bridge.request({ op: compact ? 'workspace.open' : 'workspace.close' }).catch(onError)}>{compact ? t.reopen : t.close}</button></header>
     <div role="status" className="notice">{notice}</div>{error && <p role="alert" className="error">{t.error}: {error}</p>}
     <div className="layout"><aside><h2>{t.notebooks}</h2>{page.items.length === 0 && <p>{t.empty}</p>}<ul className="notebooks">{page.items.map(n => <li key={n.id}><button disabled={busy} aria-current={status?.selected?.id === n.id ? 'page' : undefined} onClick={() => void select(n.id)}>{n.name}</button></li>)}</ul>
-      {page.total > page.limit && <nav aria-label={t.notebooks} className="actions"><button disabled={busy || page.offset === 0} onClick={() => void load(Math.max(0, page.offset - page.limit)).catch(onError)}>{t.previous}</button><button disabled={busy || page.offset + page.limit >= page.total} onClick={() => void load(page.offset + page.limit).catch(onError)}>{t.next}</button></nav>}
+      {page.total > page.limit && <nav aria-label={t.notebooks} className="actions"><button disabled={busy || page.offset === 0} onClick={() => void navigate(Math.max(0, page.offset - page.limit))}>{t.previous}</button><button disabled={busy || page.offset + page.limit >= page.total} onClick={() => void navigate(page.offset + page.limit)}>{t.next}</button></nav>}
       <details><summary>{t.settings}</summary><label>{t.language}<select value={locale} onChange={e => setLocale(e.target.value as Locale)}><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label><label>{t.theme}<select value={theme} onChange={e => setTheme(e.target.value as Theme)}><option value="system">{t.system}</option><option value="light">{t.light}</option><option value="dark">{t.dark}</option></select></label><label>{t.mode}<select value={mode} onChange={e => setMode(e.target.value as Mode)}><option value="LOCAL">{t.local}</option><option value="API">{t.api}</option></select></label>{mode === 'API' && <p>{t.apiBlocked}</p>}<button disabled={busy} onClick={() => void preferences()}>{t.apply}</button></details></aside>
       <main id="main"><h1 ref={heading} tabIndex={-1}>{status?.selected?.name ?? t.welcome}</h1>
       {status?.selected ? <><dl className="metrics"><div><dt>{t.revision}</dt><dd>{status.selected.revision}</dd></div><div><dt>{t.documents}</dt><dd>0 · {t.sourceNone}</dd></div><div><dt>{t.mode}</dt><dd>{status.mode}</dd></div><div><dt>{t.model}</dt><dd>{t.noModel}</dd></div><div><dt>{t.cost}</dt><dd>{t.unknownCost}</dd></div><div><dt>{t.job}</dt><dd>{t.idle}</dd></div></dl><p>{t.manual}</p></> : <p>{t.intro}</p>}

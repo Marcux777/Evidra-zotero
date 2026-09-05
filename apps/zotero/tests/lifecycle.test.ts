@@ -50,3 +50,29 @@ test('profile identity is stable for reopen and changes when saved preferences a
     expect(prefs.get('extensions.evidra.profileInstanceId')).not.toBe(first);
     await bridge.shutdown();
 });
+test('saved-package verification records safe causal diagnostics while the UI receives only the public failure code', async () => {
+    const { g, prefs } = host();
+    const logs: Error[] = [];
+    g.Zotero.logError = error => logs.push(error as Error);
+    let bridge = new ZoteroBridge(g, () => {});
+    await bridge.initialize(); await bridge.shutdown();
+    prefs.set('extensions.evidra.engineRoot', 'C:\\private\\package');
+    const token = 'f'.repeat(64);
+    const filesystemCause = Object.assign(new Error(`C:\\private\\package ${token}`), { name: 'PermissionError', errno: 13, winerror: 5, path: 'C:\\private\\package', token });
+    g.ChromeUtils.importESModule = () => ({ Subprocess: {
+        getEnvironment: () => ({ LOCALAPPDATA: 'C:\\isolated\\local', SystemRoot: 'C:\\Windows' }),
+        call: async () => { throw new Error('NATIVE_COMMAND_FAILED', { cause: filesystemCause }); }
+    } });
+    bridge = new ZoteroBridge(g, () => {});
+    try {
+        await bridge.initialize();
+        const status = await bridge.dispatch({ op: 'status' }, window, () => {});
+        expect(status).toMatchObject({ error: 'NATIVE_COMMAND_FAILED' });
+        expect(logs).toHaveLength(1);
+        expect(JSON.parse(logs[0]!.message)).toMatchObject({ causes: [{ code: 'NATIVE_COMMAND_FAILED' }, { type: 'PermissionError', errno: 13, winerror: 5 }] });
+        expect(logs[0]!.message).not.toContain(token);
+        expect(logs[0]!.message).not.toContain('private');
+        expect(JSON.stringify(status)).not.toContain(token);
+    }
+    finally { await bridge.shutdown(); }
+});

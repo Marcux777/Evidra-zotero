@@ -43,6 +43,7 @@ export class ZoteroBridge {
                 await this.#engine.choose(root);
             }
             catch (error) {
+                this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error))));
                 this.#setupError = publicCode(error);
             }
         }

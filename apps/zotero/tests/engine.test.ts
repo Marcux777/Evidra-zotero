@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import type { EnginePlatform } from '../src/bootstrap/engine';
 import type { NativeGlobals } from '../src/bridge/native-types';
 import { nativeEngine } from '../src/bootstrap/native-engine';
+import { nativeDiagnostic } from '../src/security/diagnostics';
 async function engine() { expect(existsSync(new URL('../src/bootstrap/engine.ts', import.meta.url)), 'missing engine verification and consent').toBe(true); return import('../src/bootstrap/engine'); }
 test('failed atomic handshake write removes the real secret temporary file and preserves the cause', async () => {
     const local = await mkdtemp(join(tmpdir(), 'evidra-handshake-'));
@@ -83,7 +84,7 @@ test('controller requires current consent, validates receipt, hides credential, 
     }[] = [];
     let killed = 0;
     let heartbeat: (() => void) | null = null;
-    const platform: EnginePlatform = { verify: async () => ({ fingerprint: 'a'.repeat(64), manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'a'.repeat(64) }], entrypoint: 'evidra-engine.exe' } }), start: async () => ({ receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, token: 'd'.repeat(64), stop: async () => { killed++; } }), fetch: async (url: string, init: RequestInit) => { requests.push({ url, init }); return new Response(JSON.stringify({ status: 'ok', protocol_version: 1, profile_instance_id: 'profile', heartbeat_interval_seconds: 10, heartbeat_timeout_seconds: 30 })); }, every: (fn: () => void, ms: number) => { expect(ms).toBe(10000); heartbeat = fn; return () => { heartbeat = null; }; } };
+    const platform: EnginePlatform = { reportError: error => { throw error; }, verify: async () => ({ fingerprint: 'a'.repeat(64), manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'a'.repeat(64) }], entrypoint: 'evidra-engine.exe' } }), start: async () => ({ receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, token: 'd'.repeat(64), stop: async () => { killed++; } }), fetch: async (url: string, init: RequestInit) => { requests.push({ url, init }); return new Response(JSON.stringify({ status: 'ok', protocol_version: 1, profile_instance_id: 'profile', heartbeat_interval_seconds: 10, heartbeat_timeout_seconds: 30 })); }, every: (fn: () => void, ms: number) => { expect(ms).toBe(10000); heartbeat = fn; return () => { heartbeat = null; }; } };
     const controller = new EngineController(platform, 'profile');
     await controller.choose('private-path');
     await expect(controller.start('b'.repeat(64), true)).rejects.toThrow('PAYLOAD_CHANGED');
@@ -110,7 +111,7 @@ test('shutdown waits for an in-flight owned startup and leaves no child or faile
     let stopped = false;
     const entered = new Promise<void>(resolve => { began = resolve; });
     const gate = new Promise<void>(resolve => { release = resolve; });
-    const platform: EnginePlatform = { verify: async () => ({ fingerprint: 'a'.repeat(64), manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'a'.repeat(64) }], entrypoint: 'evidra-engine.exe' } }), start: async () => { began(); await gate; return { receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, token: 'd'.repeat(64), stop: async () => { killed++; } }; }, fetch: async () => { throw new Error('should not reach HTTP'); }, every: () => { throw new Error('should not heartbeat'); } };
+    const platform: EnginePlatform = { reportError: error => { throw error; }, verify: async () => ({ fingerprint: 'a'.repeat(64), manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'a'.repeat(64) }], entrypoint: 'evidra-engine.exe' } }), start: async () => { began(); await gate; return { receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, token: 'd'.repeat(64), stop: async () => { killed++; } }; }, fetch: async () => { throw new Error('should not reach HTTP'); }, every: () => { throw new Error('should not heartbeat'); } };
     const controller = new EngineController(platform, 'profile');
     await controller.choose('fixture');
     const startup = controller.start('a'.repeat(64), true).catch(error => error as Error);
@@ -123,4 +124,39 @@ test('shutdown waits for an in-flight owned startup and leaves no child or faile
     expect((await startup as Error).message).toBe('START_CANCELLED');
     expect(killed).toBe(1);
     expect(controller.view().state).toBe('stopped');
+});
+test.each(['authorization', 'network'] as const)('heartbeat %s failure preserves and reports its cause before child cleanup without leaking inputs', async kind => {
+    const { EngineController } = await engine();
+    const token = 'e'.repeat(64), raw = `C:\\private\\payload ${token}`;
+    const networkFailure = new TypeError(raw, { cause: Object.assign(new Error(raw), { code: 'ECONNREFUSED', errno: -4078, path: raw, token }) });
+    const reports: { original: Error; safe: ReturnType<typeof nativeDiagnostic> }[] = [];
+    let heartbeat: (() => void) | null = null, reportsAtStop = 0;
+    const platform: EnginePlatform = {
+        verify: async () => ({ fingerprint: 'a'.repeat(64), manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', entrypoint: 'evidra-engine.exe', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'a'.repeat(64) }] } }),
+        start: async () => ({ token, receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, stop: async () => { reportsAtStop = reports.length; } }),
+        fetch: async url => {
+            if (url.endsWith('/v1/status')) return new Response(JSON.stringify({ status: 'ok', protocol_version: 1, profile_instance_id: 'profile', heartbeat_interval_seconds: 10, heartbeat_timeout_seconds: 30 }));
+            if (kind === 'network') throw networkFailure;
+            return new Response(JSON.stringify({ code: 'UNAUTHENTICATED', message: raw, retryable: false, run_id: null, details: { input: raw } }), { status: 401 });
+        },
+        every: fn => { heartbeat = fn; return () => { heartbeat = null; }; },
+        reportError: error => reports.push({ original: error as Error, safe: nativeDiagnostic(error) })
+    };
+    const controller = new EngineController(platform, 'profile');
+    try {
+        await controller.choose('package'); await controller.start('a'.repeat(64), true);
+        heartbeat!(); await new Promise(resolve => setImmediate(resolve));
+        expect(controller.view()).toMatchObject({ state: 'failed', error: 'HEARTBEAT_FAILED' });
+        expect(reportsAtStop).toBe(1);
+        expect(reports[0]!.original.message).toBe('HEARTBEAT_FAILED');
+        if (kind === 'network') {
+            expect(reports[0]!.original.cause).toBe(networkFailure);
+            expect(reports[0]!.safe.causes).toMatchObject([{ code: 'HEARTBEAT_FAILED' }, { type: 'TypeError' }, { system_code: 'ECONNREFUSED', errno: -4078 }]);
+        }
+        else expect(reports[0]!.safe.causes).toMatchObject([{ code: 'HEARTBEAT_FAILED' }, { code: 'UNAUTHENTICATED' }, { operation: 'engine_http', http_status: 401 }]);
+        expect(JSON.stringify(reports[0]!.safe)).not.toContain(token);
+        expect(JSON.stringify(reports[0]!.safe)).not.toContain('private');
+        expect(JSON.stringify(controller.view())).not.toContain(token);
+    }
+    finally { await controller.stop(); }
 });

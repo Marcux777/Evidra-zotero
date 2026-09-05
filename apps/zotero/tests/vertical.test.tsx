@@ -3,11 +3,65 @@ import { createRoot } from 'react-dom/client';
 import { afterEach, expect, test } from 'vitest';
 import { existsSync } from 'node:fs';
 import { URL as NodeURL } from 'node:url';
+import { Onboarding } from '../src/ui/onboarding';
+import { EngineController, type EnginePlatform } from '../src/bootstrap/engine';
+import { catalog } from '../src/ui/i18n';
+import type { BridgeStatus, UiBridge } from '../src/bridge/types';
 async function production(path: string) {
     expect(existsSync(new NodeURL(`../src/${path}`, import.meta.url)), `missing Task2 behavior: ${path}`).toBe(true);
     return import(/* @vite-ignore */ new NodeURL(`../src/${path}`, import.meta.url).href);
 }
 afterEach(() => { document.body.replaceChildren(); });
+test('executable consent acknowledges one fingerprint and must be renewed after package changes or failed startup', async () => {
+    (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+    let fingerprint = 'a'.repeat(64), launches = 0;
+    const errors: unknown[] = [];
+    const platform: EnginePlatform = {
+        verify: async () => ({ fingerprint, manifest: { manifest_version: 1, protocol_version: 1, platform: 'win32', architecture: 'x86_64', engine_version: '0.1.0', entrypoint: 'evidra-engine.exe', files: [{ path: 'evidra-engine.exe', size: 3, sha256: 'd'.repeat(64) }] } }),
+        start: async () => { launches++; return { token: 'e'.repeat(64), receipt: { protocol_version: 1, host: '127.0.0.1', port: 49234, profile_instance_id: 'profile' }, stop: async () => {} }; },
+        fetch: async () => new Response(JSON.stringify({ status: 'ok', protocol_version: 1, profile_instance_id: 'profile', heartbeat_interval_seconds: 10, heartbeat_timeout_seconds: 30 })),
+        every: () => () => {},
+        reportError: error => { throw error; }
+    };
+    const controller = new EngineController(platform, 'profile');
+    const bridge: UiBridge = { request: async message => {
+        if (message.op !== 'engine.start') throw new Error('unexpected operation');
+        return controller.start(message.fingerprint, message.consent);
+    } };
+    const host = document.createElement('div'); document.body.append(host);
+    const root = createRoot(host);
+    const render = async () => {
+        const status: BridgeStatus = { ...controller.view(), version: '10.0.1', locale: 'pt-BR', theme: 'system', mode: 'LOCAL', selected: null };
+        await act(async () => root.render(<Onboarding status={status} bridge={bridge} t={catalog('pt-BR')} refresh={async () => {}} onError={error => errors.push(error)}/>));
+    };
+    const checkbox = () => host.querySelector('input[type="checkbox"]') as HTMLInputElement;
+    const start = () => host.querySelector('button.primary') as HTMLButtonElement;
+    try {
+        await controller.choose('package'); await render();
+        await act(async () => checkbox().click());
+        fingerprint = 'b'.repeat(64); await controller.verify(); await render();
+        expect(checkbox().checked).toBe(false);
+        expect(start().disabled).toBe(true);
+        // Returning to an old fingerprint must not resurrect an old acknowledgement.
+        fingerprint = 'a'.repeat(64); await controller.verify(); await render();
+        expect(start().disabled).toBe(true);
+        await act(async () => checkbox().click());
+        // The privileged payload changes after UI acknowledgement but before startup.
+        fingerprint = 'c'.repeat(64);
+        await act(async () => start().click());
+        expect(launches).toBe(0);
+        expect(errors).toMatchObject([{ message: 'PAYLOAD_CHANGED' }]);
+        expect(checkbox().checked).toBe(false);
+        expect(start().disabled).toBe(true);
+        await render();
+        expect(start().disabled).toBe(true);
+        await act(async () => checkbox().click());
+        await act(async () => start().click());
+        expect(launches).toBe(1);
+        expect(controller.view().state).toBe('running');
+    }
+    finally { await act(async () => root.unmount()); await controller.stop(); }
+});
 test('rejects arbitrary capabilities and extra fields before dispatch; only exact renderer source is accepted', async () => {
     const { parseUiMessage, isUiEvent } = await production('security/messages.ts');
     for (const message of [{ op: 'read_file', path: 'C:\\secret' }, { op: 'status', token: 'secret' }, { op: 'notebook.create', name: ' ', idempotency_key: 'x' }, { op: 'notebook.select', id: '../secret' }, { op: 'engine.start', fingerprint: 'bad', consent: true }]) {

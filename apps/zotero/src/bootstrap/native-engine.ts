@@ -1,6 +1,6 @@
 import { verifyPackage, type EnginePlatform, type OwnedSession, type PackageIO } from './engine';
 import type { NativeGlobals, NativeProcess, NativeSubprocess } from '../bridge/native-types';
-import { parseEngineDiagnostic } from '../security/diagnostics';
+import { nativeDiagnostic, parseEngineDiagnostic } from '../security/diagnostics';
 // This fixed script only validates filesystem structure. Paths arrive as environment data.
 // GetAttributes is used because Gecko's IOUtils.stat follows reparse points on Windows.
 const CHECK_PATH = `$ErrorActionPreference='Stop';try{$p=$env:EVIDRA_CHECK_PATH;if($p -notmatch '^[A-Za-z]:\\\\' -or $p.Substring(2).Contains(':')){throw 'path'};$cursor=$p;while($cursor){if(([IO.File]::GetAttributes($cursor) -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'reparse'};$cursor=[IO.Path]::GetDirectoryName($cursor)};if($env:EVIDRA_CHECK_TREE -eq '1'){$queue=New-Object 'Collections.Generic.Queue[string]';$queue.Enqueue($p);while($queue.Count){$d=$queue.Dequeue();foreach($f in [IO.Directory]::EnumerateFileSystemEntries($d)){$a=[IO.File]::GetAttributes($f);if(($a -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'reparse'};if(($a -band [IO.FileAttributes]::Directory) -ne 0){$queue.Enqueue($f)}}}};exit 0}catch{[Console]::Error.WriteLine('UNSAFE_NATIVE_PATH');exit 1}`;
@@ -134,5 +134,5 @@ export function nativeEngine(g: NativeGlobals): EnginePlatform {
             }
         }
     }
-    return { verify: root => verifyPackage(root, io), start, fetch: g.fetch.bind(g), every: (fn, ms) => { const timer = g.setInterval(fn, ms); return () => g.clearInterval(timer); } };
+    return { verify: root => verifyPackage(root, io), start, fetch: g.fetch.bind(g), every: (fn, ms) => { const timer = g.setInterval(fn, ms); return () => g.clearInterval(timer); }, reportError: error => g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))) };
 }
