@@ -7,6 +7,156 @@ import { SourceBridge } from '../src/bridge/sources';
 
 const scope = { notebook_id: '11111111-1111-4111-8111-111111111111', snapshot_id: 'a'.repeat(32) };
 
+// Native APIs and engine IO are controlled; resolver, notification adapter, epoch,
+// preview and DocumentBridge continuations below are the production implementations.
+async function readerNotifications(incompleteObservation = false) {
+    const { DocumentBridge } = await import('../src/bridge/documents');
+    const bytes = new TextEncoder().encode('unchanged authorized PDF');
+    const identity = { profile_instance_id: 'p1', library_id: 1, item_key: 'PARENT1' };
+    const evidence: any = { id: 'c'.repeat(64), source_id: 'b'.repeat(64), source_identity: identity, content_key: 'PDFKEY1',
+        source_kind: 'pdf', page_index: 1, precision: 'page', rectangles: [], document_bytes: bytes.length,
+        document_sha256: createHash('sha256').update(bytes).digest('hex') };
+    const parent: any = { id: 1, key: 'PARENT1', libraryID: 1, parentID: false, parentKey: false, itemTypeID: 1,
+        version: 1, deleted: false, getField: (name: string) => name === 'dateModified' ? 'stamp' : name === 'title' ? 'Title' : '',
+        getTags: () => [], isRegularItem: () => true, isNote: () => false, isAnnotation: () => false,
+        isAttachment: () => false, loadAllData: async () => {}, getAttachments: () => { throw new Error('UNAUTHORIZED_SIBLING_SCAN'); } };
+    const pdf: any = { ...parent, id: 2, key: 'PDFKEY1', parentID: 1, parentKey: 'PARENT1', itemTypeID: 2,
+        attachmentContentType: 'application/pdf', attachmentPath: 'C:/authorized/only.pdf', attachmentLinkMode: 2,
+        attachmentCharset: null, attachmentSyncState: 0, attachmentSyncedModificationTime: null,
+        attachmentSyncedHash: null, attachmentLastProcessedModificationTime: 0, attachmentLastRead: null,
+        isRegularItem: () => false, isAttachment: () => true, isFileAttachment: () => true,
+        isPDFAttachment: () => pdf.attachmentContentType === 'application/pdf',
+        getFilePath: () => pdf.attachmentPath, getFilePathAsync: async () => pdf.getFilePath() };
+    if (incompleteObservation) delete pdf.attachmentSyncedHash;
+    const note: any = { ...parent, id: 3, key: 'NOTE1', parentID: 1, parentKey: 'PARENT1', itemTypeID: 3,
+        isRegularItem: () => false, isNote: () => true, getNote: () => 'Human note' };
+    const annotation: any = { ...parent, id: 4, key: 'ANNOT1', parentID: 2, parentKey: 'PDFKEY1', itemTypeID: 4,
+        isRegularItem: () => false, isAnnotation: () => true, annotationText: 'Human annotation', annotationComment: '', annotationPosition: '{}' };
+    const library = { libraryID: 1, libraryType: 'user', libraryTypeID: null, archived: false };
+    const fetched: (number | string)[] = [], invalidated: unknown[] = [], locations: unknown[] = [], errors: unknown[] = [];
+    let observer: any, exists = true, verifyCount = 0;
+    const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true };
+    const nativeItems = new Map([[1, parent], [2, pdf], [3, note], [4, annotation]]);
+    const lookup = (id: number) => { fetched.push(id); if (!nativeItems.has(id)) throw new Error('UNAUTHORIZED_ITEM_READ'); return nativeItems.get(id); };
+    const api: any = { Libraries: { exists: () => exists, get: () => library },
+        Items: { get: lookup, getAsync: async (id: number) => lookup(id), getByLibraryAndKeyAsync: async (_: number, key: string) => {
+            fetched.push(key); const item = [...nativeItems.values()].find(item => item.key === key);
+            if (!item) throw new Error('UNAUTHORIZED_ITEM_READ'); return item;
+        } }, ItemTypes: { getName: () => 'journalArticle' },
+        Notifier: { registerObserver: (value: any) => { observer = value; return 'observer'; }, unregisterObserver() {} },
+        Reader: { open: async () => {
+            if (hooks.processed) pdf.attachmentLastProcessedModificationTime = 1700000000;
+            return { itemID: 2, _initPromise: Promise.resolve(), _internalReader: { _lastView: {
+                initializedPromise: Promise.resolve(), _iframeWindow: { PDFViewerApplication: { pdfDocument: {
+                    getDownloadInfo: async () => ({ length: bytes.length }), getData: async () => bytes,
+                } } },
+            } }, navigate: async (location: unknown) => { locations.push(location); await hooks.navigate(); } };
+        } } };
+    const preview: any = { id: 'f'.repeat(32), stage_id: 'e'.repeat(32), notebook_id: scope.notebook_id, expected_revision: 1,
+        items: [], removed: [], offset: 0, limit: 0, total: 0, included_count: 1, removed_count: 0,
+        added_count: 1, dropped_count: 0, changed_count: 0, possible_duplicate_count: 0 };
+    const engine = { stop: async () => {}, request: async (_: string, path: string, body?: any): Promise<any> => {
+        if (path.includes('/snapshots?')) return { items: [{ selection: {} }], total: 1, offset: 0, limit: 1 };
+        if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind: 'pdf' },
+            { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' }] }], total: 1, offset: 0, limit: 100 };
+        if (path.endsWith('/sources/sync')) return { items: body.items.map((s: any) => ({ ...s, id: 'b'.repeat(64), version_id: 'v', year_state: 'missing' })),
+            total: 1, offset: 0, limit: 1, stage_id: body.purpose === 'selection' ? preview.stage_id : body.stage_id };
+        if (path.endsWith('/sources/preview') || path.includes('/sources/previews/')) return preview;
+        if (path.endsWith('/documents/register')) return { id: 'd'.repeat(32) };
+        if (path.includes('/evidence/')) return evidence;
+        if (path.endsWith('/documents/verify')) { if (++verifyCount === 2) await hooks.beforeSecondVerify(); return evidence; }
+        if (path === '/v1/sources/invalidate') { invalidated.push(body); return { invalidated_count: 1 }; }
+        throw new Error(`Unexpected reader route ${path}`);
+    } };
+    const sources = new SourceBridge(api, engine, 'p1', error => errors.push(error));
+    await sources.preview(scope.notebook_id, { include_selected_containers: false, include_descendants: false,
+        include_notes: true, include_annotations: true, tag_mode: 'AND', pdf_only: false }, { getSelectedItems: () => [pdf, note, annotation] } as any);
+    const bridge = new DocumentBridge(api, sources, engine, webcrypto as unknown as Crypto, value => value);
+    const notify = (ids = [2], extra: any = { '2': { changed: {} } }, event = 'modify', type = 'item') => observer.notify(event, type, ids, extra);
+    return { pdf, note, annotation, library, sources, evidence, hooks, locations, invalidated, errors, fetched, notify,
+        removeLibrary: () => { exists = false; },
+        open: () => bridge.dispatch({ op: 'documents.open', ...scope, evidence_id: evidence.id }),
+        preview: () => sources.previewPage(scope.notebook_id, preview.id, 0) };
+}
+
+test.each([
+    'reader-last-read', 'verified-native-processing', 'path', 'link-mode', 'content-type', 'charset', 'sync-state',
+    'storage-mtime', 'storage-hash', 'unverified-processing', 'parent', 'deleted', 'version', 'title',
+    'note', 'annotation-text', 'annotation-comment', 'annotation-position', 'mixed-event', 'unknown',
+    'ambiguous-payload', 'unavailable-prior-state', 'unavailable-readback', 'missing-library', 'archived-library',
+])('native reader notification preserves continuation only for proven bookkeeping: %s', async scenario => {
+    const f = await readerNotifications(scenario === 'unavailable-prior-state');
+    f.hooks.processed = scenario !== 'reader-last-read';
+    const benign = ['reader-last-read', 'verified-native-processing'].includes(scenario);
+    f.hooks.navigate = async () => {
+        f.pdf.attachmentLastRead = 1700000001;
+        if (scenario === 'path') f.pdf.attachmentPath = 'C:/authorized/relinked.pdf';
+        if (scenario === 'link-mode') f.pdf.attachmentLinkMode = 0;
+        if (scenario === 'content-type') f.pdf.attachmentContentType = 'text/plain';
+        if (scenario === 'charset') f.pdf.attachmentCharset = 'utf-8';
+        if (scenario === 'sync-state') f.pdf.attachmentSyncState = 1;
+        if (scenario === 'storage-mtime') f.pdf.attachmentSyncedModificationTime = 1700000001;
+        if (scenario === 'storage-hash') f.pdf.attachmentSyncedHash = 'a'.repeat(32);
+        if (scenario === 'unverified-processing') ++f.pdf.attachmentLastProcessedModificationTime;
+        if (scenario === 'parent') f.pdf.parentKey = 'OTHER1';
+        if (scenario === 'deleted') f.pdf.deleted = true;
+        if (scenario === 'version') ++f.pdf.version;
+        if (scenario === 'title') { const get = f.pdf.getField; f.pdf.getField = (name: string) => name === 'title' ? 'Changed' : get(name); }
+        if (scenario === 'unavailable-readback') Object.defineProperty(f.pdf, 'attachmentPath', { get: () => { throw new Error('NATIVE_READBACK_FAILED'); } });
+        if (scenario === 'missing-library') f.removeLibrary();
+        if (scenario === 'archived-library') f.library.archived = true;
+        if (scenario === 'note' || scenario === 'mixed-event') {
+            f.note.getNote = () => 'Changed human note';
+            await f.notify(scenario === 'mixed-event' ? [2, 3] : [3], { '2': { changed: {} }, '3': { changed: { note: 'Human note' } } });
+        } else if (scenario.startsWith('annotation-')) {
+            const field = { 'annotation-text': 'annotationText', 'annotation-comment': 'annotationComment', 'annotation-position': 'annotationPosition' }[scenario]!;
+            const old = f.annotation[field]; f.annotation[field] = 'Changed annotation';
+            await f.notify([4], { '4': { changed: { [field]: old } } });
+        } else await f.notify(scenario === 'unknown' ? [999] : [2], scenario === 'ambiguous-payload' ? {} : { '2': { changed: {} } });
+    };
+    try {
+        if (benign) {
+            await expect(f.open()).resolves.toEqual(f.evidence);
+            expect(f.sources.state().revision).toBe(0);
+            await expect(f.preview()).resolves.toHaveProperty('preview.id');
+            expect(f.invalidated).toEqual([]);
+        } else {
+            await expect(f.open()).rejects.toThrow('SCOPE_STALE');
+            expect(f.sources.state().revision).toBe(1);
+            await expect(f.preview()).rejects.toThrow('SCOPE_STALE');
+            expect(f.invalidated).toEqual([{ identities: [f.evidence.source_identity], reason: 'changed' }]);
+        }
+        expect(f.fetched.every(id => [1, 2, 3, 4, 'PARENT1', 'PDFKEY1', 'NOTE1', 'ANNOT1'].includes(id))).toBe(true);
+        expect(f.errors.map((error: any) => error.message)).toEqual(scenario === 'unavailable-readback' ? ['NATIVE_READBACK_FAILED'] : []);
+    } finally { f.sources.shutdown(); }
+});
+
+test.each(['timestamp', 'path', 'metadata', 'scope', 'bytes', 'benign-then-material'])('PDF processing acknowledgment fails closed across %s verification races', async scenario => {
+    const f = await readerNotifications();
+    f.hooks.beforeSecondVerify = async () => {
+        if (scenario === 'timestamp') ++f.pdf.attachmentLastProcessedModificationTime;
+        if (scenario === 'path') f.pdf.attachmentPath = 'C:/authorized/relinked.pdf';
+        if (scenario === 'metadata') ++f.pdf.version;
+        if (scenario === 'scope') await f.notify([2], {}, 'trash');
+        if (scenario === 'bytes') throw new Error('DOCUMENT_STALE');
+    };
+    f.hooks.navigate = async () => {
+        f.pdf.attachmentLastRead = 1700000001;
+        const benign = f.notify();
+        f.pdf.attachmentPath = 'C:/authorized/relinked.pdf';
+        const changed = f.notify();
+        await Promise.all([benign, changed]);
+    };
+    try {
+        await expect(f.open()).rejects.toThrow(scenario === 'bytes' ? 'DOCUMENT_STALE' : 'SCOPE_STALE');
+        if (scenario === 'bytes') { f.pdf.attachmentLastRead = 1700000001; await f.notify(); }
+        expect(f.locations).toHaveLength(scenario === 'benign-then-material' ? 1 : 0);
+        expect(f.sources.state().revision).toBe(scenario === 'bytes' ? 2 : 1);
+        expect(f.invalidated).toHaveLength(scenario === 'bytes' ? 2 : 1);
+        await expect(f.preview()).rejects.toThrow('SCOPE_STALE');
+    } finally { f.sources.shutdown(); }
+});
+
 test('document commands accept only generated bounded payloads, never renderer paths or text', () => {
     const index = { op: 'documents.index', ...scope, source_id: 'b'.repeat(64), content_key: 'PDFKEY1', limits: {}, idempotency_key: 'request' };
     expect(parseUiMessage(index)).toEqual(index);
@@ -31,6 +181,9 @@ test('production document bridge revalidates exact content before resolving its 
         getTags: () => [], isRegularItem: () => true, isNote: () => false, isAnnotation: () => false,
         isAttachment: () => false, loadAllData: async () => {}, getAttachments: () => { throw new Error('sibling scan'); } };
     const pdf: any = { ...parent, id: 2, key: 'PDFKEY1', parentID: 1, parentKey: 'PARENT1', attachmentContentType: 'application/pdf',
+        attachmentPath: 'C:/authorized/only.pdf', attachmentLinkMode: 2, attachmentCharset: null,
+        attachmentSyncState: 0, attachmentSyncedModificationTime: null, attachmentSyncedHash: null,
+        attachmentLastProcessedModificationTime: 0, attachmentLastRead: null, getFilePath: () => 'C:/authorized/only.pdf',
         isRegularItem: () => false, isAttachment: () => true, isFileAttachment: () => true, isPDFAttachment: () => true,
         getFilePathAsync: async () => { calls.push('native.path'); if (changed) await observer.notify('modify', 'item', [2], {}); return 'C:/authorized/only.pdf'; } };
     const badPdf = { ...pdf, id: 3, key: 'BADPDF1' };
@@ -86,7 +239,10 @@ test('a cached Reader PDF and a changed active view cannot receive locations fro
     const item = { id: 2, key: 'PDFKEY1', libraryID: 1, deleted: false, version: 1, getField: () => 'stamp',
         isPDFAttachment: () => true, getFilePathAsync: async () => 'C:/authorized/only.pdf' };
     const api: any = { Items: { getByLibraryAndKeyAsync: async () => item }, Reader: { open: async (_: number, location: unknown) => { expect(location).toBeUndefined(); return reader; } } };
-    const sources: any = { withDocuments: async (_: string, __: string, run: any) => run([source], () => {}) };
+    // This test isolates loaded Reader identity; the real file-acknowledgment
+    // continuation and its races are exercised by readerNotifications above.
+    const sources: any = { withDocuments: async (_: string, __: string, run: any) => run([source], () => {},
+        async (_item: unknown, _path: string, verify: () => Promise<unknown>) => { await verify(); }) };
     const engine: any = { request: async (_: string, path: string) => {
         if (path.endsWith('/documents/verify') && revoked) throw new Error('SOURCE_REVOKED');
         if (path.endsWith('/documents/register')) return { id: 'd'.repeat(32) };

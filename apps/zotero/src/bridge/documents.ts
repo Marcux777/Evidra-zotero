@@ -23,7 +23,7 @@ export class DocumentBridge {
 
     async dispatch(message: DocumentCommand): Promise<unknown> {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
-        return this.sources.withDocuments(message.notebook_id, message.snapshot_id, async (sources, check) => {
+        return this.sources.withDocuments(message.notebook_id, message.snapshot_id, async (sources, check, verifyReaderFile) => {
             const documents = new Map<string, { document: RegisteredDocument; item: NativeSourceItem; path: string | false }>();
             const request = async (method: 'GET' | 'POST', path: string, body?: unknown) => {
                 check(); const value = await this.engine.request(method, prefix + path, body); check(); return value;
@@ -111,7 +111,8 @@ export class DocumentBridge {
                     await this.#item(source, content, check);
                     const currentPath = await registered.item.getFilePathAsync(); check();
                     if (currentPath === false) throw new Error('MISSING_FILE');
-                    await request('POST', '/documents/verify', { evidence_id: evidence.id, path: currentPath });
+                    await verifyReaderFile(registered.item, currentPath,
+                        () => request('POST', '/documents/verify', { evidence_id: evidence.id, path: currentPath }));
                     if (reader.itemID !== registered.item.id || reader._internalReader._lastView !== view
                         || view._iframeWindow?.PDFViewerApplication?.pdfDocument !== proxy) throw new Error('READER_CHANGED');
                     await reader.navigate(verified.precision === 'rectangles'

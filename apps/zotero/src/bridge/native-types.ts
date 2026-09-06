@@ -142,6 +142,14 @@ export interface NativeSourceItem {
     version: number;
     deleted: boolean;
     attachmentContentType: string;
+    attachmentPath: string;
+    attachmentLinkMode: number;
+    attachmentCharset: string | null;
+    attachmentSyncState: number;
+    attachmentSyncedModificationTime: number | null;
+    attachmentSyncedHash: string | null;
+    attachmentLastProcessedModificationTime: number | null;
+    attachmentLastRead: number | null;
     isRegularItem(): boolean;
     isAttachment(): boolean;
     isNote(): boolean;
@@ -156,6 +164,7 @@ export interface NativeSourceItem {
     getNote(): string;
     annotationText: string;
     annotationComment: string;
+    getFilePath(): string | false;
     getFilePathAsync(): Promise<string | false>;
     loadAllData(): Promise<void>;
 }
@@ -198,6 +207,7 @@ export interface NativeSourceAPI {
         get(id: number): { libraryID: number; libraryType: string; libraryTypeID: number | null; groupID?: number; archived?: boolean; editable: boolean; filesEditable: boolean };
     };
     Items: {
+        get(id: number): NativeSourceItem | false;
         getAsync(id: number): Promise<NativeSourceItem | false>;
         getByLibraryAndKeyAsync(library: number, key: string): Promise<NativeSourceItem | false>;
     };

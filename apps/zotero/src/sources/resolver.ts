@@ -2,7 +2,7 @@ import type { NativeSourceAPI, NativeSourceItem, NativeSourcePane } from '../bri
 import type { SelectionSpec, Selector, SourceAccess, SourceContent, SourceIdentity, SourceInput } from '../bridge/types';
 
 export interface UnavailableSource { identity: SourceIdentity; reason: 'archived' | 'missing' | 'library_missing' | 'deleted' | 'content_excluded' }
-export interface NativeSelection { items: SourceInput[]; unavailable: UnavailableSource[]; observed: Map<number, SourceIdentity> }
+export interface NativeSelection { items: SourceInput[]; unavailable: UnavailableSource[]; observed: Map<number, SourceIdentity>; readerItems: Map<number, NativeSourceItem> }
 export const identityKey = (id: SourceIdentity) => JSON.stringify([id.profile_instance_id, id.library_id, id.item_key]);
 
 export function captureSelectors(pane: NativeSourcePane, includeContainers = false): Selector[] {
@@ -41,6 +41,7 @@ async function resolve(api: NativeSourceAPI, profile: string, spec: SelectionSpe
     const resolved = new Map<string, { parent: NativeSourceItem; all: boolean; selected: Map<string, NativeSourceItem>; allowed?: SourceAccess['contents'] }>();
     const unavailable = new Map<string, UnavailableSource>();
     const observed = new Map<number, SourceIdentity>();
+    const readerItems = new Map<number, NativeSourceItem>();
     const identity = (i: NativeSourceItem): SourceIdentity => ({ profile_instance_id: profile, library_id: i.libraryID, item_key: i.key });
     const reject = (id: SourceIdentity, reason: UnavailableSource['reason']) => unavailable.set(identityKey(id), { identity: id, reason });
     async function add(item: NativeSourceItem) {
@@ -162,6 +163,7 @@ async function resolve(api: NativeSourceAPI, profile: string, spec: SelectionSpe
             else if (item.isFileAttachment() && /^(text\/|application\/(epub\+zip|xhtml\+xml))/.test(item.attachmentContentType)) kind = 'text_attachment';
             else return;
             if (entry.allowed && !entry.allowed.some(c => c.key === item.key && c.kind === kind)) return;
+            if (kind === 'pdf') readerItems.set(item.id, item);
             contents.set(item.key, { key: item.key, kind, role: 'unassigned', title: String(item.getField('title')), version: `${item.version}:${item.getField('dateModified')}` });
             if (entry.all && spec.include_annotations && item.isFileAttachment()) {
                 for (const annotation of item.getAnnotations(false)) await addContent(annotation);
@@ -186,5 +188,5 @@ async function resolve(api: NativeSourceAPI, profile: string, spec: SelectionSpe
             doi: String(parent.getField('DOI')) || null, remote_library_id: library.libraryTypeID == null ? null : String(library.libraryTypeID),
             remote_group_id: library.libraryType === 'group' ? library.groupID ?? null : null, contents: [...contents.values()] });
     }
-    return { items, unavailable: [...unavailable.values()], observed };
+    return { items, unavailable: [...unavailable.values()], observed, readerItems };
 }
