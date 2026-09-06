@@ -74,29 +74,30 @@ class JobWorker:
                 await asyncio.sleep(0.1)
 
     async def renew(
-        self, context: ScopeContext, job_id: str, unit_id: str, cancel: asyncio.Event
+        self, context: ScopeContext, job_id: str, unit_id: str, lease: str, cancel: asyncio.Event
     ) -> None:
         while not cancel.is_set():
             try:
                 await asyncio.wait_for(cancel.wait(), timeout=10)
             except TimeoutError:
                 try:
-                    self.queue.renew(context, job_id, unit_id)
+                    self.queue.renew(context, job_id, unit_id, lease)
                 except EvidraError as exc:
-                    self.failure(job_id, unit_id, exc.code)
+                    self.failure(job_id, unit_id, exc.code, lease)
                     cancel.set()
 
     async def step(self, context: ScopeContext, job_id: str) -> bool:
         queue = self.queue
-        unit = queue.claim(context, job_id)
+        lease = secrets.token_hex(16)
+        unit = queue.claim(context, job_id, lease)
         if unit is None:
             return False
         cancel = asyncio.Event()
         self.active = (job_id, cancel)
-        renewal = asyncio.create_task(self.renew(context, job_id, unit.id, cancel))
+        renewal = asyncio.create_task(self.renew(context, job_id, unit.id, lease, cancel))
         try:
             with queue.scopes.guarded(context, capability="commit") as conn:
-                job, unit = queue.require_lease(conn, context, job_id, unit.id)
+                job, unit = queue.require_lease(conn, context, job_id, unit.id, lease)
                 row = conn.execute(
                     "SELECT cache_key FROM extraction_units WHERE id=?", (unit.id,)
                 ).fetchone()
@@ -111,7 +112,7 @@ class JobWorker:
                     return True
             for index in range(unit.batches_total):
                 with queue.scopes.guarded(context, capability="commit") as conn:
-                    job, unit = queue.require_lease(conn, context, job_id, unit.id)
+                    job, unit = queue.require_lease(conn, context, job_id, unit.id, lease)
                     batch = conn.execute(
                         "SELECT * FROM extraction_batches WHERE unit_id=? AND batch_index=?",
                         (unit.id, index),
@@ -185,7 +186,7 @@ class JobWorker:
                     raise EvidraError("STREAM_INCOMPLETE", "Provider ended without a final result.")
                 output = queue.runner.validate(text, field, evidence)
                 with queue.scopes.guarded(context, capability="commit") as conn:
-                    job, unit = queue.require_lease(conn, context, job_id, unit.id)
+                    job, unit = queue.require_lease(conn, context, job_id, unit.id, lease)
                     if cancel.is_set():
                         raise EvidraError("CANCELLED", "Extraction cancelled before checkpoint.")
                     queue.runner.reauthorize(conn, context, job, unit)
@@ -207,7 +208,7 @@ class JobWorker:
                     queue.save_unit(conn, unit)
                     queue.summarize(conn, job)
             with queue.scopes.guarded(context, capability="commit") as conn:
-                job, unit = queue.require_lease(conn, context, job_id, unit.id)
+                job, unit = queue.require_lease(conn, context, job_id, unit.id, lease)
                 if cancel.is_set():
                     raise EvidraError("CANCELLED", "Extraction cancelled before proposal commit.")
                 completed = queue.runner.complete(conn, context, job, unit)
@@ -222,21 +223,23 @@ class JobWorker:
             logging.getLogger("evidra.jobs").warning(
                 "Extraction unit %s failed: %s", unit.id, exc.code
             )
-            self.failure(job_id, unit.id, exc.code)
+            self.failure(job_id, unit.id, exc.code, lease)
             return True
         except asyncio.CancelledError:
-            self.failure(job_id, unit.id, "ENGINE_INTERRUPTED")
+            self.failure(job_id, unit.id, "ENGINE_INTERRUPTED", lease)
             raise
         except Exception:
             logging.getLogger("evidra.jobs").exception("Extraction unit failed: %s", unit.id)
-            self.failure(job_id, unit.id, "JOB_INTERNAL_ERROR")
+            self.failure(job_id, unit.id, "JOB_INTERNAL_ERROR", lease)
             return True
         finally:
             cancel.set()
             await renewal
             self.active = None
 
-    def failure(self, job_id: str, unit_id: str | None, code: str) -> None:
+    def failure(
+        self, job_id: str, unit_id: str | None, code: str, lease: str | None = None
+    ) -> None:
         # Accounting/status cleanup must survive scope revocation; it writes no research output.
         queue = self.queue
         with queue.database.transaction() as conn:
@@ -254,7 +257,7 @@ class JobWorker:
                     "SELECT payload,lease_owner FROM extraction_units WHERE id=? AND job_id=?",
                     (unit_id, job.id),
                 ).fetchone()
-                if not entry or entry[1] != queue.owner:
+                if not entry or lease is None or entry[1] != lease:
                     return
                 unit = UnitRecord.model_validate_json(entry[0])
                 sent = conn.execute(

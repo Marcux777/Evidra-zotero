@@ -36,7 +36,6 @@ class JobQueue:
         self.runner, self.providers, self.clock = runner, providers, clock
         self.scopes, self.database = runner.scopes, runner.scopes.database
         self.cache = ExtractionCache(runner)
-        self.owner = secrets.token_hex(16)
         with self.database.transaction() as conn:
             rows = conn.execute(
                 "SELECT j.* FROM extraction_jobs j JOIN notebooks n ON n.id=j.notebook_id "
@@ -394,7 +393,7 @@ class JobQueue:
             )
             return job
 
-    def claim(self, context: ScopeContext, job_id: str) -> UnitRecord | None:
+    def claim(self, context: ScopeContext, job_id: str, lease: str) -> UnitRecord | None:
         with self.scopes.guarded(context, capability="commit") as conn:
             self.expire(conn)
             job = self.read(conn, context, job_id)
@@ -427,7 +426,7 @@ class JobQueue:
             unit = unit.model_copy(update={"state": "RUNNING", "reason": None})
             conn.execute(
                 "UPDATE extraction_units SET payload=?,lease_owner=?,lease_until=? WHERE id=?",
-                (unit.model_dump_json(), self.owner, self.clock() + 120, unit.id),
+                (unit.model_dump_json(), lease, self.clock() + 120, unit.id),
             )
             if job.state != "RUNNING":
                 self.save_job(
@@ -471,7 +470,12 @@ class JobQueue:
                 )
 
     def require_lease(
-        self, conn: sqlite3.Connection, context: ScopeContext, job_id: str, unit_id: str
+        self,
+        conn: sqlite3.Connection,
+        context: ScopeContext,
+        job_id: str,
+        unit_id: str,
+        lease: str,
     ) -> tuple[JobRecord, UnitRecord]:
         job = self.read(conn, context, job_id)
         row = conn.execute(
@@ -480,15 +484,15 @@ class JobQueue:
         if (
             job.state != "RUNNING"
             or not row
-            or row["lease_owner"] != self.owner
+            or row["lease_owner"] != lease
             or row["lease_until"] <= self.clock()
         ):
             raise EvidraError("CANCELLED", "Extraction lease is no longer active.")
         return job, UnitRecord.model_validate_json(row["payload"])
 
-    def renew(self, context: ScopeContext, job_id: str, unit_id: str) -> None:
+    def renew(self, context: ScopeContext, job_id: str, unit_id: str, lease: str) -> None:
         with self.scopes.guarded(context, capability="commit") as conn:
-            self.require_lease(conn, context, job_id, unit_id)
+            self.require_lease(conn, context, job_id, unit_id, lease)
             conn.execute(
                 "UPDATE extraction_units SET lease_until=? WHERE id=?",
                 (self.clock() + 120, unit_id),

@@ -151,7 +151,7 @@ def test_queue_claim_is_atomic_and_cancel_prevents_dispatch(tmp_path):
             ),
         )
         with ThreadPoolExecutor(max_workers=2) as pool:
-            claims = list(pool.map(lambda _: queue.claim(context, job["id"]), range(2)))
+            claims = list(pool.map(lambda n: queue.claim(context, job["id"], str(n)), range(2)))
         assert sum(c is not None for c in claims) == 1
         running = queue.get(context, job["id"])
         response = client.post(
@@ -164,20 +164,21 @@ def test_queue_claim_is_atomic_and_cancel_prevents_dispatch(tmp_path):
             },
         )
         assert response.json()["state"] == "CANCELLED", response.text
-        assert queue.claim(context, job["id"]) is None
+        assert queue.claim(context, job["id"], "cancelled") is None
         assert client.get(prefix + "/provider-calls", headers=HEADERS).json()["total"] == 0
 
 
 @pytest.mark.parametrize(
-    "method,limit,expected,coverage",
+    "method,limit,expected,coverage,question",
     [
-        ("SEARCH", 100, "NOT_FOUND_IN_SEARCH", "SEARCH"),
-        ("FULL_SCAN", 100, "NOT_REPORTED_CANDIDATE", "FULL_SCAN"),
-        ("FULL_SCAN", 1, "NOT_FOUND_IN_SEARCH", "PARTIAL_SCAN"),
+        ("SEARCH", 100, "NOT_FOUND_IN_SEARCH", "SEARCH", "reported"),
+        ("SEARCH", 100, "NOT_FOUND_IN_SEARCH", "SEARCH", "zyzzxxy"),
+        ("FULL_SCAN", 100, "NOT_REPORTED_CANDIDATE", "FULL_SCAN", "reported"),
+        ("FULL_SCAN", 1, "NOT_FOUND_IN_SEARCH", "PARTIAL_SCAN", "reported"),
     ],
 )
 def test_absence_requires_measured_scan_and_preserves_batches(
-    tmp_path, method, limit, expected, coverage
+    tmp_path, method, limit, expected, coverage, question
 ):
     from test_conversations import indexed
 
@@ -190,7 +191,15 @@ def test_absence_requires_measured_scan_and_preserves_batches(
             headers=HEADERS,
             json={
                 "name": "Field",
-                "fields": [dict(fields[0], key="result", question="reported")],
+                "fields": [
+                    dict(
+                        fields[0],
+                        key="result",
+                        label=question,
+                        definition=question,
+                        question=question,
+                    )
+                ],
                 "expected_revision": 0,
                 "idempotency_key": "form",
             },
@@ -251,11 +260,33 @@ def test_absence_requires_measured_scan_and_preserves_batches(
             },
         ).json()["items"][0]
         assert proposal["value"] is None and proposal["value_state"] == expected
+        if question == "zyzzxxy":
+            assert (
+                not calls and proposal["origin"] == "COVERAGE_CHECK" and proposal["model"] is None
+            )
+            # Removing a planned attachment grant must also hide an evidence-free derived result.
+            with app.state.services.database.transaction() as conn:
+                conn.execute(
+                    "UPDATE notebook_grants SET contents='[]' WHERE notebook_id=?",
+                    (done["notebook_id"],),
+                )
+            response = client.post(
+                prefix + "/matrix/proposals/query",
+                headers=HEADERS,
+                json={
+                    "form_version_id": form["id"],
+                    "source_id": unit["source_id"],
+                    "field_key": "result",
+                    "offset": 0,
+                },
+            )
+            assert response.json()["code"] == "SOURCE_REVOKED", response.text
 
 
 def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkeypatch):
     import sqlite3
     from unittest.mock import Mock
+
     from evidra.storage import database as storage
 
     with monkeypatch.context() as patch:
@@ -294,6 +325,7 @@ def crash_after_second_send(directory):
     """Controlled child only: first batch commits, second SENT crashes without cleanup."""
     import os
     from pathlib import Path
+
     from test_conversations import indexed
 
     root = Path(directory)
@@ -347,9 +379,13 @@ def test_real_process_interruption_preserves_checkpoint_and_blocks_resend(tmp_pa
     import subprocess
     import sys
     from pathlib import Path
+
     from test_scopes import source, sync
 
-    code = "import sys;sys.path.insert(0,sys.argv[1]);from test_jobs import crash_after_second_send;crash_after_second_send(sys.argv[2])"
+    code = (
+        "import sys;sys.path.insert(0,sys.argv[1]);"
+        "from test_jobs import crash_after_second_send;crash_after_second_send(sys.argv[2])"
+    )
     result = subprocess.run(
         [sys.executable, "-c", code, str(Path(__file__).parent), str(tmp_path)],
         capture_output=True,
@@ -413,6 +449,7 @@ def test_real_process_interruption_preserves_checkpoint_and_blocks_resend(tmp_pa
 def test_inflight_stop_or_revocation_never_commits_or_dispatches_next_batch(tmp_path, action):
     import asyncio
     import threading
+
     from test_conversations import indexed
 
     app = make_app(tmp_path, [0.0])
@@ -499,7 +536,7 @@ def test_inflight_stop_or_revocation_never_commits_or_dispatches_next_batch(tmp_
 
 def test_full_scan_counts_missing_attachment_and_failed_pdf_page(tmp_path):
     from pdf_fixtures import pdf_bytes
-    from test_documents import document_scope, register, ingest, finished
+    from test_documents import document_scope, finished, ingest, register
     from test_scopes import source
 
     app = make_app(tmp_path / "engine", [0.0])
@@ -581,14 +618,14 @@ def test_expired_lease_requires_explicit_resume_and_rejects_stale_owner(tmp_path
             job["id"],
             JobControl(action="resume", expected_revision=0, idempotency_key="start"),
         )
-        unit = queue.claim(context, job["id"])
+        unit = queue.claim(context, job["id"], "initial-lease")
         assert unit is not None
         clock[0] = 121
-        assert queue.claim(context, job["id"]) is None
+        assert queue.claim(context, job["id"], "expiry") is None
         paused = queue.get(context, job["id"])
         assert paused.state == "PAUSED" and paused.reason == "LEASE_EXPIRED"
         with queue.database.transaction() as conn, pytest.raises(EvidraError, match="lease"):
-            queue.require_lease(conn, context, job["id"], unit.id)
+            queue.require_lease(conn, context, job["id"], unit.id, "initial-lease")
         queue.control(
             context,
             job["id"],
@@ -596,4 +633,12 @@ def test_expired_lease_requires_explicit_resume_and_rejects_stale_owner(tmp_path
                 action="resume", expected_revision=paused.revision, idempotency_key="resume"
             ),
         )
-        assert queue.claim(context, job["id"]).id == unit.id
+        assert queue.claim(context, job["id"], "new-lease").id == unit.id
+        with queue.database.transaction() as conn, pytest.raises(EvidraError, match="lease"):
+            queue.require_lease(conn, context, job["id"], unit.id, "initial-lease")
+        app.state.services.job_worker.failure(
+            job["id"], unit.id, "ENGINE_INTERRUPTED", "initial-lease"
+        )
+        with queue.database.transaction() as conn:
+            _, active = queue.require_lease(conn, context, job["id"], unit.id, "new-lease")
+            assert active.state == "RUNNING"

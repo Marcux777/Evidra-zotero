@@ -106,7 +106,7 @@ class MatrixService:
         if isinstance(proposal, ExtractionProposal) and proposal.origin != "HUMAN_CLIENT":
             # Authorship requires the immutable server-produced result, not an attached run ID.
             result = conn.execute(
-                "SELECT r.payload,u.evidence_ids FROM extraction_results r "
+                "SELECT r.payload,u.evidence_ids,u.payload AS unit FROM extraction_results r "
                 "JOIN extraction_units u ON u.id=r.unit_id "
                 "WHERE r.id=? AND r.notebook_id=? AND r.snapshot_id=?",
                 (proposal.run_id, *self.scope(context)),
@@ -115,6 +115,17 @@ class MatrixService:
                 raise EvidraError(
                     "INVALID_OUTPUT", "Model proposal has no matching trusted result."
                 )
+            member = next(
+                row
+                for row in self.scopes.members(conn, *self.scope(context))
+                if row["source_id"] == proposal.source_id
+            )
+            granted = {(c.key, c.kind) for c in self.scopes.frozen_content(member).contents}
+            if any(
+                (content["content_key"], content["source_kind"]) not in granted
+                for content in json.loads(result["unit"])["coverage"]
+            ):
+                raise EvidraError("SOURCE_REVOKED", "Extraction coverage is outside current scope.")
             for identity in json.loads(result[1]):
                 original = self.evidence.from_connection(conn, context, identity)
                 if original.source_id != proposal.source_id:
