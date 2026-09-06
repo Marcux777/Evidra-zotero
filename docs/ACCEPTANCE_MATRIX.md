@@ -4,7 +4,7 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
-| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Reviewedb132506 passed real native admission/menu/opaque UI/consent/engine/notebook create-close-reopen and host-restart readback. A900x528actual panel capture was inspected. Normal test-window close removed its owned engine; full reader/multiwindow/disable-uninstall lifecycle remains unverified. | PARTIAL |
+| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Reviewedb132506 passed real native admission/menu/opaque UI/consent/engine/notebook create-close-reopen, host-restart readback and two-main-window synchronization. Normal final-window close removed its exact owned engine. Receipt task2-native-multiwindow-receipt.json adds theme/zoom and second-window cleanup evidence; reader and disable/uninstall remain unverified. | PARTIAL |
 | A02 | Selecionar múltiplas coleções usa APIs plurais e não confunde cabeçalhos da lista com itens. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A03 | Item em coleções sobrepostas entra uma vez; itens homônimos de bibliotecas diferentes não se fundem. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A04 | Subcoleções/filtros/buscas salvas/exclusões produzem exatamente o snapshot esperado. | Not yet implemented | Not yet executed | NOT_VERIFIED |
@@ -37,6 +37,6 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 | A31 | CSV neutraliza fórmulas textuais; backup malicioso não escreve fora do destino. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A32 | Backup/restauração preserva decisões e versões; não presume que IDs de outro perfil são válidos. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A33 | Engine empacotado roda em Windows limpo sem Python/Node, com protocolo compatível. | Preliminary M0 PyInstaller onedir under `.local/native-smoke/` | `smoke-be843d60f511/smoke-receipt.json`: actual binary flow/cleanup passed with PATH only System32; final package and clean-Windows host pending. | PARTIAL |
-| A34 | UI distingue fonte indisponível, falha, resultado parcial, rascunho e dado aprovado; teclado funciona. | Not yet implemented | Not yet executed | NOT_VERIFIED |
+| A34 | UI distingue fonte indisponível, falha, resultado parcial, rascunho e dado aprovado; teclado funciona. | Task2 App/style and native bridge; later source/result UI | Actual trusted Enter created a notebook across two mounted panels; both followed native light/dark themes. At fullZoom2, viewport450x264 stacked content with scrollWidth=clientWidth442. Receipt task2-native-multiwindow-receipt.json; complete keyboard/accessibility and all later result states remain unverified. | PARTIAL |
 | A35 | Performance real medida com corpus e hardware declarados, sem números inventados. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A36 | Um fluxo real completo gera uma matriz, abre uma evidência e exporta resultado a partir de Zotero. | Not yet implemented | Not yet executed | NOT_VERIFIED |

@@ -45,6 +45,8 @@ Native UI constraint verified during Task2: the opaque iframe keeps sandbox=allo
 
 The same opaque content realm is not a secure context: crypto.randomUUID is unavailable, although privileged Xray inspection misleadingly exposes that property. UI idempotency keys use the available crypto.getRandomValues API directly; notebook keys are 32 random bytes encoded as 64 hex characters. Do not assume a privileged inspection proves a content capability exists. Preserve stable keys across retries and reset them only on the existing edit/success transitions.
 
+Source provenance contract: the Task3 resolver recognizes the exact Zotero tag `evidra:ai` and note HTML attribute `data-evidra-origin="ai"` as AI artifact markers. Every later Evidra-produced AI note must preserve those markers alongside its outbox/provenance UUID, so explicit note selection cannot recycle an AI artifact into primary evidence. Unmarked external notes have unknown provenance; the opt-in UI must keep that limitation visible.
+
 ## Task 1: M0 engine, authenticated session and persistent notebooks
 
 **Files:** Create `services/engine/src/evidra/api/{app,notebooks}.py`, `domain/{models,errors}.py`, `storage/database.py`, `security/{runtime,handshake}.py`, `notebooks/service.py`, `__main__.py`, SQL migrations under `storage/migrations/`, `services/engine/tests/test_runtime_notebooks.py`. Update pyproject only when demonstrated necessary. Engine migrations must ship as package data.
@@ -207,6 +209,8 @@ Task2 source/review gate passed atb132506 after five fix rounds. The actual firs
 **Files:** `screening/service.py`, `synthesis/service.py`, `audit/service.py`, `notebooks/protocol.py`, `storage/outbox.py`, API/migrations/tests; native note bridge and `ui/{Protocol,Screening,Research,NotePreview}.tsx`.
 
 **Interfaces:** Versioned protocol/criterion/form, assistant proposals distinct from human screening decisions, versioned derived artifacts and approved write outbox with UUID. All model operations use existing authorized run/job pipeline. Native bridge applies a human-approved note intent only after current library permissions and scope check and acknowledges via readback.
+
+**Source-provenance integration:** Apply the exact AI markers from the Integration contracts to every created AI-derived note and verify them during native readback. Retain the outbox UUID independently; do not modify original human notes or assume an unmarked third-party note has human provenance.
 
 **Requirements:** Inclusion/exclusion criteria IDs/version/applicability; title/abstract vs full text stages, INCLUDE/EXCLUDE/UNCERTAIN proposals and evidence, absent content cannot infer exclusion. Local reviewer labels/conflicts with append-only observed counters, unknown historic counts stay unknown. Synthesis prefers approved cells; opt-in unreviewed proposals visibly distinct; incomplete studies yield explicit partial artifact. Comparisons retain contexts, no invented ranking. Audit pasted claims with four proposal support states, anchors distinct from support, indirectly cited works never presented as read. Artifact versions and human review. Note preview -> human approval -> outbox -> native permission check/create -> provenance UUID reconciliation/readback; never modify original notes and no automatic undo claim.
 
