@@ -103,6 +103,23 @@ class MatrixService:
         ]
         if any(e.source_id != proposal.source_id for e in evidence):
             raise EvidraError("FORBIDDEN", "Evidence belongs to a different study.")
+        if isinstance(proposal, ExtractionProposal) and proposal.origin != "HUMAN_CLIENT":
+            # Authorship requires the immutable server-produced result, not an attached run ID.
+            result = conn.execute(
+                "SELECT r.payload,u.evidence_ids FROM extraction_results r "
+                "JOIN extraction_units u ON u.id=r.unit_id "
+                "WHERE r.id=? AND r.notebook_id=? AND r.snapshot_id=?",
+                (proposal.run_id, *self.scope(context)),
+            ).fetchone()
+            if result is None or ExtractionProposal.model_validate_json(result[0]) != proposal:
+                raise EvidraError(
+                    "INVALID_OUTPUT", "Model proposal has no matching trusted result."
+                )
+            for identity in json.loads(result[1]):
+                original = self.evidence.from_connection(conn, context, identity)
+                if original.source_id != proposal.source_id:
+                    raise EvidraError("FORBIDDEN", "Extraction evidence belongs to another study.")
+            return evidence, None
         run = None
         if proposal.run_id:
             run = self.conversations.read_from_connection(conn, context, proposal.run_id)

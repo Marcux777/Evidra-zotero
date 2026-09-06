@@ -56,11 +56,14 @@ def test_field_schema_matches_values_without_coercion(kind, valid, invalid):
 
 def test_v6_migration_preserves_existing_synthetic_notebook_and_evidence(tmp_path, monkeypatch):
     import sqlite3
+    from unittest.mock import Mock
 
     from evidra.storage import database as storage
 
     with monkeypatch.context() as patch:
         patch.setattr(storage, "SCHEMA_VERSION", 6)
+        # The historical v6 fixture predates the v8 job startup/recovery subsystem.
+        patch.setattr("evidra.api.app.JobQueue", Mock())
         app = make_app(tmp_path, [0.0])
         with TestClient(app, base_url="http://127.0.0.1:49200") as client:
             notebook, _, _ = indexed(client)
@@ -68,7 +71,9 @@ def test_v6_migration_preserves_existing_synthetic_notebook_and_evidence(tmp_pat
                 evidence_before = [
                     tuple(r) for r in conn.execute("SELECT id,original_text FROM document_chunks")
                 ]
-    upgraded = storage.Database(tmp_path / "evidra.sqlite3")
+    with monkeypatch.context() as patch:
+        patch.setattr(storage, "SCHEMA_VERSION", 7)
+        upgraded = storage.Database(tmp_path / "evidra.sqlite3")
     with upgraded.transaction() as conn:
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
         assert (

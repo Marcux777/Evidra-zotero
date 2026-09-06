@@ -134,10 +134,10 @@ class ExtractionProposal(CellValue):
     evidence_ids: list[str]
     run_id: str | None
     rationale: str
-    origin: Literal["HUMAN_CLIENT"]
+    origin: Literal["HUMAN_CLIENT", "MODEL_RUN", "COVERAGE_CHECK"]
     principal: str
     model: str | None
-    coverage: Literal["CITED_EVIDENCE_ONLY"]
+    coverage: Literal["CITED_EVIDENCE_ONLY", "SEARCH", "PARTIAL_SCAN", "FULL_SCAN"]
     source_kinds: list[str]
     visual: VisualProvenance | None
     created_at: str

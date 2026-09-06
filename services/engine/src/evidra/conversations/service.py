@@ -416,11 +416,14 @@ class ConversationService:
             ):
                 raise EvidraError("REVISION_CONFLICT", "Prepared history changed.")
             if connection.execute(
-                "SELECT 1 FROM conversation_runs WHERE conversation_id=? AND "
+                "SELECT 1 FROM conversation_runs WHERE "
                 "json_extract(payload,'$.state')='RUNNING'",
-                (run.conversation_id,),
             ).fetchone():
                 raise EvidraError("RUN_BUSY", "A conversation run is already active.")
+            if connection.execute(
+                "SELECT 1 FROM extraction_jobs WHERE json_extract(payload,'$.state')='RUNNING'"
+            ).fetchone():
+                raise EvidraError("RUN_BUSY", "An extraction generator job is active.")
             current = self.providers.profiles.load(connection, run.profile.id)
             if current != run.profile:
                 raise EvidraError("REVISION_CONFLICT", "Prepared provider changed.")

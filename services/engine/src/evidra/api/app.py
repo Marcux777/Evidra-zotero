@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException
 from evidra.api.conversations import router as conversations_router
 from evidra.api.documents import router as documents_router
 from evidra.api.extraction import router as extraction_router
+from evidra.api.jobs import router as jobs_router
 from evidra.api.notebooks import router
 from evidra.api.providers import router as providers_router
 from evidra.api.sources import router as sources_router
@@ -22,6 +23,9 @@ from evidra.domain.models import HealthStatus, RuntimeStatus
 from evidra.evidence.service import EvidenceService
 from evidra.extraction.forms import FormService
 from evidra.extraction.matrix import MatrixService
+from evidra.extraction.runner import ExtractionRunner
+from evidra.jobs.queue import JobQueue
+from evidra.jobs.worker import JobWorker
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
@@ -49,6 +53,8 @@ class Services:
     conversations: ConversationService
     forms: FormService
     matrix: MatrixService
+    jobs: JobQueue
+    job_worker: JobWorker
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -59,6 +65,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
         providers = None
         conversations = None
         vectors = None
+        job_worker = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
@@ -70,6 +77,9 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             vectors = VectorSearch(evidence, providers)
             conversations = ConversationService(lexical, vectors, providers, ingestion)
             forms = FormService(scopes)
+            matrix = MatrixService(forms, evidence, conversations)
+            jobs = JobQueue(ExtractionRunner(matrix, lexical), providers)
+            job_worker = JobWorker(jobs)
             app.state.services = Services(
                 database,
                 session,
@@ -85,10 +95,14 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 vectors,
                 conversations,
                 forms,
-                MatrixService(forms, evidence, conversations),
+                matrix,
+                jobs,
+                job_worker,
             )
             yield
         finally:
+            if job_worker is not None:
+                await job_worker.close()
             if conversations is not None:
                 await conversations.close()
             if vectors is not None:
@@ -120,6 +134,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(providers_router)
     app.include_router(conversations_router)
     app.include_router(extraction_router)
+    app.include_router(jobs_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:

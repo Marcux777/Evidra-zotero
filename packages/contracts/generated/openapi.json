@@ -8576,6 +8576,1092 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Prepare",
+        "operationId": "prepare_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobWrite"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Listing",
+        "operationId": "listing_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Read",
+        "operationId": "read_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/access": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Access",
+        "operationId": "access_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__access_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAccessPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/units": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Units",
+        "operationId": "units_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnitPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/units/{unit_id}/batches/{batch_index}": {
+      "get": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Preview",
+        "operationId": "preview_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units__unit_id__batches__batch_index__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "unit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Unit Id"
+            }
+          },
+          {
+            "name": "batch_index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Batch Index"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/control": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Control",
+        "operationId": "control_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__control_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JobControl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/job-cache/clear": {
+      "post": {
+        "tags": [
+          "jobs"
+        ],
+        "summary": "Clear Cache",
+        "operationId": "clear_cache_v1_notebooks__notebook_id__snapshots__snapshot_id__job_cache_clear_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "title": "Response Clear Cache V1 Notebooks  Notebook Id  Snapshots  Snapshot Id  Job Cache Clear Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -8892,6 +9978,83 @@
         ],
         "title": "Answer"
       },
+      "AttachmentCoverage": {
+        "properties": {
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "document_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Version Id"
+          },
+          "pages_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages Total"
+          },
+          "pages_processed": {
+            "type": "integer",
+            "title": "Pages Processed",
+            "default": 0
+          },
+          "chunks_total": {
+            "type": "integer",
+            "title": "Chunks Total",
+            "default": 0
+          },
+          "chunks_selected": {
+            "type": "integer",
+            "title": "Chunks Selected",
+            "default": 0
+          },
+          "chunks_processed": {
+            "type": "integer",
+            "title": "Chunks Processed",
+            "default": 0
+          },
+          "failed_pages": {
+            "type": "integer",
+            "title": "Failed Pages",
+            "default": 0
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "content_key",
+          "source_kind"
+        ],
+        "title": "AttachmentCoverage"
+      },
       "AttachmentRegister": {
         "properties": {
           "source_id": {
@@ -8950,6 +10113,49 @@
           "role"
         ],
         "title": "AttachmentRole"
+      },
+      "BatchPreview": {
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "title": "Unit Id"
+          },
+          "batch_index": {
+            "type": "integer",
+            "title": "Batch Index"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "estimated_input_tokens": {
+            "type": "integer",
+            "title": "Estimated Input Tokens"
+          },
+          "estimate_method": {
+            "type": "string",
+            "const": "utf8-bytes-plus-overhead-v1",
+            "title": "Estimate Method",
+            "default": "utf8-bytes-plus-overhead-v1"
+          },
+          "schema_plan": {
+            "$ref": "#/components/schemas/SchemaPlan"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit_id",
+          "batch_index",
+          "prompt",
+          "estimated_input_tokens",
+          "schema_plan",
+          "profile"
+        ],
+        "title": "BatchPreview"
       },
       "Budget": {
         "properties": {
@@ -10528,7 +11734,11 @@
           },
           "origin": {
             "type": "string",
-            "const": "HUMAN_CLIENT",
+            "enum": [
+              "HUMAN_CLIENT",
+              "MODEL_RUN",
+              "COVERAGE_CHECK"
+            ],
             "title": "Origin"
           },
           "principal": {
@@ -10548,7 +11758,12 @@
           },
           "coverage": {
             "type": "string",
-            "const": "CITED_EVIDENCE_ONLY",
+            "enum": [
+              "CITED_EVIDENCE_ONLY",
+              "SEARCH",
+              "PARTIAL_SCAN",
+              "FULL_SCAN"
+            ],
             "title": "Coverage"
           },
           "source_kinds": {
@@ -10944,6 +12159,298 @@
           "invalidated_count"
         ],
         "title": "InvalidationResult"
+      },
+      "JobAccessPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "documents": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Documents"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "documents",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "JobAccessPage"
+      },
+      "JobControl": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "resume",
+              "pause",
+              "cancel",
+              "skip_uncertain"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "action",
+          "expected_revision"
+        ],
+        "title": "JobControl",
+        "type": "object"
+      },
+      "JobPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/JobRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "JobPage"
+      },
+      "JobRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "default": 0
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "PAUSED",
+              "WAITING_PROVIDER",
+              "PARTIAL",
+              "SUCCEEDED",
+              "FAILED",
+              "CANCELLED"
+            ],
+            "title": "State",
+            "default": "PAUSED"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "request": {
+            "$ref": "#/components/schemas/JobWrite"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          },
+          "schema_plan": {
+            "$ref": "#/components/schemas/SchemaPlan"
+          },
+          "total_units": {
+            "type": "integer",
+            "title": "Total Units"
+          },
+          "completed_units": {
+            "type": "integer",
+            "title": "Completed Units",
+            "default": 0
+          },
+          "failed_units": {
+            "type": "integer",
+            "title": "Failed Units",
+            "default": 0
+          },
+          "cached_units": {
+            "type": "integer",
+            "title": "Cached Units",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "notebook_id",
+          "snapshot_id",
+          "request",
+          "profile",
+          "schema_plan",
+          "total_units",
+          "created_at"
+        ],
+        "title": "JobRecord"
+      },
+      "JobWrite": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "form_version_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Form Version Id",
+            "type": "string"
+          },
+          "field_keys": {
+            "items": {
+              "pattern": "^[a-z][a-z0-9_]{0,63}$",
+              "type": "string"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Field Keys",
+            "type": "array"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "method": {
+            "enum": [
+              "SEARCH",
+              "FULL_SCAN"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "max_chunks_per_unit": {
+            "default": 500,
+            "maximum": 10000,
+            "minimum": 1,
+            "title": "Max Chunks Per Unit",
+            "type": "integer"
+          },
+          "context_tokens": {
+            "default": 32768,
+            "maximum": 1000000,
+            "minimum": 1024,
+            "title": "Context Tokens",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "default": 2048,
+            "maximum": 32768,
+            "minimum": 1,
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "ollama_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OllamaOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "force_new": {
+            "default": false,
+            "title": "Force New",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "form_version_id",
+          "field_keys",
+          "profile_id",
+          "method"
+        ],
+        "title": "JobWrite",
+        "type": "object"
       },
       "MatrixCell": {
         "properties": {
@@ -12934,6 +14441,43 @@
         ],
         "title": "RuntimeStatus"
       },
+      "SchemaPlan": {
+        "properties": {
+          "system": {
+            "type": "string",
+            "title": "System"
+          },
+          "output_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Schema"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "native",
+              "local_validation",
+              "none"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "system",
+          "output_schema",
+          "mode"
+        ],
+        "title": "SchemaPlan"
+      },
       "SearchHit": {
         "properties": {
           "evidence_id": {
@@ -14061,6 +15605,146 @@
           "total_characters"
         ],
         "title": "TextStage"
+      },
+      "UnitPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UnitRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "UnitPage"
+      },
+      "UnitRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "job_id": {
+            "type": "string",
+            "title": "Job Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "field_key": {
+            "type": "string",
+            "title": "Field Key"
+          },
+          "field_origin_form_version_id": {
+            "type": "string",
+            "title": "Field Origin Form Version Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETE",
+              "FAILED",
+              "BILLING_UNKNOWN"
+            ],
+            "title": "State",
+            "default": "QUEUED"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentCoverage"
+            },
+            "type": "array",
+            "title": "Coverage"
+          },
+          "coverage_state": {
+            "type": "string",
+            "enum": [
+              "SEARCH",
+              "PARTIAL_SCAN",
+              "FULL_SCAN"
+            ],
+            "title": "Coverage State"
+          },
+          "batches_total": {
+            "type": "integer",
+            "title": "Batches Total"
+          },
+          "batches_processed": {
+            "type": "integer",
+            "title": "Batches Processed",
+            "default": 0
+          },
+          "proposal_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Id"
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "title": "Cache Hit",
+            "default": false
+          },
+          "call_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Call Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "job_id",
+          "source_id",
+          "field_key",
+          "field_origin_form_version_id",
+          "coverage",
+          "coverage_state",
+          "batches_total"
+        ],
+        "title": "UnitRecord"
       },
       "UsagePage": {
         "properties": {
@@ -16302,6 +17986,335 @@
           },
           {
             "$ref": "#/components/schemas/MatrixApproveCommand"
+          }
+        ]
+      },
+      "JobAccessCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.access",
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id"
+        ],
+        "title": "JobAccessCommand",
+        "type": "object"
+      },
+      "JobCacheCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.cache.clear",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op"
+        ],
+        "title": "JobCacheCommand",
+        "type": "object"
+      },
+      "JobControlCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.control",
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/JobControl"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id",
+          "request"
+        ],
+        "title": "JobControlCommand",
+        "type": "object"
+      },
+      "JobListCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.list",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "offset"
+        ],
+        "title": "JobListCommand",
+        "type": "object"
+      },
+      "JobPreviewCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.preview",
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "unit_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Unit Id",
+            "type": "string"
+          },
+          "batch_index": {
+            "maximum": 10000,
+            "minimum": 0,
+            "title": "Batch Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id",
+          "unit_id",
+          "batch_index"
+        ],
+        "title": "JobPreviewCommand",
+        "type": "object"
+      },
+      "JobReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.read",
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id"
+        ],
+        "title": "JobReadCommand",
+        "type": "object"
+      },
+      "JobUnitsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.units",
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id",
+          "offset"
+        ],
+        "title": "JobUnitsCommand",
+        "type": "object"
+      },
+      "JobWriteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "jobs.prepare",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/JobWrite"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "JobWriteCommand",
+        "type": "object"
+      },
+      "JobCommand": {
+        "discriminator": {
+          "mapping": {
+            "jobs.access": "#/components/schemas/JobAccessCommand",
+            "jobs.cache.clear": "#/components/schemas/JobCacheCommand",
+            "jobs.control": "#/components/schemas/JobControlCommand",
+            "jobs.list": "#/components/schemas/JobListCommand",
+            "jobs.prepare": "#/components/schemas/JobWriteCommand",
+            "jobs.preview": "#/components/schemas/JobPreviewCommand",
+            "jobs.read": "#/components/schemas/JobReadCommand",
+            "jobs.units": "#/components/schemas/JobUnitsCommand"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/JobListCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobWriteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobAccessCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobUnitsCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobPreviewCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobControlCommand"
+          },
+          {
+            "$ref": "#/components/schemas/JobCacheCommand"
           }
         ]
       },

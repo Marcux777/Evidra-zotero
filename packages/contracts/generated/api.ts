@@ -977,6 +977,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Listing */
+        get: operations["listing_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_get"];
+        put?: never;
+        /** Prepare */
+        post: operations["prepare_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read */
+        get: operations["read_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access */
+        get: operations["access_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__access_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/units": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Units */
+        get: operations["units_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/units/{unit_id}/batches/{batch_index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview */
+        get: operations["preview_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units__unit_id__batches__batch_index__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/jobs/{job_id}/control": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Control */
+        post: operations["control_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__control_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/job-cache/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clear Cache */
+        post: operations["clear_cache_v1_notebooks__notebook_id__snapshots__snapshot_id__job_cache_clear_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -1037,6 +1157,44 @@ export interface components {
             /** Claims */
             claims: components["schemas"]["Claim"][];
         };
+        /** AttachmentCoverage */
+        AttachmentCoverage: {
+            /** Content Key */
+            content_key: string;
+            /** Source Kind */
+            source_kind: string;
+            /** Document Version Id */
+            document_version_id?: string | null;
+            /** Pages Total */
+            pages_total?: number | null;
+            /**
+             * Pages Processed
+             * @default 0
+             */
+            pages_processed: number;
+            /**
+             * Chunks Total
+             * @default 0
+             */
+            chunks_total: number;
+            /**
+             * Chunks Selected
+             * @default 0
+             */
+            chunks_selected: number;
+            /**
+             * Chunks Processed
+             * @default 0
+             */
+            chunks_processed: number;
+            /**
+             * Failed Pages
+             * @default 0
+             */
+            failed_pages: number;
+            /** Reason */
+            reason?: string | null;
+        };
         /** AttachmentRegister */
         AttachmentRegister: {
             /** Source Id */
@@ -1056,6 +1214,25 @@ export interface components {
              * @enum {string}
              */
             role: "unassigned" | "principal" | "supplement";
+        };
+        /** BatchPreview */
+        BatchPreview: {
+            /** Unit Id */
+            unit_id: string;
+            /** Batch Index */
+            batch_index: number;
+            /** Prompt */
+            prompt: string;
+            /** Estimated Input Tokens */
+            estimated_input_tokens: number;
+            /**
+             * Estimate Method
+             * @default utf8-bytes-plus-overhead-v1
+             * @constant
+             */
+            estimate_method: "utf8-bytes-plus-overhead-v1";
+            schema_plan: components["schemas"]["SchemaPlan"];
+            profile: components["schemas"]["ProviderProfile"];
         };
         /** Budget */
         Budget: {
@@ -1565,18 +1742,18 @@ export interface components {
             rationale: string;
             /**
              * Origin
-             * @constant
+             * @enum {string}
              */
-            origin: "HUMAN_CLIENT";
+            origin: "HUMAN_CLIENT" | "MODEL_RUN" | "COVERAGE_CHECK";
             /** Principal */
             principal: string;
             /** Model */
             model: string | null;
             /**
              * Coverage
-             * @constant
+             * @enum {string}
              */
-            coverage: "CITED_EVIDENCE_ONLY";
+            coverage: "CITED_EVIDENCE_ONLY" | "SEARCH" | "PARTIAL_SCAN" | "FULL_SCAN";
             /** Source Kinds */
             source_kinds: string[];
             visual: components["schemas"]["VisualProvenance"] | null;
@@ -1708,6 +1885,127 @@ export interface components {
         InvalidationResult: {
             /** Invalidated Count */
             invalidated_count: number;
+        };
+        /** JobAccessPage */
+        JobAccessPage: {
+            /** Items */
+            items: components["schemas"]["SourceAccess"][];
+            /** Documents */
+            documents: [
+                string,
+                string
+            ][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+        };
+        /** JobControl */
+        JobControl: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "resume" | "pause" | "cancel" | "skip_uncertain";
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** JobPage */
+        JobPage: {
+            /** Items */
+            items: components["schemas"]["JobRecord"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+        };
+        /** JobRecord */
+        JobRecord: {
+            /** Id */
+            id: string;
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * Revision
+             * @default 0
+             */
+            revision: number;
+            /**
+             * State
+             * @default PAUSED
+             * @enum {string}
+             */
+            state: "QUEUED" | "RUNNING" | "PAUSED" | "WAITING_PROVIDER" | "PARTIAL" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+            /** Reason */
+            reason?: string | null;
+            request: components["schemas"]["JobWrite"];
+            profile: components["schemas"]["ProviderProfile"];
+            schema_plan: components["schemas"]["SchemaPlan"];
+            /** Total Units */
+            total_units: number;
+            /**
+             * Completed Units
+             * @default 0
+             */
+            completed_units: number;
+            /**
+             * Failed Units
+             * @default 0
+             */
+            failed_units: number;
+            /**
+             * Cached Units
+             * @default 0
+             */
+            cached_units: number;
+            /** Created At */
+            created_at: string;
+        };
+        /** JobWrite */
+        JobWrite: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Form Version Id */
+            form_version_id: string;
+            /** Field Keys */
+            field_keys: string[];
+            /** Profile Id */
+            profile_id: string;
+            /**
+             * Method
+             * @enum {string}
+             */
+            method: "SEARCH" | "FULL_SCAN";
+            /**
+             * Max Chunks Per Unit
+             * @default 500
+             */
+            max_chunks_per_unit: number;
+            /**
+             * Context Tokens
+             * @default 32768
+             */
+            context_tokens: number;
+            /**
+             * Max Output Tokens
+             * @default 2048
+             */
+            max_output_tokens: number;
+            /** @default null */
+            ollama_options: components["schemas"]["OllamaOptions"] | null;
+            /**
+             * Force New
+             * @default false
+             */
+            force_new: boolean;
         };
         /** MatrixCell */
         MatrixCell: {
@@ -2412,6 +2710,20 @@ export interface components {
              */
             heartbeat_timeout_seconds: number;
         };
+        /** SchemaPlan */
+        SchemaPlan: {
+            /** System */
+            system: string;
+            /** Output Schema */
+            output_schema: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "native" | "local_validation" | "none";
+        };
         /** SearchHit */
         SearchHit: {
             /** Evidence Id */
@@ -2811,6 +3123,61 @@ export interface components {
             /** Total Characters */
             total_characters: number;
             document?: components["schemas"]["RegisteredDocument"] | null;
+        };
+        /** UnitPage */
+        UnitPage: {
+            /** Items */
+            items: components["schemas"]["UnitRecord"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+        };
+        /** UnitRecord */
+        UnitRecord: {
+            /** Id */
+            id: string;
+            /** Job Id */
+            job_id: string;
+            /** Source Id */
+            source_id: string;
+            /** Field Key */
+            field_key: string;
+            /** Field Origin Form Version Id */
+            field_origin_form_version_id: string;
+            /**
+             * State
+             * @default QUEUED
+             * @enum {string}
+             */
+            state: "QUEUED" | "RUNNING" | "COMPLETE" | "FAILED" | "BILLING_UNKNOWN";
+            /** Reason */
+            reason?: string | null;
+            /** Coverage */
+            coverage: components["schemas"]["AttachmentCoverage"][];
+            /**
+             * Coverage State
+             * @enum {string}
+             */
+            coverage_state: "SEARCH" | "PARTIAL_SCAN" | "FULL_SCAN";
+            /** Batches Total */
+            batches_total: number;
+            /**
+             * Batches Processed
+             * @default 0
+             */
+            batches_processed: number;
+            /** Proposal Id */
+            proposal_id?: string | null;
+            /**
+             * Cache Hit
+             * @default false
+             */
+            cache_hit: boolean;
+            /** Call Ids */
+            call_ids?: string[];
         };
         /** UsagePage */
         UsagePage: {
@@ -3607,6 +3974,128 @@ export interface components {
             request: components["schemas"]["MatrixQuery"];
         };
         MatrixCommand: components["schemas"]["FormListCommand"] | components["schemas"]["FormTemplateCommand"] | components["schemas"]["FormWriteCommand"] | components["schemas"]["MatrixQueryCommand"] | components["schemas"]["MatrixHistoryCommand"] | components["schemas"]["MatrixProposeCommand"] | components["schemas"]["MatrixDecideCommand"] | components["schemas"]["MatrixPreviewCommand"] | components["schemas"]["MatrixApproveCommand"];
+        /** JobAccessCommand */
+        JobAccessCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.access";
+            /** Job Id */
+            job_id: string;
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+        };
+        /** JobCacheCommand */
+        JobCacheCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.cache.clear";
+        };
+        /** JobControlCommand */
+        JobControlCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.control";
+            /** Job Id */
+            job_id: string;
+            request: components["schemas"]["JobControl"];
+        };
+        /** JobListCommand */
+        JobListCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.list";
+            /** Offset */
+            offset: number;
+        };
+        /** JobPreviewCommand */
+        JobPreviewCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.preview";
+            /** Job Id */
+            job_id: string;
+            /** Unit Id */
+            unit_id: string;
+            /** Batch Index */
+            batch_index: number;
+        };
+        /** JobReadCommand */
+        JobReadCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.read";
+            /** Job Id */
+            job_id: string;
+        };
+        /** JobUnitsCommand */
+        JobUnitsCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.units";
+            /** Job Id */
+            job_id: string;
+            /** Offset */
+            offset: number;
+        };
+        /** JobWriteCommand */
+        JobWriteCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "jobs.prepare";
+            request: components["schemas"]["JobWrite"];
+        };
+        JobCommand: components["schemas"]["JobListCommand"] | components["schemas"]["JobWriteCommand"] | components["schemas"]["JobReadCommand"] | components["schemas"]["JobAccessCommand"] | components["schemas"]["JobUnitsCommand"] | components["schemas"]["JobPreviewCommand"] | components["schemas"]["JobControlCommand"] | components["schemas"]["JobCacheCommand"];
         /** EngineManifest */
         EngineManifest: {
             /**
@@ -10010,6 +10499,787 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkReceipt"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    listing_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    prepare_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRecord"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRecord"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    access_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__access_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccessPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    units_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    preview_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__units__unit_id__batches__batch_index__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                job_id: string;
+                unit_id: string;
+                batch_index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchPreview"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    control_v1_notebooks__notebook_id__snapshots__snapshot_id__jobs__job_id__control_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobRecord"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    clear_cache_v1_notebooks__notebook_id__snapshots__snapshot_id__job_cache_clear_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": number;
                 };
             };
             /** @description Unauthorized */

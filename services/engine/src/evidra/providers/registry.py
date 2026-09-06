@@ -152,6 +152,8 @@ class ProviderRegistry:
         if self._closed:
             raise fail("ENGINE_STOPPING")
         # Images and conversation history cannot be hidden by underdeclared categories.
+        if self._active:
+            raise EvidraError("RUN_BUSY", "One generation request is already active.")
         categories = request.categories
         if any(m.images for m in request.messages):
             categories |= {"images"}

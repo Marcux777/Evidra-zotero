@@ -35,6 +35,7 @@ def public_error(error: EvidraError) -> ErrorResponse:
 
 
 STATUS_CODES = {
+    "QUEUE_LIMIT": 409,
     "CONTEXT_LIMIT": 413,
     "OUTPUT_LIMIT": 413,
     "VECTOR_LIMIT": 413,
