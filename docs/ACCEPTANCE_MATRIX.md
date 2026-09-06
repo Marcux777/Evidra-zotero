@@ -4,7 +4,7 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
-| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Native admission, menu and iframe render passed at f76e8a4; postMessage flow failed. Fix a06637f passes 17 controlled checks and scoped review; actual product flow/cleanup remain pending. | FAILED_NATIVE_FLOW |
+| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Native admission, menu and iframe render passed. Fix a06637f passed17 controlled checks/review but actual onboarding remained loading. Captured document-load correction652c3da passed2 focused checks/typecheck/build and scoped review; complete native flow/cleanup remain pending. | FAILED_NATIVE_FLOW |
 | A02 | Selecionar múltiplas coleções usa APIs plurais e não confunde cabeçalhos da lista com itens. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A03 | Item em coleções sobrepostas entra uma vez; itens homônimos de bibliotecas diferentes não se fundem. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A04 | Subcoleções/filtros/buscas salvas/exclusões produzem exatamente o snapshot esperado. | Not yet implemented | Not yet executed | NOT_VERIFIED |
