@@ -109,6 +109,11 @@
       "title": "Selectors",
       "type": "array"
     },
+    "include_selected_containers": {
+      "default": false,
+      "title": "Include Selected Containers",
+      "type": "boolean"
+    },
     "include_descendants": {
       "default": false,
       "title": "Include Descendants",

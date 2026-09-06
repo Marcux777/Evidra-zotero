@@ -1,14 +1,16 @@
 import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
+import { SourceBridge } from './sources';
 import { isUiEvent, parseUiMessage } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
 import { catalog } from '../ui/i18n';
-import type { NativeGlobals, NativePicker } from './native-types';
+import type { NativeGlobals, NativePicker, NativeSourcePane } from './native-types';
 import type { BridgeStatus, Locale, Mode, Notebook, Theme, UiMessage } from './types';
 const PREFIX = 'extensions.evidra.';
 export class ZoteroBridge {
     #g: NativeGlobals;
     #engine: EngineController | null = null;
+    #sources: SourceBridge | null = null;
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
@@ -52,7 +54,22 @@ export class ZoteroBridge {
         const engine = this.#engine;
         if (!engine)
             throw new Error('BRIDGE_NOT_READY');
+        const sources = () => {
+            if (engine.view().state !== 'running') throw new Error('ENGINE_NOT_RUNNING');
+            return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
+                error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
+        };
         switch (message.op) {
+            case 'sources.state': return sources().state();
+            case 'sources.history': return sources().history(message.notebook_id, message.offset);
+            case 'sources.read': return sources().read(message.notebook_id, message.snapshot_id, message.offset);
+            case 'sources.create': return sources().create(message.notebook_id, message.request);
+            case 'sources.revoke': return sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
+            case 'sources.preview': {
+                const pane = (window as Window & { ZoteroPane?: NativeSourcePane }).ZoteroPane;
+                if (message.capture && !pane) throw new Error('SOURCE_PANE_UNAVAILABLE');
+                return sources().preview(message.notebook_id, message.selection, message.capture ? pane! : null);
+            }
             case 'status': {
                 let selected: Notebook | null = null;
                 const id = this.pref('selectedNotebook');
@@ -78,6 +95,7 @@ export class ZoteroBridge {
             }
             case 'engine.verify': return engine.verify();
             case 'engine.start':
+                this.#sources?.shutdown(); this.#sources = null;
                 await engine.start(message.fingerprint, message.consent);
                 this.#setupError = null;
                 return engine.view();
@@ -154,6 +172,6 @@ export class ZoteroBridge {
         return cleanup;
     }
     async shutdown() { for (const cleanup of this.#frames)
-        cleanup(); await this.#engine?.stop(); this.#engine = null; }
+        cleanup(); this.#sources?.shutdown(); this.#sources = null; await this.#engine?.stop(); this.#engine = null; }
 }
 export function publicCode(error: unknown): string { return error instanceof Error && /^[A-Z_]{1,80}$/.test(error.message) ? error.message : 'OPERATION_FAILED'; }

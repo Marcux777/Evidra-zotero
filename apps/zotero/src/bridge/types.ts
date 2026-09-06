@@ -5,6 +5,22 @@ export type NotebookCreate = components['schemas']['NotebookCreate'];
 export type EngineManifest = components['schemas']['EngineManifest'];
 export type RuntimeStatus = components['schemas']['RuntimeStatus'];
 export type ErrorResponse = components['schemas']['ErrorResponse'];
+export type SourceInput = components['schemas']['SourceInput'];
+export type SourceSync = components['schemas']['SourceSync'];
+export type Source = components['schemas']['Source'];
+export type SourceIdentity = components['schemas']['SourceIdentity'];
+export type SourceContent = components['schemas']['SourceContent'];
+export type SourcePage = components['schemas']['SourcePage'];
+export type SelectionSpec = components['schemas']['SelectionSpec'];
+export type Selector = components['schemas']['Selector'];
+export type SelectionPreview = components['schemas']['SelectionPreview'];
+export type Snapshot = components['schemas']['Snapshot'];
+export type SnapshotPage = components['schemas']['SnapshotPage'];
+export type SnapshotSourcePage = components['schemas']['SnapshotSourcePage'];
+export type IdentityPage = components['schemas']['IdentityPage'];
+export type SnapshotCreate = components['schemas']['SnapshotCreate'];
+export type AttachmentRole = components['schemas']['AttachmentRole'];
+export type SourceChange = components['schemas']['SourceChange'];
 export type Locale = 'pt-BR' | 'en-US';
 export type Theme = 'system' | 'light' | 'dark';
 export type Mode = 'LOCAL' | 'API';
@@ -43,6 +59,18 @@ export type UiMessage = {
     locale: Locale;
     theme: Theme;
     mode: Mode;
+} | {
+    op: 'sources.state';
+} | {
+    op: 'sources.history'; notebook_id: string; offset: number;
+} | {
+    op: 'sources.read'; notebook_id: string; snapshot_id: string; offset: number;
+} | {
+    op: 'sources.preview'; notebook_id: string; selection: SelectionSpec; capture: boolean;
+} | {
+    op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
+} | {
+    op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
 };
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;

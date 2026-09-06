@@ -394,6 +394,11 @@ export interface components {
             /** Selectors */
             selectors?: components["schemas"]["Selector"][];
             /**
+             * Include Selected Containers
+             * @default false
+             */
+            include_selected_containers: boolean;
+            /**
              * Include Descendants
              * @default false
              */

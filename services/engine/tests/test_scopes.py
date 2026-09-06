@@ -130,7 +130,13 @@ def test_filters_versions_delta_and_stale_preview(tmp_path: Path):
             client,
             notebook,
             [source(), source(), source("EXCLUDE1"), source("OLDKEY01") | {"year": 1990}],
-            {"year_min": 2000, "tags": ["a", "b"], "tag_mode": "AND", "exclusions": [excluded]},
+            {
+                "year_min": 2000,
+                "tags": ["a", "b"],
+                "tag_mode": "AND",
+                "exclusions": [excluded],
+                "include_selected_containers": False,
+            },
         )
         assert [s["identity"]["item_key"] for s in preview["items"]] == ["SAMEKEY1"]
         assert {r["reason"] for r in preview["removed"]} == {"excluded", "year"}

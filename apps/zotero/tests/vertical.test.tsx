@@ -68,6 +68,10 @@ test('rejects arbitrary capabilities and extra fields before dispatch; only exac
         expect(() => parseUiMessage(message)).toThrow();
     }
     expect(parseUiMessage({ op: 'notebook.create', name: 'Evidence', idempotency_key: 'k' })).toEqual({ op: 'notebook.create', name: 'Evidence', idempotency_key: 'k' });
+    const sourcePreview = { op: 'sources.preview', notebook_id: '11111111-1111-4111-8111-111111111111', selection: { year_min: 2000, include_descendants: false, include_selected_containers: true }, capture: true };
+    expect(parseUiMessage(sourcePreview)).toEqual(sourcePreview);
+    for (const selection of [{ selectors: [{ kind: 'library', library_id: 999 }] }, { source_ids: ['forged'] }, { year_min: -1 }, { include_notes: 'yes' }, { include_selected_containers: 'yes' }])
+        expect(() => parseUiMessage({ ...sourcePreview, selection })).toThrow();
     const source = {};
     const wrong = {};
     expect(isUiEvent({ source, origin: 'null' }, source)).toBe(true);

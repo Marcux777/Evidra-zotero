@@ -100,6 +100,7 @@ class AttachmentRole(StrictModel):
 
 class SelectionSpec(StrictModel):
     selectors: list[Selector] = Field(default_factory=list, max_length=1000)
+    include_selected_containers: bool = False
     include_descendants: bool = False
     year_min: int | None = Field(default=None, ge=1, le=9999)
     year_max: int | None = Field(default=None, ge=1, le=9999)
