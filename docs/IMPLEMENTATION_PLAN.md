@@ -142,16 +142,19 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
 
 **Requirements:** Verify current native docs and installed SDK/types before implementation. Real Ollama native protocol/catalog/embeddings, LM Studio and explicit OpenAI-compatible chat/embedding protocols, official OpenAI appropriate generation API, Anthropic Messages, Gemini generateContent/streamGenerateContent. Each handles protocol-specific streaming, images/schema where supported, explicit capabilities and model ID. HTTP pooled httpx with TLS validation, bounded timeouts, no redirect/retry. LOCAL requires explicit loopback and denies cloud model metadata/names; remote custom HTTPS hosts require explicit consent. Per-notebook/provider consent shows content categories; paid API block default. keyring failures allow memory-only storage with clear status. Call/job/session usage/reservations, versioned price config, unknown price blocks monetary cap; post-send timeout/cancel records BILLING_UNKNOWN. No fallback credential/provider.
 
-- [ ] Create protocol fixture tests parameterized per adapter for exact request contract, streaming chunks, invalid JSON/schema, 429, timeout and cancellation. Example:
+- [x] Create protocol fixture tests parameterized per adapter for exact request contract, streaming chunks, invalid JSON/schema, 429, timeout and cancellation. Example:
   ```python
   with pytest.raises(EvidraError, match='RATE_LIMITED'):
       await collect(provider.generate(request, cancel_event))
   assert transport.request_count == 1
   ```
-- [ ] Execute focused tests to establish RED; use fixture HTTP transport/controlled local server only for provider I/O, real profile/usage persistence.
-- [ ] Implement native adapters, consent checks, capabilities, secret lifecycle and reservation/reconciliation. Keep generation separate from local embeddings.
-- [ ] Execute focused protocols/security/usage tests, Ruff/mypy. Live smoke only with explicitly supplied endpoint/model/credentials; otherwise report NOT_VERIFIED live.
-- [ ] Commit and record official URLs/protocol versions and A23–A26/A30 mapping. Catalog failures are explicit and manual model configuration remains available.
+- [x] Execute focused tests to establish RED; use fixture HTTP transport/controlled local server only for provider I/O, real profile/usage persistence.
+- [x] Implement native adapters, consent checks, capabilities, secret lifecycle and reservation/reconciliation. Keep generation separate from local embeddings.
+- [x] Execute focused protocols/security/usage tests, Ruff/mypy. Live smoke only with explicitly supplied endpoint/model/credentials; otherwise report NOT_VERIFIED live.
+- [x] Commit and record official URLs/protocol versions and A23–A26/A30 mapping. Catalog failures are explicit and manual model configuration remains available.
+
+
+Task5 source/review completed at12b6aa7 after I1–I4/N1 fixes; actual scoped local Ollama generation/embedding passed. Initial RED fixture/capture deviations, failed helper configuration and all unverified native/paid/keyring/offline boundaries remain explicit in TEST_REPORT.md. Task6 owns the user-facing semantic/conversation consumer.
 
 ## Task 6: M3 semantic retrieval, conversations and model UI
 

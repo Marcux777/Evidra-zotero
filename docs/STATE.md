@@ -2,7 +2,7 @@
 
 Updated: 2026-09-06. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
 
-The full v1 implementation is in progress, not complete. Tasks1–4 have passed their scoped source reviews. M2 now has executed native evidence for PDF parsing/search, exact and page-only Reader navigation, local preview, annotation text, material-change invalidation and changed-file/cached-Reader refusal. Tasks5–12 and final release acceptance remain outstanding. The supplied SPEC.md is preserved unchanged and IMPLEMENTATION_PLAN.md decomposes M0–M7 into twelve tasks.
+The full v1 implementation is in progress, not complete. Tasks1–5 have passed their scoped source reviews. M2 now has executed native evidence for PDF parsing/search, exact and page-only Reader navigation, local preview, annotation text, material-change invalidation and changed-file/cached-Reader refusal. Tasks6–12 and final release acceptance remain outstanding. The supplied SPEC.md is preserved unchanged and IMPLEMENTATION_PLAN.md decomposes M0–M7 into twelve tasks.
 
 ## Environment and authorizations
 
@@ -35,6 +35,10 @@ Official target-source inspection found that unknown custom tab types can break 
 The user subsequently authorized installing a local model service for validation. Portable Ollama 0.33.3 and the public qwen3:4b / qwen3-embedding:0.6b models are installed under `.local/ollama`. The owned loopback server passed a synthetic live JSON-streaming/embedding smoke, both models fully on the RTX 5060 Ti GPU. This verifies the external local test environment; Evidra adapters and semantic retrieval are still later work. Exact models, digests, settings and receipts: LOCAL_MODEL_TEST_ENVIRONMENT.md. No paid API, personal-library content or model weights entered the release payload.
 
 ## Next step
+
+Current boundary at12:25Z: Task5 source through `12b6aa71c2c8313c22ad5d38dbf6e12cdef98993` passed scoped review after correcting I1–I4 and N1. The final increment blocks cancellation during HTTP cleanup from delivering a final answer while retaining confirmed usage. The preceding134-case covering run and this increment's focused RED/GREEN plus static checks are recorded in TEST_REPORT.md; no unchanged suite was repeated. A live synthetic run on the exact source archive returned the expected JSON and finite normalized3x1024 embeddings, with both models on GPU. Receipt SHA256 `0cda3122c32a6295a6f3626acde810c0d4ce0733a3c8fa470e190408f64446ff`. Task6 now consumes these services for semantic retrieval, conversations, provider settings and native streaming. LM Studio/paid calls, actual Windows keyring, offline network isolation and native conversation acceptance remain unverified.
+
+Historical descriptions below retain their original milestone boundaries; they are not the current status.
 
 Current boundary at07:01Z: Task4 source revision0c1b8cfb4c9cde1ae5fc3bdc511b89ba7a413ac4 passed its third scoped re-review. The reviewed132223-byte XPI has SHA2565b63b6dd061a8f03d89e9b315242b5ed49a5d01383dddaa5f03a348cf3afdabf. Three completed native runs contain23/20/20checkpoints; all three scopes restored the temporary animation preference and closed their exact hosts/engines normally. The profile is stopped after main35488/engine27772 exited. Summary: `.local/native-smoke/task4-native-controller-summary.json`, SHA2564684d2e1f7996b477755216f7d6290b447cc6215b50ceaa4254f3c3980e1b651. Default smooth animation in a visible host, file-symlink execution after WinError1314, final release/clean-host/offline-network/accessibility/uninstall and later consumers remain explicitly unverified.
 
