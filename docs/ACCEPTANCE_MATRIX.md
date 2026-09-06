@@ -4,7 +4,7 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
-| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Native admission, menu, onboarding, opaque iframe, authenticated engine startup and notebook creation passed after reviewedb132506. Reopen helper reused a once-only menu command and failed; corrected helper check pending. Normal test-window close removed its owned engine; full disable/uninstall lifecycle remains unverified. | PARTIAL |
+| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Reviewedb132506 passed real native admission/menu/opaque UI/consent/engine/notebook create-close-reopen and host-restart readback. A900x528actual panel capture was inspected. Normal test-window close removed its owned engine; full reader/multiwindow/disable-uninstall lifecycle remains unverified. | PARTIAL |
 | A02 | Selecionar múltiplas coleções usa APIs plurais e não confunde cabeçalhos da lista com itens. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A03 | Item em coleções sobrepostas entra uma vez; itens homônimos de bibliotecas diferentes não se fundem. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A04 | Subcoleções/filtros/buscas salvas/exclusões produzem exatamente o snapshot esperado. | Not yet implemented | Not yet executed | NOT_VERIFIED |

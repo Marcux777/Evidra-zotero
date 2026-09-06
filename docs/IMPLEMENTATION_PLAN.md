@@ -85,7 +85,7 @@ The same opaque content realm is not a secure context: crypto.randomUUID is unav
 - [ ] Native smoke in a separate authorized test profile: load plugin, create/reopen notebook, reader/workspace lifecycle and disable cleanup. If the permitted helper cannot support test-profile installation/startup, record the exact blocked operation rather than automating Zotero UI or touching the personal profile. Continue independently executable work.
 - [x] Record screenshots only from real plugin operation when possible; otherwise label native criteria NOT_VERIFIED. Commit owned changes and report verification.
 
-Task 2 source/review gate passed at4240646 after one fix round. The separate native operation above remains NOT_VERIFIED and is tracked in NATIVE_VALIDATION_PLAN.md; the user authorized its local-policy exception on2026-09-05. Later source tasks continue as explicitly allowed by that step.
+Task2 source/review gate passed atb132506 after five fix rounds. The actual first-notebook native flow and host-restart readback passed on the exact reviewed XPI; a900x528native panel capture was inspected. The broader file-picker/reader/multiwindow/keyboard/theme/zoom/disable-uninstall checks remain pending in NATIVE_VALIDATION_PLAN.md. The user authorized the isolated-profile exception on2026-09-05. Later source tasks continue as explicitly allowed by that step.
 
 ## Task 3: M1 source resolution, identities and immutable scoped snapshots
 
