@@ -192,6 +192,7 @@ class ExtractionRunner:
                         {
                             "notebook": context.notebook_id,
                             "snapshot": context.snapshot_id,
+                            "study": {"id": source.id, "identity": source.identity.model_dump()},
                             "access": context.fingerprint,
                             "form": form.id,
                             "field": field.model_dump(),

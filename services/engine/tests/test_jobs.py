@@ -168,6 +168,82 @@ def test_queue_claim_is_atomic_and_cancel_prevents_dispatch(tmp_path):
         assert client.get(prefix + "/provider-calls", headers=HEADERS).json()["total"] == 0
 
 
+def test_metadata_only_studies_cache_only_their_own_proposals(tmp_path):
+    from test_scopes import capture, source
+    from test_scopes import setup as notebook_setup
+
+    from evidra.domain.errors import EvidraError
+
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        notebook = notebook_setup(client)
+        snapshot, _, _ = capture(
+            client,
+            notebook,
+            [
+                source(library=1) | {"contents": []},
+                source(library=2) | {"contents": []},
+            ],
+        )
+        prefix = f"/v1/notebooks/{notebook}/snapshots/{snapshot['id']}"
+        field = client.get(prefix + "/forms/template", headers=HEADERS).json()[0]
+        form = client.post(
+            prefix + "/forms",
+            headers=HEADERS,
+            json={
+                "name": "Results",
+                "fields": [dict(field, key="result")],
+                "expected_revision": 0,
+                "idempotency_key": "form",
+            },
+        ).json()
+        profile(client)
+        first = finish(client, prefix, prepare(client, prefix, form))
+        units = client.get(prefix + "/jobs/" + first["id"] + "/units", headers=HEADERS).json()[
+            "items"
+        ]
+        assert first["completed_units"] == 2 and first["cached_units"] == 0
+        assert len({u["proposal_id"] for u in units}) == 2
+        by_study = {u["source_id"]: u["proposal_id"] for u in units}
+        for study, proposal_id in by_study.items():
+            proposals = client.post(
+                prefix + "/matrix/proposals/query",
+                headers=HEADERS,
+                json={
+                    "form_version_id": form["id"],
+                    "source_id": study,
+                    "field_key": "result",
+                    "offset": 0,
+                },
+            ).json()["items"]
+            assert len(proposals) == 1 and proposals[0]["id"] == proposal_id
+            assert proposals[0]["source_id"] == study
+        second = finish(client, prefix, prepare(client, prefix, form, "cached"))
+        reused = client.get(prefix + "/jobs/" + second["id"] + "/units", headers=HEADERS).json()[
+            "items"
+        ]
+        assert second["completed_units"] == 2 and second["cached_units"] == 2
+        assert {u["source_id"]: u["proposal_id"] for u in reused} == by_study
+        assert client.get(prefix + "/provider-calls", headers=HEADERS).json()["total"] == 0
+        # A mismatched reference must fail closed even if passed under an existing cache key.
+        queue = app.state.services.jobs
+        context = queue.scopes.resolve(queue.scopes.principal, notebook, snapshot["id"], "commit")
+        from evidra.jobs.models import UnitRecord
+
+        with queue.scopes.guarded(context, capability="commit") as conn:
+            wrong_key = conn.execute(
+                "SELECT cache_key FROM extraction_units WHERE id=?", (units[1]["id"],)
+            ).fetchone()[0]
+            with pytest.raises(EvidraError, match="target"):
+                queue.cache.read(
+                    conn,
+                    context,
+                    queue.read(conn, context, second["id"]),
+                    UnitRecord.model_validate(reused[0]),
+                    wrong_key,
+                )
+
+
 @pytest.mark.parametrize(
     "method,limit,expected,coverage,question",
     [

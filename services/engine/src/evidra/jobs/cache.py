@@ -2,6 +2,7 @@
 
 import sqlite3
 
+from evidra.domain.errors import EvidraError
 from evidra.extraction.forms import now
 from evidra.extraction.runner import ExtractionRunner
 from evidra.jobs.models import JobRecord, UnitRecord
@@ -32,7 +33,25 @@ class ExtractionCache:
             return None
         old = UnitRecord.model_validate_json(row[0])
         assert old.proposal_id is not None
-        self.runner.matrix.proposal(conn, context, old.proposal_id)
+        proposal = self.runner.matrix.proposal(conn, context, old.proposal_id)
+        if (
+            proposal.source_id,
+            proposal.form_version_id,
+            proposal.field_key,
+            proposal.field_origin_form_version_id,
+        ) != (
+            unit.source_id,
+            job.request.form_version_id,
+            unit.field_key,
+            unit.field_origin_form_version_id,
+        ) or (old.source_id, old.field_key, old.field_origin_form_version_id) != (
+            unit.source_id,
+            unit.field_key,
+            unit.field_origin_form_version_id,
+        ):
+            raise EvidraError(
+                "INVALID_OUTPUT", "Cached extraction target does not match this unit."
+            )
         conn.execute("UPDATE extraction_cache SET used_at=? WHERE key=?", (now(), key))
         return unit.model_copy(
             update={
