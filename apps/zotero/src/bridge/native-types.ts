@@ -64,6 +64,9 @@ export interface NativePicker {
     returnOK: number;
 }
 export interface NativeZotero {
+    EditorInstanceUtilities: {
+        _transformTextToHTML(text: string): string;
+    };
     Reader: {
         open(itemID: number, location?: NativeReaderLocation, options?: { openInWindow: boolean }): Promise<NativeReader | undefined>;
         getByTabID(tabID: string): NativeReader | undefined;

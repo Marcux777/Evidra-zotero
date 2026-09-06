@@ -511,7 +511,13 @@ class IngestionService:
                     check,
                     lambda _: None,
                 ) as output:
-                    image = PagePreview.model_validate_json(output.read())
+                    result = json.load(output)
+                    if result.get("type") == "limit" and result.get("reason") == "PAGE_LIMIT":
+                        operation.page_count = result["page_count"]
+                        raise EvidraError(
+                            "PAGE_LIMIT", "The PDF exceeds its configured page limit."
+                        )
+                    image = PagePreview.model_validate(result)
                     if (
                         image.document_version_id != version["id"]
                         or image.page_index != body.page_index

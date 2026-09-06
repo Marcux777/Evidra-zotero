@@ -39,7 +39,7 @@ class EvidenceService:
         if row is None:
             raise EvidraError("NOT_FOUND", "Evidence not found.")
         document = self.registry.require(connection, context, row["document_id"])
-        source, _ = self.registry.content(
+        source, content = self.registry.content(
             connection, context, document["source_id"], document["content_key"]
         )
         page_row = connection.execute(
@@ -74,7 +74,9 @@ class EvidenceService:
             page_label=page.page_label if pdf else None,
             precision="rectangles" if pdf and rectangles else "page" if pdf else "text",
             rectangles=rectangles if pdf else [],
-            historical=not self.scopes.source_current(connection, source)
+            historical=not self.scopes.source_current(
+                connection, source.model_copy(update={"contents": [content]})
+            )
             or document["coverage"] == "STALE"
             or document["current_version_id"] != row["version_id"],
             parser_version=row["parser_version"],
@@ -126,7 +128,9 @@ class EvidenceService:
                     "WHERE d.source_id=? AND d.content_key=? AND d.content_version=?",
                     (source.id, content.key, content_version(content)),
                 ).fetchone()
-                historical = not self.scopes.source_current(connection, source)
+                historical = not self.scopes.source_current(
+                    connection, source.model_copy(update={"contents": [content]})
+                )
                 latest = (
                     connection.execute(
                         "SELECT payload FROM document_operations WHERE document_id=? "

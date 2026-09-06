@@ -62,7 +62,8 @@ export class DocumentBridge {
                     const item = await this.#item(source, content, check);
                     const text = content.kind === 'abstract' ? String(item.getField('abstractNote'))
                         : content.kind === 'human_note' ? this.plainText(item.getNote())
-                        : this.plainText([item.annotationText, item.annotationComment].filter(Boolean).join('\n\n'));
+                        : [item.annotationText, item.annotationComment].filter(Boolean)
+                            .map(value => this.plainText(this.api.EditorInstanceUtilities._transformTextToHTML(value))).join('\n\n');
                     check();
                     if (`${item.version}:${item.getField('dateModified')}` !== content.version) throw new Error('SCOPE_STALE');
                     const characters = [...text];

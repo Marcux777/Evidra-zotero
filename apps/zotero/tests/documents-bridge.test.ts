@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { webcrypto } from 'node:crypto';
+import { createHash, webcrypto } from 'node:crypto';
 import { URL as NodeURL } from 'node:url';
 import { expect, test } from 'vitest';
 import { parseUiMessage } from '../src/security/messages';
@@ -109,4 +109,49 @@ test('a cached Reader PDF and a changed active view cannot receive locations fro
     changeView = true;
     await expect(bridge.dispatch(command)).rejects.toThrow('READER_CHANGED');
     expect(locations).toHaveLength(1);
+});
+
+test('annotation indexing preserves literals and entities through Zotero restricted formatting before hashing the staged text', async () => {
+    const { DocumentBridge } = await import('../src/bridge/documents');
+    const annotationText = 'List<T> &amp; <span>literal</span> unmatched <b> and <i>';
+    const annotationComment = '</i> plus <i>italics</i> <B>bold</B> H<sub>2</sub> x<SUP>2</SUP>';
+    const expected = 'List<T> &amp; <span>literal</span> unmatched <b> and <i>\n\n</i> plus italics bold H2 x2';
+    // Native formatter responses follow the installed algorithm. In particular a pair
+    // cannot cross annotationText/annotationComment and unrecognized syntax is escaped.
+    const formatted = new Map([
+        [annotationText, 'List&lt;T&gt; &amp;amp; &lt;span&gt;literal&lt;/span&gt; unmatched &lt;b&gt; and &lt;i&gt;'],
+        [annotationComment, '&lt;/i&gt; plus <i>italics</i> <b>bold</b> H<sub>2</sub> x<sup>2</sup>'],
+    ]);
+    const item = { id: 2, key: 'ANNOT001', libraryID: 1, deleted: false, version: 1, getField: () => 'stamp',
+        isAnnotation: () => true, annotationText, annotationComment };
+    const source: any = { id: 'b'.repeat(64), identity: { profile_instance_id: 'p1', library_id: 1, item_key: 'PARENT1' },
+        contents: [{ key: item.key, kind: 'human_annotation', version: '1:stamp' }] };
+    const api: any = { Items: { getByLibraryAndKeyAsync: async () => item }, EditorInstanceUtilities: {
+        _transformTextToHTML: (text: string) => { const html = formatted.get(text); if (html === undefined) throw new Error('Unexpected native annotation input'); return html; },
+    } };
+    const sources: any = { withDocuments: async (_: string, __: string, run: any) => run([source], () => {}) };
+    const writes: { path: string; body: any }[] = [];
+    const document = { id: 'd'.repeat(32), source_id: source.id, content_key: item.key, source_kind: 'human_annotation',
+        revision: 1, coverage: 'FULL_TEXT_PARSED', reason: null };
+    const engine: any = { request: async (method: string, path: string, body: any) => {
+        expect(method).toBe('POST'); writes.push({ path, body });
+        if (path.endsWith('/documents/text')) return { id: 'e'.repeat(32), offset: 0, total_characters: body.total_characters, document: null };
+        if (path.endsWith('/documents/text/' + 'e'.repeat(32))) return { id: 'e'.repeat(32), offset: [...body.text].length,
+            total_characters: [...body.text].length, document };
+        throw new Error('Unexpected annotation document route');
+    } };
+    const plainText = (html: string) => new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
+    const bridge = new DocumentBridge(api, sources, engine, webcrypto as unknown as Crypto, plainText);
+    const command = parseUiMessage({ op: 'documents.index', ...scope, source_id: source.id, content_key: item.key, limits: {}, idempotency_key: 'annotation' });
+    if (command.op !== 'documents.index') throw new Error('Expected an indexing command');
+    expect(await bridge.dispatch(command)).toEqual({ document, operation: null });
+    expect(writes).toHaveLength(2);
+    expect(writes[0]!.body).toEqual({ source_id: source.id, content_key: item.key, total_characters: expected.length,
+        sha256: createHash('sha256').update(expected).digest('hex') });
+    expect(writes[1]!.body).toEqual({ offset: 0, text: expected, final: true });
+    expect([item.annotationText, item.annotationComment]).toEqual([annotationText, annotationComment]);
+    writes.length = 0;
+    delete api.EditorInstanceUtilities._transformTextToHTML;
+    await expect(bridge.dispatch(command)).rejects.toThrow('_transformTextToHTML is not a function');
+    expect(writes).toEqual([]);
 });

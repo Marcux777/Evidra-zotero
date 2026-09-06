@@ -344,7 +344,8 @@ def test_preview_limit_preserves_extraction_and_rotated_region(tmp_path: Path):
                     "crop": [20, 30, 380, 470],
                     "rotation": 90,
                     "operations": ["1 0 0 rg 100 100 40 60 re f"],
-                }
+                },
+                {"lines": [(40, 440, "second page text")]},
             ]
         )
     )
@@ -360,7 +361,22 @@ def test_preview_limit_preserves_extraction_and_rotated_region(tmp_path: Path):
             "scale": 1,
             "idempotency_key": "pixels",
         }
-        rendered = client.post(prefix + "/documents/preview", headers=HEADERS, json=body).json()
+        limited = client.post(
+            prefix + "/documents/preview",
+            headers=HEADERS,
+            json=body | {"limits": {"max_pages": 1}, "idempotency_key": "page-limit"},
+        ).json()
+        paused = finished(client, prefix, limited)
+        assert (paused["state"], paused["reason"], paused["page_count"]) == (
+            "PAUSED", "PAGE_LIMIT", 2
+        ), paused
+        listing = client.get(prefix + "/documents", headers=HEADERS).json()
+        assert listing["items"][0]["coverage"] == "FULL_TEXT_PARSED"
+        rendered = client.post(
+            prefix + "/documents/preview",
+            headers=HEADERS,
+            json=body | {"limits": {"max_pages": 2}},
+        ).json()
         operation = finished(client, prefix, rendered)
         assert operation["state"] == "COMPLETE", operation
         image = client.get(
@@ -372,7 +388,7 @@ def test_preview_limit_preserves_extraction_and_rotated_region(tmp_path: Path):
         rejected = client.post(
             prefix + "/documents/preview",
             headers=HEADERS,
-            json=body | {"page_index": 1, "idempotency_key": "invalid-page"},
+            json=body | {"page_index": 2, "idempotency_key": "invalid-page"},
         ).json()
         failure = finished(client, prefix, rejected)
         assert failure["state"] == "FAILED" and failure["reason"] == "INVALID_PAGE", failure
@@ -459,6 +475,65 @@ def test_fts_scope_precedes_limit_and_historical_reads_require_availability(tmp_
             ]
             == 0
         )
+
+
+def test_changed_attachment_does_not_stale_its_unchanged_authorized_sibling(tmp_path: Path):
+    """Currentness follows one content observation, not another authorized sibling."""
+    from test_scopes import sync
+
+    item = source() | {
+        "contents": [
+            {"key": "FIRSTPDF", "kind": "pdf", "version": "1"},
+            {"key": "SECONDPDF", "kind": "pdf", "version": "1"},
+        ]
+    }
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        notebook, snapshot, preview, prefix = document_scope(client, [item])
+        registered = {}
+        for content_key, text in [("FIRSTPDF", "first evidence"), ("SECONDPDF", "second evidence")]:
+            path = tmp_path / f"{content_key}.pdf"
+            write_pdf(path, text)
+            registered[content_key] = register(
+                client, prefix, preview["items"][0]["id"], path, content_key
+            )
+            parsed = finished(
+                client, prefix, ingest(client, prefix, registered[content_key], key=content_key)
+            )
+            assert parsed["state"] == "COMPLETE", parsed
+        changed = item | {
+            "contents": [item["contents"][0], item["contents"][1] | {"version": "2"}]
+        }
+        response = sync(
+            client, notebook, [changed], purpose="revalidation", snapshot_id=snapshot["id"]
+        )
+        assert response.status_code == 200, response.text
+        rows = client.get(prefix + "/documents", headers=HEADERS).json()["items"]
+        assert {row["content_key"]: (row["coverage"], row["historical"]) for row in rows} == {
+            "FIRSTPDF": ("FULL_TEXT_PARSED", False),
+            "SECONDPDF": ("STALE", True),
+        }
+        hits = client.post(
+            prefix + "/search", headers=HEADERS, json={"query": "evidence"}
+        ).json()["items"]
+        evidence = [
+            client.get(prefix + "/evidence/" + hit["evidence_id"], headers=HEADERS).json()
+            for hit in hits
+        ]
+        assert {row["content_key"]: row["historical"] for row in evidence} == {
+            "FIRSTPDF": False,
+            "SECONDPDF": True,
+        }
+        current = finished(
+            client, prefix, ingest(client, prefix, registered["FIRSTPDF"], key="current-cache")
+        )
+        assert current["state"] == "COMPLETE" and current["cache_hit"], current
+        refused = client.post(
+            prefix + "/documents/ingest",
+            headers=HEADERS,
+            json={"document_id": registered["SECONDPDF"]["id"], "idempotency_key": "stale"},
+        )
+        assert refused.status_code == 409 and refused.json()["code"] == "DOCUMENT_STALE"
 
 
 def test_failed_native_text_hash_and_changed_stage_never_publish(tmp_path: Path):

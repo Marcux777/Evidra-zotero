@@ -18,10 +18,10 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
     const [previewOffsets, setPreviewOffsets] = useState<number[]>([]), [sourceOffsets, setSourceOffsets] = useState<number[]>([]), [historyOffsets, setHistoryOffsets] = useState<number[]>([]);
     const [history, setHistory] = useState(emptyHistory), [snapshot, setSnapshot] = useState<Snapshot | null>(null), [sources, setSources] = useState<SnapshotSourcePage | null>(null);
     const version = useRef(0), epoch = useRef<number | null>(null), actionBusy = useRef(false), alive = useRef(true), revision = useRef(notebook.revision), pendingCapture = useRef<SnapshotCreate | null>(null);
-    const [capturePending, setCapturePending] = useState(false);
+    const [capturePending, setCapturePending] = useState(false), [documentEpoch, setDocumentEpoch] = useState(0);
     const report = (value: unknown) => setError(value instanceof Error ? value.message : 'OPERATION_FAILED');
     function clearPending() { pendingCapture.current = null; setCapturePending(false); }
-    function invalidate(discardCapture = true) { ++version.current; setPreview(null); setValid(false); setSources(null); if (discardCapture) clearPending(); setNotice(pendingCapture.current ? s.captureUncertain : s.changed); }
+    function invalidate(discardCapture = true) { ++version.current; setPreview(null); setValid(false); setSources(null); if (discardCapture) { clearPending(); setDocumentEpoch(value => value + 1); } setNotice(pendingCapture.current ? s.captureUncertain : s.changed); }
     function edit(next: Partial<SelectionSpec>) { if (pendingCapture.current) return; ++version.current; setSpec(old => ({ ...old, ...next })); setValid(false); }
     function updateRevision(next: number) { revision.current = next; onRevision?.(next); }
     useEffect(() => { alive.current = true; return () => { alive.current = false; ++version.current; }; }, []);
@@ -51,7 +51,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
         actionBusy.current = true; setBusy(true); setError('');
         const token = ++version.current, current = () => alive.current && token === version.current;
         try { await work(current); }
-        catch (value) { if (current()) { setValid(false); report(value); } }
+        catch (value) { if (current()) { if (confirmedCaptureFailure(value)) invalidate(); else setValid(false); report(value); } }
         finally { actionBusy.current = false; if (alive.current) setBusy(false); }
     }
     async function loadHistory(offset: number, current: () => boolean, initial = false, direction: 'next' | 'previous' | 'replace' = 'replace') {
@@ -124,7 +124,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
     function revoke(source: Source) { void action(async current => {
         const result = await bridge.request({ op: 'sources.revoke', notebook_id: notebook.id, source_id: source.id, expected_revision: revision.current }) as SourceChange;
         if (!current()) return;
-        updateRevision(result.revision); setSources(null); setPreview(null); setValid(false); setNotice(s.revoked);
+        updateRevision(result.revision); setSources(null); setPreview(null); setValid(false); setDocumentEpoch(value => value + 1); setNotice(s.revoked);
     }); }
     function role(source: Source, key: string, value: AttachmentRole['role']) {
         const existing = (spec.attachment_roles ?? []).filter(r => !(sameIdentity(r.identity, source.identity) && r.key === key));
@@ -176,6 +176,6 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             {sources.total > sources.limit && <nav className="actions" aria-label={s.members}><button disabled={busy || !sourceOffsets.length} onClick={() => read(snapshot, sourceOffsets.at(-1) ?? 0, 'previous')}>{t.previous}</button><button disabled={busy || sources.offset + sources.limit >= sources.total} onClick={() => read(snapshot, sources.offset + sources.limit, 'next')}>{t.next}</button></nav>}</>}
             <button type="button" disabled={busy} onClick={() => read(snapshot, sources?.offset ?? 0)}>{s.readAgain}</button></div>}
         <p className="source-meta">{s.external}</p>
-        {snapshot && sources && <Documents key={`${snapshot.id}:${notebook.revision}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/>}
+        {snapshot && <div hidden={!sources}><Documents key={`${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
     </section>;
 }
