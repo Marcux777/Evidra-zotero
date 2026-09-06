@@ -31,12 +31,15 @@ from evidra.notebooks.protocol import ProtocolService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
+from evidra.research.planner import ResearchPlanner
+from evidra.research.service import ResearchService
 from evidra.retrieval.lexical import LexicalSearch
 from evidra.retrieval.vectors import VectorSearch
 from evidra.scope.service import ScopeService
 from evidra.screening.service import ScreeningService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
 from evidra.storage.database import Database
+from evidra.storage.outbox import OutboxService
 
 
 @dataclass(frozen=True)
@@ -60,6 +63,8 @@ class Services:
     job_worker: JobWorker
     protocols: ProtocolService
     screening: ScreeningService
+    research: ResearchService
+    outbox: OutboxService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -71,6 +76,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
         conversations = None
         vectors = None
         job_worker = None
+        research = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
@@ -86,6 +92,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             jobs = JobQueue(ExtractionRunner(matrix, lexical), providers)
             job_worker = JobWorker(jobs)
             protocols = ProtocolService(forms)
+            research = ResearchService(ResearchPlanner(protocols, matrix, lexical), providers)
             app.state.services = Services(
                 database,
                 session,
@@ -106,9 +113,13 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 job_worker,
                 protocols,
                 ScreeningService(protocols),
+                research,
+                OutboxService(research),
             )
             yield
         finally:
+            if research is not None:
+                await research.close()
             if job_worker is not None:
                 await job_worker.close()
             if conversations is not None:
