@@ -36,7 +36,7 @@ The user subsequently authorized installing a local model service for validation
 
 ## Next step
 
-The captured-load correction652c3da passed independent review and actual native onboarding/consent/engine startup. The next native step timed out waiting for notebook creation, with no visible error; diagnose form/event delivery before classifying a new product defect. Sources/scope work has resumed. Complete parser, providers, matrix/jobs/research, MCP, exports and distribution as recorded in the plan. NATIVE_VALIDATION_PLAN.md pins the engine payload, isolated paths and checks. The user explicitly authorized its isolated launch/install/preferences/API/DOM test exception on2026-09-05. Personal-profile plugin installation is not authorized.
+Task2 round5 b132506 passed independent review for the sandbox command and content-crypto defects. Actual native execution then created and selected a persisted synthetic notebook. Its reopen check failed because the helper reused a menu command whose listener is once-only and removed on popuphidden; installed MenuManager source confirms this separate helper error. Root is correcting that helper while retaining the reviewed production XPI. Task3's verified domain/staging slice is committed09d0bfae; its remaining native/UI work has resumed with9residual paths preserved. Complete parser, providers, matrix/jobs/research, MCP, exports and distribution as recorded in the plan. NATIVE_VALIDATION_PLAN.md pins the engine payload, isolated paths and checks. The user explicitly authorized its isolated launch/install/preferences/API/DOM test exception on2026-09-05. Personal-profile plugin installation is not authorized.
 
 ## Public project repository
 

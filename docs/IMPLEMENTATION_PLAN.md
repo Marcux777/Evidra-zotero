@@ -41,6 +41,10 @@ Domain error: `EvidraError(code: str, message: str, *, retryable: bool=False, de
 
 Routes live below `/v1`; scoped content routes use `/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/...`. Route modules are grouped by responsibility and delegate to services. Privileged UI requests use a narrow typed operation bridge; there is no generic URL fetch, file read, JS evaluation or shell bridge.
 
+Native UI constraint verified during Task2: the opaque iframe keeps sandbox=allow-scripts. Browser form submission returns before firing submit in this sandbox, so UI commands must use explicit buttons and suitable input Enter handling, including IME/busy guards. Keep form semantics where useful but do not implement commands solely through onSubmit. The actual measured load, transport and trusted-input contracts are recorded in ZOTERO_API_REFERENCE.md and must inform subsequent UI work.
+
+The same opaque content realm is not a secure context: crypto.randomUUID is unavailable, although privileged Xray inspection misleadingly exposes that property. UI idempotency keys use the available crypto.getRandomValues API directly; notebook keys are 32 random bytes encoded as 64 hex characters. Do not assume a privileged inspection proves a content capability exists. Preserve stable keys across retries and reset them only on the existing edit/success transitions.
+
 ## Task 1: M0 engine, authenticated session and persistent notebooks
 
 **Files:** Create `services/engine/src/evidra/api/{app,notebooks}.py`, `domain/{models,errors}.py`, `storage/database.py`, `security/{runtime,handshake}.py`, `notebooks/service.py`, `__main__.py`, SQL migrations under `storage/migrations/`, `services/engine/tests/test_runtime_notebooks.py`. Update pyproject only when demonstrated necessary. Engine migrations must ship as package data.
