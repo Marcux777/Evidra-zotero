@@ -98,6 +98,14 @@ test('controller requires current consent, validates receipt, hides credential, 
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
     const requiredRoutes: ['GET' | 'POST', string][] = [
+        ['GET', `${snapshot}/documents?offset=0&limit=50`],
+        ['POST', `${snapshot}/documents/register`],
+        ['POST', `${snapshot}/documents/missing`], ['POST', `${snapshot}/documents/verify`],
+        ['POST', `${snapshot}/documents/ingest`], ['POST', `${snapshot}/documents/text`],
+        ['POST', `${snapshot}/documents/text/${'c'.repeat(32)}`], ['POST', `${snapshot}/documents/preview`],
+        ['GET', `${snapshot}/operations/${'d'.repeat(32)}`], ['POST', `${snapshot}/operations/${'d'.repeat(32)}/cancel`],
+        ['GET', `${snapshot}/operations/${'d'.repeat(32)}/preview`],
+        ['GET', `${snapshot}/evidence/${'e'.repeat(64)}`], ['POST', `${snapshot}/search`],
         ['GET', `${notebook}/snapshots?offset=0&limit=50`],
         ['GET', `${notebook}/snapshots?offset=0&limit=1`],
         ['GET', `${snapshot}/identities?offset=0&limit=100`],
@@ -120,6 +128,10 @@ test('controller requires current consent, validates receipt, hides credential, 
         expect(new Headers(sent.init.headers).get('X-Evidra-Client')).toBe('bridge');
     }
     const rejectedRoutes: [string, string][] = [
+        ['GET', `${snapshot}/documents/register`], ['GET', `${snapshot}/documents?path=C:/private.pdf`],
+        ['POST', `${snapshot}/operations/${'d'.repeat(32)}/preview`],
+        ['GET', `${snapshot}/documents?offset=0&limit=100`], ['GET', `${snapshot}/search`],
+        ['GET', `${snapshot}/evidence/${'e'.repeat(64)}/../register`],
         ['GET', '/v1/sources/invalidate'], ['POST', '/v1/status'], ['GET', '/v1/bridge/heartbeat'],
         ['DELETE', `${notebook}/snapshots`], ['POST', `${snapshot}/sources?offset=0&limit=50`],
         ['GET', `${notebook}/sources/sync`], ['POST', `${notebook}/snapshots?offset=0&limit=50`],

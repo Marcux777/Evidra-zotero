@@ -7,12 +7,18 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from evidra.api.documents import router as documents_router
 from evidra.api.notebooks import router
 from evidra.api.sources import router as sources_router
+from evidra.documents.ingestion import IngestionService
+from evidra.documents.registry import DocumentRegistry
+from evidra.documents.text import TextIngestion
 from evidra.domain.errors import STATUS_CODES, ErrorResponse, EvidraError, public_error
 from evidra.domain.models import HealthStatus, RuntimeStatus
+from evidra.evidence.service import EvidenceService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
+from evidra.retrieval.lexical import LexicalSearch
 from evidra.scope.service import ScopeService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
 from evidra.storage.database import Database
@@ -25,22 +31,43 @@ class Services:
     notebooks: NotebookService
     scopes: ScopeService
     snapshots: SnapshotService
+    registry: DocumentRegistry
+    ingestion: IngestionService
+    evidence: EvidenceService
+    lexical: LexicalSearch
+    text: TextIngestion
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(settings.data_dir / "evidra.sqlite3")
+        ingestion = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
+            registry = DocumentRegistry(scopes)
+            ingestion = IngestionService(registry)
+            evidence = EvidenceService(registry)
             app.state.services = Services(
-                database, session, NotebookService(database, session, settings.profile_instance_id),
-                scopes, SnapshotService(scopes)
+                database,
+                session,
+                NotebookService(database, session, settings.profile_instance_id),
+                scopes,
+                SnapshotService(scopes),
+                registry,
+                ingestion,
+                evidence,
+                LexicalSearch(evidence),
+                TextIngestion(registry),
             )
             yield
         finally:
-            database.close()
+            try:
+                if ingestion is not None:
+                    ingestion.close()
+            finally:
+                database.close()
 
     app = FastAPI(
         title="Evidra Engine",
@@ -55,6 +82,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.add_middleware(SessionGuard, settings=settings)
     app.include_router(router)
     app.include_router(sources_router)
+    app.include_router(documents_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:

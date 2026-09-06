@@ -3,6 +3,7 @@ import type { EngineManifest, EnginePreview, RuntimeStatus } from '../bridge/typ
 
 const notebookRoute = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(\/.*)?$/;
 const snapshotSourcesRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/(sources|identities)$/;
+const snapshotDocumentRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(\/.*)$/;
 
 function allowedEngineRoute(method: string, path: string): boolean {
     // Match the literal path before fetch can normalize traversal or encoded segments.
@@ -11,16 +12,23 @@ function allowedEngineRoute(method: string, path: string): boolean {
     if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
+    const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
     if (method === 'POST') {
         if (page) return false;
         return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate'].includes(base)
             || !!notebook && (['/sources/sync', '/sources/preview', '/snapshots'].includes(suffix)
-                || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix));
+                || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix))
+            || !!documentPath && (/^\/documents\/(register|missing|verify|ingest|text|preview)$/.test(documentPath)
+                || /^\/documents\/text\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/operations\/[a-f0-9]{32}\/cancel$/.test(documentPath) || documentPath === '/search');
     }
     if (method !== 'GET') return false;
-    if (!page) return base === '/v1/status' || base === '/v1/notebooks' || !!notebook && suffix === '';
+    if (!page) return base === '/v1/status' || base === '/v1/notebooks' || !!notebook && suffix === ''
+        || !!documentPath && (/^\/operations\/[a-f0-9]{32}(\/preview)?$/.test(documentPath)
+            || /^\/evidence\/[a-f0-9]{64}$/.test(documentPath));
     if (base === '/v1/notebooks') return limit === '50';
     if (!notebook) return false;
+    if (documentPath === '/documents') return limit === '50';
     if (suffix === '/snapshots') return limit === '1' || limit === '50';
     if (/^\/sources\/previews\/[a-f0-9]{32}$/.test(suffix)) return limit === '50';
     const snapshot = snapshotSourcesRoute.exec(suffix);

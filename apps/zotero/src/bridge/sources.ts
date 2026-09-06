@@ -2,9 +2,9 @@ import { captureSelectors, identityKey, resolveSelection, revalidateSelection } 
 import { serializeUiResponse } from '../security/messages';
 import type { NativeSelection, UnavailableSource } from '../sources/resolver';
 import type { NativeSourcePane, NativeZotero } from './native-types';
-import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, SourceAccess, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
+import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, Source, SourceAccess, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
 
-interface SourceTransport {
+export interface SourceTransport {
     request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown>;
     stop(): Promise<void>;
 }
@@ -86,7 +86,8 @@ export class SourceBridge {
         for (const source of native.unavailable) this.#known.set(identityKey(source.identity), source.identity);
     }
     async #sync(notebook: string, native: NativeSelection, epoch: number,
-        purpose: SourceSync['purpose'], stageId: string | null, snapshotId: string | null = null): Promise<string | null> {
+        purpose: SourceSync['purpose'], stageId: string | null, snapshotId: string | null = null,
+        synced: Source[] | null = null): Promise<string | null> {
         this.#assertEpoch(epoch); this.#remember(native);
         if (native.items.length > 10000) throw new Error('SELECTION_TOO_LARGE');
         for (const reason of ['missing', 'library_missing', 'deleted', 'archived', 'content_excluded'] as const) {
@@ -114,6 +115,11 @@ export class SourceBridge {
             const page = await this.#engine.request('POST', `/v1/notebooks/${notebook}/sources/sync`, request) as SourcePage;
             this.#assertEpoch(epoch);
             if (!page || typeof page !== 'object') throw new Error('INVALID_SOURCE_SYNC_RECEIPT');
+            if (synced) {
+                if (page.items.length !== batches[index]!.length || page.items.some((item, i) =>
+                    identityKey(item.identity) !== identityKey(batches[index]![i]!.identity))) throw new Error('INVALID_SOURCE_SYNC_RECEIPT');
+                synced.push(...page.items);
+            }
             if (purpose === 'selection') {
                 if (typeof page.stage_id !== 'string' || !page.stage_id.length || page.stage_id.length > 200
                     || stageId !== null && page.stage_id !== stageId) throw new Error('INVALID_SELECTION_STAGE_RECEIPT');
@@ -185,19 +191,35 @@ export class SourceBridge {
     }
     async read(notebook: string, snapshot: string, offset: number): Promise<SnapshotSourcePage> {
         return this.#run(async epoch => {
-            const access: SourceAccess[] = [];
-            for (let start = 0; ; start += 100) {
-                const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/identities?offset=${start}&limit=100`) as IdentityPage;
-                access.push(...page.items);
-                if (start + page.items.length >= page.total) break;
-                if (!page.items.length) throw new Error('INVALID_SOURCE_PAGE');
-            }
-            const native = await revalidateSelection(this.#api, this.#profile, access);
-            await this.#sync(notebook, native, epoch, 'revalidation', null, snapshot);
+            await this.#revalidate(notebook, snapshot, epoch);
             this.#assertEpoch(epoch);
             const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/sources?offset=${offset}&limit=50`) as SnapshotSourcePage;
             serializeUiResponse('0'.repeat(80), page, null);
             return page;
+        });
+    }
+    async #revalidate(notebook: string, snapshot: string, epoch: number, synced: Source[] | null = null): Promise<void> {
+        const access: SourceAccess[] = [];
+        for (let start = 0; ;) {
+            this.#assertEpoch(epoch);
+            const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/identities?offset=${start}&limit=100`) as IdentityPage;
+            access.push(...page.items);
+            start += page.items.length;
+            if (start >= page.total) break;
+            if (!page.items.length) throw new Error('INVALID_SOURCE_PAGE');
+        }
+        const native = await revalidateSelection(this.#api, this.#profile, access);
+        await this.#sync(notebook, native, epoch, 'revalidation', null, snapshot, synced);
+        this.#assertEpoch(epoch);
+    }
+    /** Internal continuation for DocumentBridge only; no renderer callback, URL or file capability. */
+    async withDocuments<T>(notebook: string, snapshot: string, action: (sources: Source[], check: () => void) => Promise<T>): Promise<T> {
+        return this.#run(async epoch => {
+            const synced: Source[] = [];
+            await this.#revalidate(notebook, snapshot, epoch, synced);
+            const result = await action(synced, () => this.#assertEpoch(epoch));
+            serializeUiResponse('0'.repeat(80), result, null);
+            return result;
         });
     }
     async revoke(notebook: string, source: string, expectedRevision: number): Promise<unknown> {

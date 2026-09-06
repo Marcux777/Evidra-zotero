@@ -64,6 +64,10 @@ export interface NativePicker {
     returnOK: number;
 }
 export interface NativeZotero {
+    Reader: {
+        open(itemID: number, location?: NativeReaderLocation, options?: { openInWindow: boolean }): Promise<NativeReader | undefined>;
+        getByTabID(tabID: string): NativeReader | undefined;
+    };
     version: string;
     isWin: boolean;
     initializationPromise: Promise<void>;
@@ -147,7 +151,28 @@ export interface NativeSourceItem {
     getNotes(includeTrashed?: boolean): number[];
     getAnnotations(includeTrashed?: boolean): NativeSourceItem[];
     getNote(): string;
+    annotationText: string;
+    annotationComment: string;
+    getFilePathAsync(): Promise<string | false>;
     loadAllData(): Promise<void>;
+}
+export interface NativeReaderLocation {
+    pageIndex?: number;
+    position?: { pageIndex: number; rects: number[][] };
+}
+export interface NativePDFProxy {
+    getDownloadInfo(): Promise<{ length: number }>;
+    getData(): Promise<Uint8Array<ArrayBuffer>>;
+}
+export interface NativePDFView {
+    initializedPromise: Promise<void>;
+    _iframeWindow?: { PDFViewerApplication?: { pdfDocument: NativePDFProxy | null } };
+}
+export interface NativeReader {
+    itemID: number;
+    _initPromise: Promise<void>;
+    _internalReader: { _lastView: NativePDFView };
+    navigate(location: NativeReaderLocation): Promise<void>;
 }
 export interface NativeSourceCollection {
     id: number;
@@ -198,6 +223,7 @@ export interface NativeServices {
     };
 }
 export interface NativeGlobals {
+    plainText(html: string): string;
     Zotero: NativeZotero;
     Services: NativeServices;
     IOUtils: NativeIO;

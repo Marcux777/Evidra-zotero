@@ -5,8 +5,9 @@ from pathlib import Path
 from evidra.api.app import create_app
 from evidra.distribution import EngineManifest
 from evidra.domain.sources import SelectionSpec
+from evidra.domain.documents import DocumentCommand
 from evidra.security.runtime import RuntimeSettings
-from pydantic import SecretStr
+from pydantic import SecretStr, TypeAdapter
 
 destination = Path("packages/contracts/generated")
 destination.mkdir(parents=True, exist_ok=True)
@@ -17,6 +18,10 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
+documents = TypeAdapter(DocumentCommand).json_schema()
+(destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
+schema["components"]["schemas"].update(documents.pop("$defs"))
+schema["components"]["schemas"]["DocumentCommand"] = documents
 (destination / "selection.schema.json").write_text(json.dumps(SelectionSpec.model_json_schema(), indent=2) + "\n", encoding="utf-8")
 manifest = EngineManifest.model_json_schema()
 (destination / "engine-manifest.schema.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

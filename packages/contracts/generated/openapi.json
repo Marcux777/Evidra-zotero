@@ -1525,6 +1525,1727 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/register": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Register Attachment",
+        "operationId": "register_attachment_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_register_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachmentRegister"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/missing": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Missing Attachment",
+        "operationId": "missing_attachment_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_missing_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentTargetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredDocument"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "List Documents",
+        "operationId": "list_documents_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/ingest": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Ingest Document",
+        "operationId": "ingest_document_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_ingest_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/operations/{operation_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Read Operation",
+        "operationId": "read_operation_v1_notebooks__notebook_id__snapshots__snapshot_id__operations__operation_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/operations/{operation_id}/cancel": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Cancel Operation",
+        "operationId": "cancel_operation_v1_notebooks__notebook_id__snapshots__snapshot_id__operations__operation_id__cancel_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/evidence/{evidence_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Read Evidence",
+        "operationId": "read_evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__evidence__evidence_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Evidence"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/verify": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Verify Evidence File",
+        "operationId": "verify_evidence_file_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_verify_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvidenceFileCheck"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Evidence"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/search": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Search",
+        "operationId": "search_v1_notebooks__notebook_id__snapshots__snapshot_id__search_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/text": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Stage Text",
+        "operationId": "stage_text_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_text_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextRegister"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextStage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/text/{stage_id}": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Append Text",
+        "operationId": "append_text_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_text__stage_id__post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "stage_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stage Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextPart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextStage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/preview": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Render Preview",
+        "operationId": "render_preview_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_preview_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagePreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/operations/{operation_id}/preview": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Read Preview",
+        "operationId": "read_preview_v1_notebooks__notebook_id__snapshots__snapshot_id__operations__operation_id__preview_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "operation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Operation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagePreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -1822,6 +3543,35 @@
   },
   "components": {
     "schemas": {
+      "AttachmentRegister": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Content Key"
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 32767,
+            "minLength": 1,
+            "title": "Path"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "content_key",
+          "path"
+        ],
+        "title": "AttachmentRegister"
+      },
       "AttachmentRole": {
         "properties": {
           "identity": {
@@ -1882,6 +3632,196 @@
         ],
         "title": "ContentIdentity"
       },
+      "DocumentPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentStatus"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "DocumentPage"
+      },
+      "DocumentStatus": {
+        "properties": {
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Source Kind"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "METADATA_ONLY",
+              "PARTIAL_TEXT",
+              "FULL_TEXT_PARSED",
+              "NEEDS_OCR",
+              "UNREADABLE",
+              "MISSING_FILE",
+              "STALE"
+            ],
+            "title": "Coverage"
+          },
+          "parsed_coverage": {
+            "type": "string",
+            "enum": [
+              "METADATA_ONLY",
+              "PARTIAL_TEXT",
+              "FULL_TEXT_PARSED",
+              "NEEDS_OCR",
+              "UNREADABLE",
+              "MISSING_FILE",
+              "STALE"
+            ],
+            "title": "Parsed Coverage"
+          },
+          "historical": {
+            "type": "boolean",
+            "title": "Historical"
+          },
+          "document_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Version Id"
+          },
+          "page_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Count"
+          },
+          "pages_processed": {
+            "type": "integer",
+            "title": "Pages Processed",
+            "default": 0
+          },
+          "bytes_processed": {
+            "type": "integer",
+            "title": "Bytes Processed",
+            "default": 0
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "operation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Operation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_id",
+          "source_id",
+          "content_key",
+          "source_kind",
+          "title",
+          "coverage",
+          "parsed_coverage",
+          "historical"
+        ],
+        "title": "DocumentStatus"
+      },
+      "DocumentTargetRequest": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Content Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "content_key"
+        ],
+        "title": "DocumentTargetRequest"
+      },
       "ErrorResponse": {
         "properties": {
           "code": {
@@ -1937,6 +3877,169 @@
         ],
         "title": "ErrorResponse"
       },
+      "Evidence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "source_identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Source Kind"
+          },
+          "document_version_id": {
+            "type": "string",
+            "title": "Document Version Id"
+          },
+          "document_sha256": {
+            "type": "string",
+            "title": "Document Sha256"
+          },
+          "document_bytes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Document Bytes"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "page_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Index"
+          },
+          "page_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Label"
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "rectangles",
+              "page",
+              "text"
+            ],
+            "title": "Precision"
+          },
+          "rectangles": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 4,
+              "minItems": 4
+            },
+            "type": "array",
+            "title": "Rectangles"
+          },
+          "historical": {
+            "type": "boolean",
+            "title": "Historical"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "source_id",
+          "source_identity",
+          "content_key",
+          "source_kind",
+          "document_version_id",
+          "document_sha256",
+          "document_bytes",
+          "excerpt",
+          "start",
+          "end",
+          "page_index",
+          "page_label",
+          "precision",
+          "rectangles",
+          "historical",
+          "parser_version"
+        ],
+        "title": "Evidence"
+      },
+      "EvidenceFileCheck": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Id"
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 32767,
+            "minLength": 1,
+            "title": "Path"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "path"
+        ],
+        "title": "EvidenceFileCheck"
+      },
       "HealthStatus": {
         "properties": {
           "status": {
@@ -1984,6 +4087,31 @@
           "total"
         ],
         "title": "IdentityPage"
+      },
+      "IngestRequest": {
+        "properties": {
+          "document_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Document Id"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ParserLimits"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_id",
+          "idempotency_key"
+        ],
+        "title": "IngestRequest"
       },
       "Invalidation": {
         "properties": {
@@ -2128,6 +4256,300 @@
         ],
         "title": "NotebookPage"
       },
+      "Operation": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETE",
+              "PAUSED",
+              "CANCELLED",
+              "FAILED"
+            ],
+            "title": "State"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "ingest",
+              "preview"
+            ],
+            "title": "Kind"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "METADATA_ONLY",
+              "PARTIAL_TEXT",
+              "FULL_TEXT_PARSED",
+              "NEEDS_OCR",
+              "UNREADABLE",
+              "MISSING_FILE",
+              "STALE"
+            ],
+            "title": "Coverage"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "document_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Version Id"
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sha256"
+          },
+          "page_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Count"
+          },
+          "pages_processed": {
+            "type": "integer",
+            "title": "Pages Processed",
+            "default": 0
+          },
+          "bytes_processed": {
+            "type": "integer",
+            "title": "Bytes Processed",
+            "default": 0
+          },
+          "cache_hit": {
+            "type": "boolean",
+            "title": "Cache Hit",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "state",
+          "kind",
+          "coverage",
+          "created_at"
+        ],
+        "title": "Operation"
+      },
+      "PagePreview": {
+        "properties": {
+          "document_version_id": {
+            "type": "string",
+            "title": "Document Version Id"
+          },
+          "page_index": {
+            "type": "integer",
+            "title": "Page Index"
+          },
+          "region": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Region"
+          },
+          "width": {
+            "type": "integer",
+            "title": "Width"
+          },
+          "height": {
+            "type": "integer",
+            "title": "Height"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "mime_type": {
+            "type": "string",
+            "const": "image/png",
+            "title": "Mime Type",
+            "default": "image/png"
+          },
+          "data_base64": {
+            "type": "string",
+            "title": "Data Base64"
+          },
+          "destination": {
+            "type": "string",
+            "const": "local_preview",
+            "title": "Destination",
+            "default": "local_preview"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_version_id",
+          "page_index",
+          "region",
+          "width",
+          "height",
+          "sha256",
+          "data_base64"
+        ],
+        "title": "PagePreview"
+      },
+      "PagePreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "document_version_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Document Version Id",
+            "type": "string"
+          },
+          "page_index": {
+            "maximum": 9999,
+            "minimum": 0,
+            "title": "Page Index",
+            "type": "integer"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "maxItems": 4,
+                "minItems": 4,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Region"
+          },
+          "scale": {
+            "default": 1,
+            "exclusiveMinimum": 0,
+            "maximum": 4,
+            "title": "Scale",
+            "type": "number"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ParserLimits"
+          }
+        },
+        "required": [
+          "document_version_id",
+          "page_index",
+          "idempotency_key"
+        ],
+        "title": "PagePreviewRequest",
+        "type": "object"
+      },
+      "ParserLimits": {
+        "additionalProperties": false,
+        "properties": {
+          "max_file_bytes": {
+            "default": 200000000,
+            "maximum": 2000000000,
+            "minimum": 1,
+            "title": "Max File Bytes",
+            "type": "integer"
+          },
+          "max_pages": {
+            "default": 1000,
+            "maximum": 10000,
+            "minimum": 1,
+            "title": "Max Pages",
+            "type": "integer"
+          },
+          "memory_bytes": {
+            "default": 536870912,
+            "maximum": 4294967296,
+            "minimum": 67108864,
+            "title": "Memory Bytes",
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "default": 120,
+            "maximum": 1800,
+            "minimum": 0.1,
+            "title": "Timeout Seconds",
+            "type": "number"
+          }
+        },
+        "title": "ParserLimits",
+        "type": "object"
+      },
       "PreviewPage": {
         "properties": {
           "id": {
@@ -2238,6 +4660,74 @@
         ],
         "title": "PreviewRequest"
       },
+      "RegisteredDocument": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Source Kind"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "METADATA_ONLY",
+              "PARTIAL_TEXT",
+              "FULL_TEXT_PARSED",
+              "NEEDS_OCR",
+              "UNREADABLE",
+              "MISSING_FILE",
+              "STALE"
+            ],
+            "title": "Coverage"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "source_id",
+          "content_key",
+          "source_kind",
+          "revision",
+          "coverage"
+        ],
+        "title": "RegisteredDocument"
+      },
       "RemovedSource": {
         "properties": {
           "identity": {
@@ -2323,6 +4813,150 @@
           "profile_instance_id"
         ],
         "title": "RuntimeStatus"
+      },
+      "SearchHit": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "title": "Evidence Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Source Kind"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "page_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Index"
+          },
+          "page_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Label"
+          },
+          "historical": {
+            "type": "boolean",
+            "title": "Historical"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "source_id",
+          "content_key",
+          "source_kind",
+          "excerpt",
+          "page_index",
+          "page_label",
+          "historical",
+          "score"
+        ],
+        "title": "SearchHit"
+      },
+      "SearchPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "documents_retrieved": {
+            "type": "integer",
+            "title": "Documents Retrieved"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total",
+          "documents_retrieved"
+        ],
+        "title": "SearchPage"
+      },
+      "SearchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 40,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchRequest",
+        "type": "object"
       },
       "SelectionSpec": {
         "properties": {
@@ -3060,6 +5694,358 @@
           "final"
         ],
         "title": "SourceSync"
+      },
+      "TextPart": {
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "maximum": 20000000.0,
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "title": "Text"
+          },
+          "final": {
+            "type": "boolean",
+            "title": "Final"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "offset",
+          "text",
+          "final"
+        ],
+        "title": "TextPart"
+      },
+      "TextRegister": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Content Key"
+          },
+          "total_characters": {
+            "type": "integer",
+            "maximum": 20000000.0,
+            "minimum": 0.0,
+            "title": "Total Characters"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "content_key",
+          "total_characters",
+          "sha256"
+        ],
+        "title": "TextRegister"
+      },
+      "TextStage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "total_characters": {
+            "type": "integer",
+            "title": "Total Characters"
+          },
+          "document": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RegisteredDocument"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "offset",
+          "total_characters"
+        ],
+        "title": "TextStage"
+      },
+      "DocumentEvidenceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "documents.evidence",
+              "documents.open"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "evidence_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "evidence_id"
+        ],
+        "title": "DocumentEvidenceCommand",
+        "type": "object"
+      },
+      "DocumentIndexCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "content_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Content Key",
+            "type": "string"
+          },
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "documents.index",
+            "title": "Op",
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ParserLimits"
+          },
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_id",
+          "content_key",
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "limits",
+          "idempotency_key"
+        ],
+        "title": "DocumentIndexCommand",
+        "type": "object"
+      },
+      "DocumentListCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "documents.list",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "offset"
+        ],
+        "title": "DocumentListCommand",
+        "type": "object"
+      },
+      "DocumentOperationCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "documents.operation",
+              "documents.cancel",
+              "documents.preview.read"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "operation_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Operation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "operation_id"
+        ],
+        "title": "DocumentOperationCommand",
+        "type": "object"
+      },
+      "DocumentPreviewCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "documents.preview",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/PagePreviewRequest"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "DocumentPreviewCommand",
+        "type": "object"
+      },
+      "DocumentSearchCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "documents.search",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SearchRequest"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "DocumentSearchCommand",
+        "type": "object"
+      },
+      "DocumentCommand": {
+        "discriminator": {
+          "mapping": {
+            "documents.cancel": "#/components/schemas/DocumentOperationCommand",
+            "documents.evidence": "#/components/schemas/DocumentEvidenceCommand",
+            "documents.index": "#/components/schemas/DocumentIndexCommand",
+            "documents.list": "#/components/schemas/DocumentListCommand",
+            "documents.open": "#/components/schemas/DocumentEvidenceCommand",
+            "documents.operation": "#/components/schemas/DocumentOperationCommand",
+            "documents.preview": "#/components/schemas/DocumentPreviewCommand",
+            "documents.preview.read": "#/components/schemas/DocumentOperationCommand",
+            "documents.search": "#/components/schemas/DocumentSearchCommand"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/DocumentListCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DocumentIndexCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DocumentSearchCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DocumentEvidenceCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DocumentOperationCommand"
+          },
+          {
+            "$ref": "#/components/schemas/DocumentPreviewCommand"
+          }
+        ]
       },
       "EngineManifest": {
         "additionalProperties": false,

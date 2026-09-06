@@ -22,6 +22,17 @@ export type IdentityPage = components['schemas']['IdentityPage'];
 export type SnapshotCreate = components['schemas']['SnapshotCreate'];
 export type AttachmentRole = components['schemas']['AttachmentRole'];
 export type SourceChange = components['schemas']['SourceChange'];
+export type DocumentCommand = components['schemas']['DocumentCommand'];
+export type DocumentPage = components['schemas']['DocumentPage'];
+export type DocumentStatus = components['schemas']['DocumentStatus'];
+export type RegisteredDocument = components['schemas']['RegisteredDocument'];
+export type DocumentOperation = components['schemas']['Operation'];
+export type Evidence = components['schemas']['Evidence'];
+export type SearchPage = components['schemas']['SearchPage'];
+export type ParserLimits = components['schemas']['ParserLimits'];
+export type PagePreview = components['schemas']['PagePreview'];
+export type PagePreviewRequest = components['schemas']['PagePreviewRequest'];
+export type TextStage = components['schemas']['TextStage'];
 export type Locale = 'pt-BR' | 'en-US';
 export type Theme = 'system' | 'light' | 'dark';
 export type Mode = 'LOCAL' | 'API';
@@ -74,7 +85,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-};
+} | DocumentCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

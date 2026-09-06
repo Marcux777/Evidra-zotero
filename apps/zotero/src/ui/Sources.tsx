@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { AttachmentRole, Locale, Notebook, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, Source, SourceChange, SourceIdentity, UiBridge } from '../bridge/types';
 import type { SourcePreviewResult, SourceState } from '../bridge/sources';
 import { catalog } from './i18n';
+import { Documents } from './Documents';
 
 const sameIdentity = (a: SourceIdentity, b: SourceIdentity) => a.profile_instance_id === b.profile_instance_id && a.library_id === b.library_id && a.item_key === b.item_key;
 const emptyHistory: SnapshotPage = { items: [], offset: 0, limit: 50, total: 0 };
@@ -175,5 +176,6 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             {sources.total > sources.limit && <nav className="actions" aria-label={s.members}><button disabled={busy || !sourceOffsets.length} onClick={() => read(snapshot, sourceOffsets.at(-1) ?? 0, 'previous')}>{t.previous}</button><button disabled={busy || sources.offset + sources.limit >= sources.total} onClick={() => read(snapshot, sources.offset + sources.limit, 'next')}>{t.next}</button></nav>}</>}
             <button type="button" disabled={busy} onClick={() => read(snapshot, sources?.offset ?? 0)}>{s.readAgain}</button></div>}
         <p className="source-meta">{s.external}</p>
+        {snapshot && sources && <Documents key={`${snapshot.id}:${notebook.revision}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/>}
     </section>;
 }

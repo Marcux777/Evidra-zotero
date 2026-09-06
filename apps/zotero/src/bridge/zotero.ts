@@ -1,6 +1,7 @@
 import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
+import { DocumentBridge } from './documents';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
 import { catalog } from '../ui/i18n';
@@ -59,6 +60,10 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
+        if (message.op.startsWith('documents.')) {
+            return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText)
+                .dispatch(message as import('./types').DocumentCommand);
+        }
         switch (message.op) {
             case 'sources.state': return sources().state();
             case 'sources.history': return sources().history(message.notebook_id, message.offset);

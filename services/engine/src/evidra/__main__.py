@@ -10,6 +10,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# The frozen executable dispatches its private child mode before importing the web app.
+if __name__ == "__main__" and sys.argv[1:] == ["--parser-worker"]:
+    from evidra.documents.parser_worker import worker_main
+
+    worker_main()
+    raise SystemExit(0)
+
 import uvicorn
 from pydantic import ValidationError
 

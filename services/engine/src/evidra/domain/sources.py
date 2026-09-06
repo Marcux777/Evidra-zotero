@@ -28,17 +28,15 @@ class SourceIdentity(StrictModel):
         ).hexdigest()
 
 
+SourceKind = Literal[
+    "pdf", "abstract", "human_note", "human_annotation", "ai_artifact", "approved_data",
+    "text_attachment",
+]
+
+
 class ContentIdentity(StrictModel):
     key: str = Field(min_length=1, max_length=200)
-    kind: Literal[
-        "pdf",
-        "abstract",
-        "human_note",
-        "human_annotation",
-        "ai_artifact",
-        "approved_data",
-        "text_attachment",
-    ]
+    kind: SourceKind
 
 
 class SourceAccess(StrictModel):
