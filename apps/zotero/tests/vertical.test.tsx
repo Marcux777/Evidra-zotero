@@ -96,12 +96,15 @@ test('retains structured startup causes while excluding raw exception inputs and
     expect(text).not.toContain('C:\\private');
     expect(JSON.stringify(parseEngineDiagnostic(token))).not.toContain(token);
 });
-test('real React notebook flow validates name, creates, selects and reopens through the controlled bridge', async () => {
+test.each(['click', 'Enter'] as const)('real React notebook command uses %s without form submission and preserves validation, drafts and idempotency', async activation => {
     const { App } = await production('ui/App.tsx');
     (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
     const notebooks: unknown[] = [];
     let selected: unknown = null;
     let startupError: string|null = 'PAYLOAD_HASH_MISMATCH';
+    const creates: { name: string | undefined; idempotency_key: string }[] = [];
+    let holdCreate = true, failCreate = true;
+    let releaseCreate: (() => void) | null = null;
     const bridge = { async request(message: {
             op: string;
             name?: string;
@@ -115,6 +118,9 @@ test('real React notebook flow validates name, creates, selects and reopens thro
             if (message.op === 'notebook.create') {
                 if (!message.idempotency_key)
                     throw new Error('key required');
+                creates.push({ name: message.name, idempotency_key: message.idempotency_key });
+                if (holdCreate) await new Promise<void>(resolve => { releaseCreate = resolve; });
+                if (failCreate) throw new Error('CREATE_FAILED');
                 const n = { id: '11111111-1111-4111-8111-111111111111', profile_instance_id: 'fixture', name: message.name, revision: 1, initial_snapshot_id: 'snapshot', created_at: '2026-09-05T00:00:00Z', updated_at: '2026-09-05T00:00:00Z' };
                 notebooks.push(n);
                 return n;
@@ -128,23 +134,72 @@ test('real React notebook flow validates name, creates, selects and reopens thro
     const host = document.createElement('div');
     document.body.append(host);
     let root = createRoot(host);
-    await act(async () => root.render(<App bridge={bridge}/>));
-    expect(host.querySelector('[role="alert"]')?.textContent).toContain('PAYLOAD_HASH_MISMATCH');
-    await act(async()=>root.unmount());startupError=null;root=createRoot(host);
-    await act(async () => root.render(<App bridge={bridge}/>));
-    const form = host.querySelector('form')!;
-    await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-    const input = host.querySelector('input[name="name"]') as HTMLInputElement;
-    expect(input.getAttribute('aria-invalid')).toBe('true');
-    expect(document.activeElement).toBe(input);
-    await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Revisão de evidências'); input.dispatchEvent(new Event('input', { bubbles: true })); });
-    await act(async () => form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
-    expect(host.querySelector('h1')!.textContent).toBe('Revisão de evidências');
-    expect(host.textContent).toContain('Revisão de fontes');
-    expect(host.textContent).toContain('Nenhum modelo');
-    await act(async () => root.unmount());
-    root = createRoot(host);
-    await act(async () => root.render(<App bridge={bridge}/>));
-    expect(host.querySelector('h1')!.textContent).toBe('Revisão de evidências');
-    await act(async () => root.unmount());
+    const cryptoProperty = Object.getOwnPropertyDescriptor(globalThis, 'crypto')!;
+    const contentCrypto = { getRandomValues: crypto.getRandomValues.bind(crypto) };
+    try {
+        // Match the opaque Gecko realm: no randomUUID, with the real CSPRNG available.
+        Object.defineProperty(globalThis, 'crypto', { configurable: true, value: contentCrypto });
+        expect('randomUUID' in crypto).toBe(false);
+        await act(async () => root.render(<App bridge={bridge}/>));
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain('PAYLOAD_HASH_MISMATCH');
+        await act(async()=>root.unmount());startupError=null;root=createRoot(host);
+        await act(async () => root.render(<App bridge={bridge}/>));
+        const form = host.querySelector('form')!;
+        const input = host.querySelector('input[name="name"]') as HTMLInputElement;
+        const button = form.querySelector('button')!;
+        let submits = 0;
+        form.addEventListener('submit', () => { submits++; });
+        const enter = (options: KeyboardEventInit = {}) => input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true, ...options }));
+        const activate = () => { if (activation === 'click') button.click(); else enter(); };
+        await act(async () => activate());
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+        expect(document.activeElement).toBe(input);
+        expect(submits).toBe(0);
+        expect(creates).toHaveLength(0);
+        expect(host.querySelector(`#${form.getAttribute('aria-labelledby')}`)?.textContent).toBe('Criar caderno');
+        expect(input.labels?.[0]?.textContent).toBe('Nome do caderno');
+        expect(button.type).toBe('button');
+        expect(button.textContent).toBe('Criar caderno');
+        await act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, '  Revisão de evidências  '); input.dispatchEvent(new Event('input', { bubbles: true })); });
+        for (const options of [{ isComposing: true }, { keyCode: 229 }, { repeat: true }, { ctrlKey: true }, { altKey: true }, { metaKey: true }, { shiftKey: true }, { key: 'a' }]) {
+            await act(async () => { enter(options); });
+            expect(creates).toHaveLength(0);
+        }
+        // Both commands can arrive before React commits disabled controls.
+        await act(async () => { activate(); button.click(); enter(); });
+        expect(creates).toHaveLength(1);
+        expect(creates[0]?.name).toBe('Revisão de evidências');
+        expect(creates[0]?.idempotency_key).toMatch(/^[0-9a-f]{64}$/);
+        expect(button.disabled).toBe(true);
+        expect(input.disabled).toBe(true);
+        expect(input.value).toBe('  Revisão de evidências  ');
+        await act(async () => { button.click(); enter(); });
+        expect(creates).toHaveLength(1);
+        expect(releaseCreate).not.toBeNull();
+        await act(async () => { releaseCreate!(); });
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain('CREATE_FAILED');
+        expect(input.value).toBe('  Revisão de evidências  ');
+        expect(button.disabled).toBe(false);
+        expect(input.disabled).toBe(false);
+        expect(notebooks).toHaveLength(0);
+        holdCreate = false; failCreate = false;
+        await act(async () => activate());
+        expect(creates).toHaveLength(2);
+        expect(creates[1]).toEqual(creates[0]);
+        expect(notebooks).toHaveLength(1);
+        expect(host.querySelector('h1')!.textContent).toBe('Revisão de evidências');
+        expect(host.textContent).toContain('Revisão de fontes');
+        expect(host.textContent).toContain('Nenhum modelo');
+        expect(input.value).toBe('');
+        expect(host.querySelector('[role="alert"]')).toBeNull();
+        expect(submits).toBe(0);
+        await act(async () => root.unmount());
+        root = createRoot(host);
+        await act(async () => root.render(<App bridge={bridge}/>));
+        expect(host.querySelector('h1')!.textContent).toBe('Revisão de evidências');
+    }
+    finally {
+        try { await act(async () => { releaseCreate?.(); root.unmount(); }); }
+        finally { Object.defineProperty(globalThis, 'crypto', cryptoProperty); }
+    }
 });

@@ -47,7 +47,7 @@ test('mounted reader follows shared startup and notebook changes while keeping d
         const language = reader.querySelector('select')!;
         await act(async () => { language.value = 'en-US'; language.dispatchEvent(new Event('change', { bubbles: true })); });
         await typeName(workspace, 'Criado em outra janela');
-        await act(async () => { workspace.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+        await act(async () => { (workspace.querySelector('form button') as HTMLButtonElement).click(); });
         expect(workspace.querySelector('.notebooks')?.textContent).toContain('Criado em outra janela');
         await tick();
         expect(reader.querySelector('.notebooks')?.textContent).toContain('Criado em outra janela');
