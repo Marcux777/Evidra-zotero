@@ -385,7 +385,10 @@ class ExtractionRunner:
                                 "evidence_ids": list(
                                     dict.fromkeys(e for o in found for e in o.evidence_ids)
                                 ),
-                                "rationale": "Distinct validated results retain their original experimental contexts.",
+                                "rationale": (
+                                    "Distinct validated results retain their original "
+                                    "experimental contexts."
+                                ),
                             }
                         )
                     except ValidationError as exc:
