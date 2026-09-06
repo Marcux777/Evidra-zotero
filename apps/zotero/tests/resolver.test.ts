@@ -120,7 +120,7 @@ test.each([
     }
 });
 
-test('privileged source preflight precedes content, notifications invalidate known sources, and failed revocation stops the owned engine', async () => {
+test.each(['notification', 'preflight'])('privileged source preflight precedes content and failed %s revocation stops the owned engine', async failurePath => {
     expect(existsSync(new NodeURL('../src/bridge/sources.ts', import.meta.url)), 'source bridge is missing').toBe(true);
     const { SourceBridge } = await import(/* @vite-ignore */ new NodeURL('../src/bridge/sources.ts', import.meta.url).href);
     const f = fixture();
@@ -159,7 +159,7 @@ test('privileged source preflight precedes content, notifications invalidate kno
         await bridge.read('notebook', 'snapshot', 0);
         expect(invalidated.at(-1)).toEqual({ identities: [readIdentity], reason: 'changed' });
         deny = true;
-        await expect(observer.notify('delete', 'item', [20], {})).rejects.toThrow('INVALIDATION_FAILURE');
+        await expect(failurePath === 'notification' ? observer.notify('delete', 'item', [20], {}) : bridge.read('notebook', 'snapshot', 0)).rejects.toThrow('INVALIDATION_FAILURE');
         expect(stopped).toBe(true); expect(errors).toHaveLength(1);
         const before = calls.length;
         await expect(bridge.read('notebook', 'snapshot', 0)).rejects.toThrow('INVALIDATION_FAILURE');

@@ -47,10 +47,13 @@ export class SourceBridge {
         if (!ids.length && type === 'item') return;
         ++this.#epoch; this.#previews.clear();
         const reason = type === 'item' && ['delete', 'trash'].includes(event) ? 'deleted' : 'changed';
+        return this.#invalidate(affected, reason);
+    }
+    #invalidate(identities: SourceIdentity[], reason: 'changed' | 'deleted' | 'missing' | 'library_missing' | 'archived'): Promise<void> {
         this.#barrier = this.#barrier.then(async () => {
             try {
-                for (let offset = 0; offset < affected.length; offset += 100)
-                    await this.#engine.request('POST', '/v1/sources/invalidate', { identities: affected.slice(offset, offset + 100), reason });
+                for (let offset = 0; offset < identities.length; offset += 100)
+                    await this.#engine.request('POST', '/v1/sources/invalidate', { identities: identities.slice(offset, offset + 100), reason });
             } catch (error) {
                 this.#report(error);
                 try { await this.#engine.stop(); }
@@ -87,9 +90,9 @@ export class SourceBridge {
         if (native.items.length > 10000) throw new Error('SELECTION_TOO_LARGE');
         for (const reason of ['missing', 'library_missing', 'deleted', 'archived', 'content_excluded'] as const) {
             const identities = native.unavailable.filter(s => s.reason === reason).map(s => s.identity);
-            for (let i = 0; i < identities.length; i += 100) {
+            if (identities.length) {
                 this.#assertEpoch(epoch);
-                await this.#engine.request('POST', '/v1/sources/invalidate', { identities: identities.slice(i, i + 100), reason: reason === 'content_excluded' ? 'changed' : reason });
+                await this.#invalidate(identities, reason === 'content_excluded' ? 'changed' : reason);
             }
         }
         const batches: SourceInput[][] = [];
