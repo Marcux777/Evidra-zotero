@@ -25,6 +25,15 @@ export type SourceChange = components['schemas']['SourceChange'];
 export type DocumentCommand = components['schemas']['DocumentCommand'];
 export type ConversationCommand = components['schemas']['ConversationCommand'];
 export type MatrixCommand = components['schemas']['MatrixCommand'];
+export type JobCommand = components['schemas']['JobCommand'];
+export type JobRecord = components['schemas']['JobRecord'];
+export type JobWrite = components['schemas']['JobWrite'];
+export type JobControl = components['schemas']['JobControl'];
+export type JobPage = components['schemas']['JobPage'];
+export type UnitRecord = components['schemas']['UnitRecord'];
+export type UnitPage = components['schemas']['UnitPage'];
+export type BatchPreview = components['schemas']['BatchPreview'];
+export type JobAccessPage = components['schemas']['JobAccessPage'];
 export type FormVersion = components['schemas']['FormVersion'];
 export type FormPage = components['schemas']['FormPage'];
 export type FieldDefinition = components['schemas']['FieldDefinition'];
@@ -117,7 +126,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

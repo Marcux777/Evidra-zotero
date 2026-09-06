@@ -37,7 +37,7 @@ async function readerNotifications(incompleteObservation = false) {
     let observer: any, exists = true, verifyCount = 0;
     const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true, runAccess: async () => {} };
     const requests: { path: string; body: any }[] = [];
-    const nativeItems = new Map([[1, parent], [2, pdf], [3, note], [4, annotation]]);
+    const nativeItems = new Map([[1, parent], [2, pdf], [3, note], [4, annotation], [5, { ...parent, id: 5, key: 'PARENT2' }]]);
     const lookup = (id: number) => { fetched.push(id); if (!nativeItems.has(id)) throw new Error('UNAUTHORIZED_ITEM_READ'); return nativeItems.get(id); };
     const api: any = { Libraries: { exists: () => exists, get: () => library },
         Items: { get: lookup, getAsync: async (id: number) => lookup(id), getByLibraryAndKeyAsync: async (_: number, key: string) => {
@@ -61,6 +61,16 @@ async function readerNotifications(incompleteObservation = false) {
         if (path.endsWith('/access')) { await hooks.runAccess(); return { items: [{ identity, contents: [
             { key: 'PDFKEY1', kind: 'pdf' }, { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' },
         ] }], documents: [['b'.repeat(64), 'PDFKEY1']] }; }
+        if (path.includes('/jobs/') && path.includes('/access?')) {
+            await hooks.runAccess();
+            // Deliberately small first page exercises variable-size access pagination.
+            const offset = Number(new URL('http://fixture' + path).searchParams.get('offset'));
+            const contents = [{ key: 'PDFKEY1', kind: 'pdf' }, { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' }];
+            const item = offset === 0 ? { identity, contents } : { identity: { ...identity, item_key: 'PARENT2' }, contents: [] };
+            return { items: [item], documents: offset === 0 ? [['b'.repeat(64), 'PDFKEY1']] : [], offset, limit: 1, total: 2 };
+        }
+        if (path.endsWith('/control')) return { id: 'f'.repeat(32), state: 'CANCELLED' };
+        if (path.includes('/units?')) return { items: [], offset: 0, limit: 0, total: 0 };
         if (path.endsWith('/cancel')) return { id: 'f'.repeat(32), state: 'RUNNING' };
         if (path.endsWith('/events?cursor=0')) return { items: [], cursor: 0, state: 'RUNNING' };
         if (path.includes('/snapshots?')) return { items: [{ selection: {} }], total: 1, offset: 0, limit: 1 };
@@ -83,6 +93,8 @@ async function readerNotifications(incompleteObservation = false) {
     return { pdf, note, annotation, library, sources, evidence, hooks, locations, invalidated, errors, fetched, notify, requests,
         events: () => bridge.dispatch({ op: 'conversation.events', ...scope, run_id: 'f'.repeat(32), cursor: 0 }),
         cancel: () => bridge.dispatch({ op: 'conversation.cancel', ...scope, run_id: 'f'.repeat(32) }),
+        jobUnits: () => bridge.dispatch({ op: 'jobs.units', ...scope, job_id: 'f'.repeat(32), offset: 0 }),
+        jobCancel: () => bridge.dispatch({ op: 'jobs.control', ...scope, job_id: 'f'.repeat(32), request: { action: 'cancel', expected_revision: 0, idempotency_key: 'cancel' } }),
         removeLibrary: () => { exists = false; },
         open: () => bridge.dispatch({ op: 'documents.open', ...scope, evidence_id: evidence.id }),
         preview: () => sources.previewPage(scope.notebook_id, preview.id, 0) };
@@ -105,6 +117,26 @@ test('run continuation preserves authorized sibling sync and cancellation bypass
     expect(f.requests.find(r => r.path.endsWith('/sources/sync'))!.body.items[0].contents.map((c: any) => c.key)).toEqual(['PDFKEY1', 'NOTE1', 'ANNOT1']);
     f.hooks.runAccess = async () => { await f.notify([1], {}, 'modify'); };
     await expect(f.events()).rejects.toThrow('SCOPE_STALE');
+});
+
+test('job continuation paginates exact access, preserves sibling sync and permits cancel during a blocked read', async () => {
+    const f = await readerNotifications();
+    try {
+        f.requests.length = 0;
+        let release!: () => void, entered!: () => void;
+        const waiting = new Promise<void>(resolve => { entered = resolve; });
+        f.hooks.runAccess = () => new Promise<void>(resolve => { release = resolve; entered(); });
+        const units = f.jobUnits(); await waiting;
+        expect(await f.jobCancel()).toEqual({ id: 'f'.repeat(32), state: 'CANCELLED' });
+        expect(f.requests.some(r => r.path.includes('/units?'))).toBe(false);
+        f.hooks.runAccess = async () => {}; release(); await units;
+        expect(f.requests.filter(r => r.path.includes('/access?')).map(r => r.path.split('?')[1])).toEqual(['offset=0&limit=50', 'offset=1&limit=50']);
+        expect(f.requests.some(r => r.path.includes('/identities?'))).toBe(false);
+        expect(f.requests.filter(r => r.path.endsWith('/documents/register'))).toHaveLength(1);
+        expect(f.requests.find(r => r.path.endsWith('/sources/sync'))!.body.items[0].contents.map((c: any) => c.key)).toEqual(['PDFKEY1', 'NOTE1', 'ANNOT1']);
+        f.hooks.runAccess = async () => { await f.notify([1], {}, 'modify'); };
+        await expect(f.jobUnits()).rejects.toThrow('SCOPE_STALE');
+    } finally { f.sources.shutdown(); }
 });
 
 test.each([

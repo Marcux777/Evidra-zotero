@@ -33,7 +33,8 @@ export function ProposalReview({cell,field,locale,busy,readOnly,proposals,histor
         </li>)}</ul>
         {proposals&&proposals.total>proposals.limit&&<nav className="actions" aria-label={t.proposals}><button type="button" disabled={busy||proposals.offset===0} onClick={()=>onPage(Math.max(0,proposals.offset-proposals.limit))}>{t.previous}</button><span>{proposals.offset+1}–{Math.min(proposals.total,proposals.offset+proposals.limit)} / {proposals.total}</span><button type="button" disabled={busy||proposals.offset+proposals.limit>=proposals.total} onClick={()=>onPage(proposals.offset+proposals.limit)}>{t.next}</button></nav>}
         {selected&&<div className="selected-proposal" key={selected.id}>
-            <p>{t.origin} · {selected.principal}</p><p>{t.coverage}</p><p>{selected.rationale}</p>
+            <p>{selected.origin === 'HUMAN_CLIENT' ? t.origin : selected.origin === 'MODEL_RUN' ? catalog(locale).jobs.modelOrigin : catalog(locale).jobs.measuredOrigin} · {selected.principal}</p>
+            <p>{selected.coverage === 'CITED_EVIDENCE_ONLY' ? t.coverage : catalog(locale).jobs[selected.coverage]}</p><p>{selected.rationale}</p>
             <p>{t.version}: <code>{selected.form_version_id}</code></p>
             {selected.model&&<p>{t.supportingModel}: {selected.model} · <code>{selected.run_id}</code></p>}
             {selected.visual&&<><p>{t.visual}</p><p>{t.imageHash}: <code>{selected.visual.sha256}</code></p>

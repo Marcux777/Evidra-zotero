@@ -2,7 +2,7 @@ import { captureSelectors, identityKey, libraryAvailability, resolveSelection, r
 import { serializeUiResponse } from '../security/messages';
 import type { NativeSelection, UnavailableSource } from '../sources/resolver';
 import type { NativeSourceItem, NativeSourcePane, NativeZotero } from './native-types';
-import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, Source, SourceAccess, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
+import type { IdentityPage, JobAccessPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, Source, SourceAccess, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
 
 export interface SourceTransport {
     request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown>;
@@ -288,6 +288,32 @@ export class SourceBridge {
             const result = await action(synced, () => this.#assertEpoch(epoch),
                 (item, path, verify) => this.#verifyReaderFile(item, path, epoch, verify),
                 new Set(access.documents.map(([source, key]) => `${source}:${key}`)));
+            serializeUiResponse('0'.repeat(80), result, null);
+            return result;
+        });
+    }
+
+    /** Internal continuation for DocumentBridge only; no renderer callback, URL or file capability. */
+    async withJobDocuments<T>(notebook: string, snapshot: string, job: string,
+        action: (sources: Source[], check: () => void, verifyReaderFile: VerifyReaderFile, documents?: Set<string>) => Promise<T>): Promise<T> {
+        return this.#run(async epoch => {
+            const items: SourceAccess[] = [], documents = new Set<string>();
+            for (let offset = 0; ;) {
+                this.#assertEpoch(epoch);
+                const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/jobs/${job}/access?offset=${offset}&limit=50`) as JobAccessPage;
+                if (page.offset !== offset || page.limit !== page.items.length || page.items.length > 50) throw new Error('INVALID_SOURCE_PAGE');
+                items.push(...page.items);
+                for (const [source, key] of page.documents) documents.add(`${source}:${key}`);
+                offset += page.items.length;
+                if (offset >= page.total) break;
+                if (!page.items.length) throw new Error('INVALID_SOURCE_PAGE');
+            }
+            this.#assertEpoch(epoch);
+            const native = await revalidateSelection(this.#api, this.#profile, items);
+            const synced: Source[] = [];
+            await this.#sync(notebook, native, epoch, 'revalidation', null, snapshot, synced);
+            const result = await action(synced, () => this.#assertEpoch(epoch),
+                (item, path, verify) => this.#verifyReaderFile(item, path, epoch, verify), documents);
             serializeUiResponse('0'.repeat(80), result, null);
             return result;
         });

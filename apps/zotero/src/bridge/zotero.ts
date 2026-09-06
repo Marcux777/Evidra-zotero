@@ -61,9 +61,9 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
-        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.')) {
+        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.') || message.op.startsWith('jobs.')) {
             return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText)
-                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand);
+                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand | import('./types').JobCommand);
         }
         if (message.op.startsWith('provider.')) return providerCommand(message as import('./types').ProviderCommand, engine);
         switch (message.op) {

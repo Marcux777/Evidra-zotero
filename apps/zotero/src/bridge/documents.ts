@@ -3,7 +3,8 @@ import type { SourceBridge, SourceTransport } from './sources';
 import type { ConversationCommand, DocumentCommand, DocumentOperation, Evidence, RegisteredDocument, Source, SourceContent, TextStage } from './types';
 import { conversationCommand } from './conversations';
 import { matrixCommand } from './matrix';
-import type { MatrixCommand } from './types';
+import { jobCommand } from './jobs';
+import type { JobCommand, MatrixCommand } from './types';
 import { identityKey } from '../sources/resolver';
 
 export interface IndexResult { document: RegisteredDocument; operation: DocumentOperation | null }
@@ -24,13 +25,18 @@ export class DocumentBridge {
         return item;
     }
 
-    async dispatch(message: DocumentCommand | ConversationCommand | MatrixCommand): Promise<unknown> {
+    async dispatch(message: DocumentCommand | ConversationCommand | MatrixCommand | JobCommand): Promise<unknown> {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
         // Scoped status-only cancellation must not queue behind native content revalidation.
         if (message.op === 'conversation.cancel' || message.op === 'conversation.vectors.cancel')
             return conversationCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
+        // Job headers contain configuration/counts only. Cancellation never waits for PDF registration.
+        if (message.op === 'jobs.read' || message.op === 'jobs.list' || message.op === 'jobs.control' && ['pause', 'cancel', 'skip_uncertain'].includes(message.request.action))
+            return jobCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
         const continuation = ['conversation.run', 'conversation.start', 'conversation.events'].includes(message.op)
             ? (action: Parameters<SourceBridge['withRunDocuments']>[3]) => this.sources.withRunDocuments(message.notebook_id, message.snapshot_id, (message as { run_id: string }).run_id, action)
+            : 'job_id' in message && message.op.startsWith('jobs.')
+                ? (action: Parameters<SourceBridge['withRunDocuments']>[3]) => this.sources.withJobDocuments(message.notebook_id, message.snapshot_id, message.job_id, action)
             : (action: Parameters<SourceBridge['withRunDocuments']>[3]) => this.sources.withDocuments(message.notebook_id, message.snapshot_id, action);
         return continuation(async (sources, check, verifyReaderFile, dependencies) => {
             const documents = new Map<string, { document: RegisteredDocument; item: NativeSourceItem; path: string | false }>();
@@ -51,6 +57,7 @@ export class DocumentBridge {
             }
             if (message.op.startsWith('conversation.')) return conversationCommand(message as ConversationCommand, request);
             if (message.op.startsWith('matrix.')) return matrixCommand(message as MatrixCommand, request);
+            if (message.op.startsWith('jobs.')) return jobCommand(message as JobCommand, request);
             switch (message.op) {
                 case 'documents.list': return request('GET', `/documents?offset=${message.offset}&limit=50`);
                 case 'documents.search': return request('POST', '/search', message.request);

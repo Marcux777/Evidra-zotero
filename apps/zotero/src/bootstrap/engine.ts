@@ -11,11 +11,17 @@ function allowedEngineRoute(method: string, path: string): boolean {
     if (/[\u0000-\u0020\u007f\\%#]/.test(path)) return false;
     const eventRoute = /^\/v1\/notebooks\/[a-f0-9-]{36}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9-]{36})\/runs\/[a-f0-9]{32}\/events\?cursor=(0|[1-9][0-9]{0,6})$/.exec(path);
     if (eventRoute) return method === 'GET' && Number(eventRoute[1]) <= 1000000;
-    const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|50|100)$/.exec(path);
+    const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|10|20|50|100)$/.exec(path);
     if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
+    if (documentPath && (method === 'POST' && !page && (
+        documentPath === '/jobs' || documentPath === '/job-cache/clear' || /^\/jobs\/[a-f0-9]{32}\/control$/.test(documentPath))
+        || method === 'GET' && (documentPath === '/jobs' && limit === '10'
+            || /^\/jobs\/[a-f0-9]{32}\/units$/.test(documentPath) && limit === '20'
+            || /^\/jobs\/[a-f0-9]{32}\/access$/.test(documentPath) && limit === '50'
+            || !page && /^\/jobs\/[a-f0-9]{32}(?:\/units\/[a-f0-9]{32}\/batches\/(?:0|[1-9][0-9]{0,3}|10000))?$/.test(documentPath)))) return true;
     if (documentPath && (method === 'GET' && (documentPath === '/forms' && limit === '1'
         || !page && /^\/forms\/(template|[a-f0-9]{32})$/.test(documentPath))
         || method === 'POST' && !page && /^(\/forms|\/matrix\/(query|proposals|decisions|proposals\/query|decisions\/query|bulk-preview|bulk-approve))$/.test(documentPath))) return true;

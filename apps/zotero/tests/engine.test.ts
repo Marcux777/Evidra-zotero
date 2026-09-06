@@ -98,6 +98,11 @@ test('controller requires current consent, validates receipt, hides credential, 
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
     const requiredRoutes: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
+        ['GET', `${snapshot}/jobs?offset=0&limit=10`], ['POST', `${snapshot}/jobs`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}`], ['POST', `${snapshot}/jobs/${'f'.repeat(32)}/control`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/access?offset=0&limit=50`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/units?offset=0&limit=20`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/units/${'e'.repeat(32)}/batches/0`], ['POST', `${snapshot}/job-cache/clear`],
         ['GET', `${snapshot}/forms?offset=0&limit=1`], ['GET', `${snapshot}/forms/template`],
         ['GET', `${snapshot}/forms/${'f'.repeat(32)}`], ['POST', `${snapshot}/forms`],
         ...['query', 'proposals', 'decisions', 'proposals/query', 'decisions/query', 'bulk-preview', 'bulk-approve'].map(path => ['POST', `${snapshot}/matrix/${path}`] as ['POST', string]),
@@ -144,6 +149,10 @@ test('controller requires current consent, validates receipt, hides credential, 
         expect(new Headers(sent.init.headers).get('X-Evidra-Client')).toBe('bridge');
     }
     const rejectedRoutes: [string, string][] = [
+        ['GET', `${snapshot}/jobs?offset=0&limit=50`], ['GET', `${snapshot}/job-cache/clear`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/control`], ['POST', `${snapshot}/jobs/${'f'.repeat(32)}/access?offset=0&limit=50`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/units?offset=0&limit=50`],
+        ['GET', `${snapshot}/jobs/${'f'.repeat(32)}/units/${'e'.repeat(32)}/batches/10001`],
         ['POST', `${snapshot}/runs/${'f'.repeat(32)}/events?cursor=0`],
         ['GET', `${snapshot}/runs/${'f'.repeat(32)}/events?cursor=0&token=private`],
         ['PUT', '/v1/providers/profiles/local/models'], ['DELETE', '/v1/providers/profiles/local'],
