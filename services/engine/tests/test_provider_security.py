@@ -276,7 +276,16 @@ def test_memory_secret_and_failed_keyring_do_not_enter_sqlite_or_backup(tmp_path
         assert secrets.get("fixture-profile") is None
 
 
-@pytest.mark.parametrize("boundary", ["timeout_after_usage", "scope_revoked", "cancel_after_usage"])
+@pytest.mark.parametrize(
+    "boundary",
+    [
+        "timeout_after_usage",
+        "scope_revoked",
+        "cancel_after_usage",
+        "malformed_shape",
+        "unexpected_failure",
+    ],
+)
 async def test_post_send_failure_preserves_billing_and_never_yields_final(
     tmp_path, boundary, caplog
 ):
@@ -294,6 +303,11 @@ async def test_post_send_failure_preserves_billing_and_never_yields_final(
                 yield b'data: {"choices":[],"usage":{"prompt_tokens":8,"completion_tokens":4}}\n\n'
                 if boundary == "timeout_after_usage":
                     raise httpx.ReadTimeout("synthetic sensitive text")
+                if boundary == "unexpected_failure":
+                    raise RuntimeError("synthetic sensitive text")
+                if boundary == "malformed_shape":
+                    yield b'data: {"choices":[{"delta":null}]}\n\n'
+                    return
                 if boundary == "scope_revoked":
                     with services.database.transaction() as db:
                         db.execute(
@@ -333,19 +347,28 @@ async def test_post_send_failure_preserves_billing_and_never_yields_final(
                     "timeout_after_usage": "PROVIDER_TIMEOUT",
                     "scope_revoked": "SCOPE_STALE",
                     "cancel_after_usage": "CANCELLED",
+                    "malformed_shape": "PROVIDER_PROTOCOL_ERROR",
+                    "unexpected_failure": "PROVIDER_INTERNAL_ERROR",
                 }[boundary]
             )
             assert len(sends) == 1
             assert "synthetic sensitive text" not in caplog.text
             if boundary == "timeout_after_usage":
                 assert "ReadTimeout" in caplog.text and "uncertain" in caplog.text
+            if boundary in ["malformed_shape", "unexpected_failure"]:
+                assert exc.value.code in caplog.text
+                assert isinstance(
+                    exc.value.__cause__,
+                    TypeError if boundary == "malformed_shape" else RuntimeError,
+                )
             with services.database.transaction() as db:
                 row = db.execute(
-                    "SELECT state,input_tokens,output_tokens,cost FROM provider_calls "
+                    "SELECT state,input_tokens,output_tokens,cost,error FROM provider_calls "
                     "WHERE call_id=?",
                     ("uncertain",),
                 ).fetchone()
                 assert row["state"] == "BILLING_UNKNOWN" and row["cost"] is None
+                assert row["error"] == exc.value.code
 
 
 @pytest.mark.parametrize("offset", [0, 1])
@@ -528,7 +551,10 @@ async def test_real_loopback_http_reconciles_before_final_and_releases_database_
             assert len(requests) == 1
 
 
-async def test_registry_shutdown_finishes_inflight_accounting_before_database_close(tmp_path):
+@pytest.mark.parametrize("cleanup_failure", [False, True])
+async def test_registry_shutdown_finishes_inflight_accounting_before_database_close(
+    tmp_path, cleanup_failure, caplog
+):
     from evidra.domain.errors import EvidraError
     from evidra.providers.models import GenerationRequest
     from evidra.providers.usage import CallIdentity
@@ -540,7 +566,11 @@ async def test_registry_shutdown_finishes_inflight_accounting_before_database_cl
 
         async def boundary(request):
             entered.set()
-            await asyncio.Event().wait()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                if cleanup_failure:
+                    raise RuntimeError("sensitive synthetic cleanup detail")
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(boundary)) as http:
             services.providers.client = http
@@ -558,10 +588,103 @@ async def test_registry_shutdown_finishes_inflight_accounting_before_database_cl
                 )
             )
             await asyncio.wait_for(entered.wait(), 2)
-            await services.providers.close()
-            assert services.providers.usage.read(context, "shutdown").state == "BILLING_UNKNOWN"
-            with pytest.raises((EvidraError, asyncio.CancelledError)):
+            if cleanup_failure:
+                with pytest.raises(EvidraError) as failed:
+                    await services.providers.close()
+                assert failed.value.code == "PROVIDER_SHUTDOWN_FAILED"
+                assert failed.value.__cause__.code == "PROVIDER_CLEANUP_FAILED"
+                assert isinstance(failed.value.__cause__.__cause__, RuntimeError)
+                assert "RuntimeError" in caplog.text
+                assert "sensitive synthetic cleanup detail" not in caplog.text
+            else:
+                await services.providers.close()
+            row = services.providers.usage.read(context, "shutdown")
+            assert row.state == "BILLING_UNKNOWN"
+            with pytest.raises((EvidraError, asyncio.CancelledError)) as cancelled:
                 await pending
+            if cleanup_failure:
+                assert cancelled.value.code == row.error == "PROVIDER_CLEANUP_FAILED"
+
+
+@pytest.mark.parametrize("cleanup_failure", [False, True])
+@pytest.mark.parametrize("stop_after", ["draft", "terminal"])
+async def test_registry_aclosing_owns_response_cleanup_before_accounting(
+    tmp_path, cleanup_failure, stop_after, caplog
+):
+    from contextlib import aclosing
+
+    from evidra.domain.errors import EvidraError
+    from evidra.providers.models import GenerationRequest
+    from evidra.providers.usage import CallIdentity
+
+    with TestClient(make_app(tmp_path)) as client:
+        services, context = setup(tmp_path, client)
+        kind = "ollama" if stop_after == "draft" else "lm_studio"
+        write_profile(client, kind)
+        closed = asyncio.Event()
+        final_events = []
+
+        class Bytes(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                if stop_after == "draft":
+                    yield b'{"message":{"content":"synthetic draft"},"done":false}\n'
+                else:
+                    # [DONE] ends compatible generation before the HTTP body is exhausted.
+                    yield stream(kind).encode()
+                await asyncio.Event().wait()
+
+            async def aclose(self):
+                # The original call must remain pending until its HTTP response closes.
+                assert services.providers.usage.read(context, "outer-close").state == "SENT"
+                closed.set()
+                if cleanup_failure:
+                    raise RuntimeError("sensitive response cleanup detail")
+
+        response = httpx.Response(200, stream=Bytes())
+        await services.providers.client.aclose()
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(lambda request: response)
+        ) as http:
+            services.providers.client = http
+
+            async def consume_one():
+                async with aclosing(
+                    services.providers.generate(
+                        context,
+                        "fixture-profile",
+                        GenerationRequest(
+                            messages=[{"role": "user", "text": "synthetic"}], max_output_tokens=32
+                        ),
+                        asyncio.Event(),
+                        identity=CallIdentity(call_id="outer-close", job_id="j", session_id="s"),
+                    )
+                ) as events:
+                    if stop_after == "draft":
+                        assert (await anext(events)).kind == "delta"
+                    else:
+                        async for event in events:
+                            if event.kind == "final":
+                                final_events.append(event)
+
+            if cleanup_failure:
+                with pytest.raises(EvidraError) as failed:
+                    await consume_one()
+                assert failed.value.code == "PROVIDER_CLEANUP_FAILED"
+                assert isinstance(failed.value.__cause__, RuntimeError)
+                assert "sensitive response cleanup detail" not in caplog.text
+            else:
+                await consume_one()
+            assert closed.is_set() and response.is_closed
+            row = services.providers.usage.read(context, "outer-close")
+            if stop_after == "terminal":
+                # Native terminal usage is known even if local response cleanup fails.
+                assert row.state == "CONFIRMED" and (row.input_tokens, row.output_tokens) == (8, 4)
+                assert row.error == ("PROVIDER_CLEANUP_FAILED" if cleanup_failure else None)
+                assert len(final_events) == (0 if cleanup_failure else 1)
+            else:
+                assert row.state == "BILLING_UNKNOWN" and not final_events
+                assert row.error == ("PROVIDER_CLEANUP_FAILED" if cleanup_failure else "CANCELLED")
+            await services.providers.close()
 
 
 @pytest.mark.parametrize("operation", ["catalog", "embed"])

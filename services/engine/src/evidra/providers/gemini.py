@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import quote
 
-from evidra.providers.base import NativeProvider, fail, usage
+from evidra.providers.base import NativeProvider, fail, frame_array, frame_object, usage
 from evidra.providers.models import GenerationEvent, GenerationRequest
 
 
@@ -31,12 +31,15 @@ class GeminiProvider(NativeProvider):
 
     def parse(self, frame: dict[str, Any], state: dict[str, Any]) -> list[GenerationEvent]:
         events = []
-        if frame.get("promptFeedback", {}).get("blockReason"):
+        if frame_object(frame.get("promptFeedback", {})).get("blockReason"):
             raise fail("GENERATION_INCOMPLETE")
-        for candidate in frame.get("candidates", []):
+        for raw_candidate in frame_array(frame.get("candidates", [])):
+            candidate = frame_object(raw_candidate)
             if candidate.get("index", 0) != 0:
                 raise fail("PROVIDER_PROTOCOL_ERROR")
-            for part in candidate.get("content", {}).get("parts", []):
+            content = frame_object(candidate.get("content", {}))
+            for raw_part in frame_array(content.get("parts", [])):
+                part = frame_object(raw_part)
                 if "text" in part and not part.get("thought", False):
                     events.append(GenerationEvent(kind="delta", text=part["text"]))
             reason = candidate.get("finishReason")
@@ -45,7 +48,8 @@ class GeminiProvider(NativeProvider):
                     raise fail("GENERATION_INCOMPLETE")
                 state["terminal"] = True
         counts = frame.get("usageMetadata")
-        if counts:
+        if counts is not None:
+            counts = frame_object(counts)
             output = counts.get("candidatesTokenCount")
             if output is not None:
                 output += counts.get("thoughtsTokenCount", 0)

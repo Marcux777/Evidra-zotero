@@ -1,8 +1,8 @@
 import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator, Iterator
-from contextlib import contextmanager
+from collections.abc import AsyncGenerator, Iterator
+from contextlib import aclosing, contextmanager
 from typing import Any
 
 import httpx
@@ -148,7 +148,7 @@ class ProviderRegistry:
         *,
         identity: CallIdentity,
         input_bound: InputBound | None = None,
-    ) -> AsyncIterator[GenerationEvent]:
+    ) -> AsyncGenerator[GenerationEvent, None]:
         if self._closed:
             raise fail("ENGINE_STOPPING")
         # Images and conversation history cannot be hidden by underdeclared categories.
@@ -182,6 +182,7 @@ class ProviderRegistry:
         error = None
         completed = False
         reconciled = False
+        final_event: GenerationEvent | None = None
         try:
             if cancel_event.is_set():
                 raise fail("CANCELLED")
@@ -189,29 +190,49 @@ class ProviderRegistry:
             if current.revision != profile.revision:
                 raise fail("REVISION_CONFLICT")
             self.usage.mark_sent(identity.call_id)
-            async for event in provider.generate(request, cancel_event):
-                if event.kind == "usage":
-                    inputs, outputs = event.input_tokens, event.output_tokens
-                    confirmed = event.usage_confirmed
-                current = self.profiles.authorize(context, profile_id, categories)
-                if current.revision != profile.revision:
-                    raise fail("REVISION_CONFLICT")
-                if event.kind == "final":
-                    self.scopes.assert_current(context)
-                    self.usage.finish(identity.call_id, inputs, outputs, confirmed=confirmed)
-                    reconciled = True
-                    completed = True
-                yield event
-        except EvidraError as exc:
-            error = exc.code
+            async with aclosing(provider.generate(request, cancel_event)) as events:
+                async for event in events:
+                    if event.kind == "usage":
+                        inputs, outputs = event.input_tokens, event.output_tokens
+                        confirmed = event.usage_confirmed
+                    current = self.profiles.authorize(context, profile_id, categories)
+                    if current.revision != profile.revision:
+                        raise fail("REVISION_CONFLICT")
+                    if event.kind == "final":
+                        final_event = event
+                    else:
+                        yield event
+            if final_event is None:
+                raise fail("STREAM_INCOMPLETE")
+            # Cleanup may fail or yield control. Recheck scope before promoting the final result.
+            current = self.profiles.authorize(context, profile_id, categories)
+            if current.revision != profile.revision:
+                raise fail("REVISION_CONFLICT")
+            self.scopes.assert_current(context)
+            self.usage.finish(identity.call_id, inputs, outputs, confirmed=confirmed)
+            reconciled = True
+            completed = True
+            yield final_event
+        except Exception as exc:
+            error = exc.code if isinstance(exc, EvidraError) else "PROVIDER_INTERNAL_ERROR"
             causes: list[dict[str, str]] = []
-            cause: BaseException | None = exc
-            while cause is not None and len(causes) < 8:
+            pending_causes: list[BaseException] = [exc]
+            seen: set[int] = set()
+            while pending_causes and len(causes) < 8:
+                cause = pending_causes.pop(0)
+                if id(cause) in seen:
+                    continue
+                seen.add(id(cause))
                 entry = {"type": type(cause).__name__}
                 if isinstance(cause, EvidraError):
                     entry["code"] = cause.code
                 causes.append(entry)
-                cause = cause.__cause__
+                if isinstance(cause, BaseExceptionGroup):
+                    pending_causes.extend(cause.exceptions)
+                if cause.__cause__ is not None:
+                    pending_causes.append(cause.__cause__)
+                elif cause.__context__ is not None and not cause.__suppress_context__:
+                    pending_causes.append(cause.__context__)
             logging.getLogger("evidra.providers").warning(
                 json.dumps(
                     {
@@ -220,16 +241,21 @@ class ProviderRegistry:
                         "profile_id": profile_id,
                         "adapter": profile.adapter,
                         "model": profile.model,
-                        "code": exc.code,
+                        "code": error,
                         "causes": causes,
                     }
                 )
             )
-            if exc.code == "RATE_LIMITED":
-                self.profiles.pause(profile_id, exc.code)
+            if error == "RATE_LIMITED":
+                self.profiles.pause(profile_id, error)
+            if isinstance(exc, EvidraError):
+                raise
+            raise fail(error) from exc
+        except (asyncio.CancelledError, GeneratorExit):
+            error = "CANCELLED"
             raise
         except BaseException:
-            error = "CANCELLED"
+            error = "PROVIDER_INTERNAL_ERROR"
             raise
         finally:
             self._active.pop(identity.call_id, None)

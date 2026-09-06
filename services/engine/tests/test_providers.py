@@ -387,11 +387,24 @@ async def test_chat_requires_done_after_finish_reason(kind):
 
 
 @pytest.mark.parametrize("kind", ADAPTERS)
-async def test_malformed_native_frames_preserve_cause_without_exposing_payload(kind):
+@pytest.mark.parametrize("malformation", ["syntax", "nested_shape"])
+async def test_malformed_native_frames_preserve_cause_without_exposing_payload(kind, malformation):
     Request, Profile, adapter = provider_types()
     from evidra.domain.errors import EvidraError
 
     wire = "sensitive-invalid-json\n" if kind == "ollama" else "data: sensitive-invalid-json\n\n"
+    if malformation == "nested_shape":
+        frame = {
+            "ollama": {"message": None, "done": True},
+            "openai": {"type": "response.completed", "response": None},
+            "anthropic": {"type": "content_block_delta", "delta": None},
+            "gemini": {"candidates": [{"content": None}]},
+            "lm_studio": {"choices": [{"delta": None}]},
+            "openai_compatible": {"choices": [{"delta": None}]},
+        }[kind]
+        wire = (
+            json.dumps(frame) + "\n" if kind == "ollama" else "data: " + json.dumps(frame) + "\n\n"
+        )
     async with httpx.AsyncClient(
         transport=httpx.MockTransport(lambda req: httpx.Response(200, text=wire))
     ) as client:
@@ -403,7 +416,9 @@ async def test_malformed_native_frames_preserve_cause_without_exposing_payload(k
                 )
             )
         assert exc.value.code == "PROVIDER_PROTOCOL_ERROR"
-        assert isinstance(exc.value.__cause__, json.JSONDecodeError)
+        assert isinstance(
+            exc.value.__cause__, json.JSONDecodeError if malformation == "syntax" else TypeError
+        )
         assert "sensitive-invalid-json" not in str(exc.value)
 
 
@@ -426,3 +441,90 @@ async def test_nonfinite_json_is_not_a_valid_structured_result():
                 )
             )
         assert exc.value.code == "INVALID_OUTPUT"
+
+
+@pytest.mark.parametrize("kind", ["openai", "lm_studio", "openai_compatible", "anthropic"])
+@pytest.mark.parametrize(
+    "shape", ["optional", "open_object", "nested", "root_union", "keyword_property"]
+)
+async def test_strict_schema_structures_select_local_validation_without_rewriting(kind, shape):
+    Request, Profile, adapter = provider_types()
+    original = {
+        "optional": {
+            "type": "object",
+            "properties": {"n": {"type": "integer"}},
+            "additionalProperties": False,
+        },
+        "open_object": {
+            "type": "object",
+            "properties": {"n": {"type": "integer"}},
+            "required": ["n"],
+        },
+        "nested": {
+            "type": "object",
+            "properties": {
+                "values": {
+                    "type": "array",
+                    "items": {"type": "object", "properties": {"n": {"type": "integer"}}},
+                }
+            },
+            "required": ["values"],
+            "additionalProperties": False,
+        },
+        "root_union": {"anyOf": [SCHEMA, {"type": "null"}]},
+        "keyword_property": {
+            "type": "object",
+            "properties": {
+                "properties": {
+                    "type": "object",
+                    "properties": {"n": {"type": "integer"}},
+                    "required": ["n"],
+                }
+            },
+            "required": ["properties"],
+            "additionalProperties": False,
+        },
+    }[shape]
+    unchanged = json.dumps(original)
+    output = '{"values":[{"n":7}]}' if shape == "nested" else '{"n":7}'
+    if shape == "keyword_property":
+        output = '{"properties":{"n":7}}'
+    sent = []
+
+    def boundary(request):
+        sent.append(json.loads(request.content))
+        return httpx.Response(200, text=stream(kind, output))
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(boundary)) as client:
+        events = await collect(
+            adapter(Profile(**profile_data(kind)), client, "synthetic").generate(
+                Request(
+                    messages=[{"role": "user", "text": "synthetic"}],
+                    max_output_tokens=32,
+                    output_schema=original,
+                ),
+                asyncio.Event(),
+            )
+        )
+        mode = (
+            "native"
+            if kind == "anthropic" and shape in ["optional", "root_union"]
+            else "local_validation"
+        )
+        assert events[-1].kind == "final" and events[-1].schema_mode == mode
+        assert len(sent) == 1
+        body = sent[0]
+        if mode == "native":
+            assert body["output_config"]["format"]["schema"] == original
+            assert json.dumps(original) == unchanged
+            return
+        if kind == "openai":
+            assert "text" not in body
+            instruction = body["instructions"]
+        elif kind == "anthropic":
+            assert "output_config" not in body
+            instruction = body["system"]
+        else:
+            assert "response_format" not in body
+            instruction = body["messages"][0]["content"]
+        assert instruction.endswith(unchanged) and json.dumps(original) == unchanged

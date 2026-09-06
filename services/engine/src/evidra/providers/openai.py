@@ -1,6 +1,6 @@
 from typing import Any
 
-from evidra.providers.base import NativeProvider, fail, usage
+from evidra.providers.base import NativeProvider, fail, frame_array, frame_object, usage
 from evidra.providers.models import GenerationEvent, GenerationRequest
 
 
@@ -50,11 +50,11 @@ class OpenAIProvider(NativeProvider):
         if kind == "response.output_text.delta":
             return [GenerationEvent(kind="delta", text=frame["delta"])]
         if kind == "response.completed":
-            response = frame["response"]
+            response = frame_object(frame["response"])
             if response.get("status") != "completed":
                 raise fail("GENERATION_INCOMPLETE")
             state["terminal"] = True
-            counts = response.get("usage") or {}
+            counts = frame_object(response["usage"]) if response.get("usage") is not None else {}
             return [usage(state, counts.get("input_tokens"), counts.get("output_tokens"))]
         return []
 
@@ -90,12 +90,14 @@ class CompatibleProvider(NativeProvider):
 
     def parse(self, frame: dict[str, Any], state: dict[str, Any]) -> list[GenerationEvent]:
         events = []
-        for choice in frame.get("choices", []):
+        for raw_choice in frame_array(frame.get("choices", [])):
+            choice = frame_object(raw_choice)
             if choice.get("index", 0) != 0:
                 raise fail("PROVIDER_PROTOCOL_ERROR")
-            if choice.get("delta", {}).get("refusal") or choice.get("delta", {}).get("tool_calls"):
+            delta = frame_object(choice.get("delta", {}))
+            if delta.get("refusal") or delta.get("tool_calls"):
                 raise fail("GENERATION_INCOMPLETE")
-            text = choice.get("delta", {}).get("content")
+            text = delta.get("content")
             if text:
                 events.append(GenerationEvent(kind="delta", text=text))
             reason = choice.get("finish_reason")
@@ -104,7 +106,8 @@ class CompatibleProvider(NativeProvider):
                     raise fail("GENERATION_INCOMPLETE")
                 state["terminal"] = True
         counts = frame.get("usage")
-        if counts:
+        if counts is not None:
+            counts = frame_object(counts)
             events.append(
                 usage(state, counts.get("prompt_tokens"), counts.get("completion_tokens"))
             )

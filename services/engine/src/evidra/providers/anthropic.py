@@ -1,6 +1,6 @@
 from typing import Any
 
-from evidra.providers.base import NativeProvider, fail, usage
+from evidra.providers.base import NativeProvider, fail, frame_object, usage
 from evidra.providers.models import GenerationEvent, GenerationRequest
 
 
@@ -40,12 +40,16 @@ class AnthropicProvider(NativeProvider):
     def parse(self, frame: dict[str, Any], state: dict[str, Any]) -> list[GenerationEvent]:
         kind = frame.get("type")
         if kind == "message_start":
-            return [usage(state, frame["message"].get("usage", {}).get("input_tokens"))]
-        if kind == "content_block_delta" and frame["delta"].get("type") == "text_delta":
-            return [GenerationEvent(kind="delta", text=frame["delta"]["text"])]
+            counts = frame_object(frame_object(frame["message"]).get("usage", {}))
+            return [usage(state, counts.get("input_tokens"))]
+        if kind == "content_block_delta":
+            delta = frame_object(frame["delta"])
+            if delta.get("type") == "text_delta":
+                return [GenerationEvent(kind="delta", text=delta["text"])]
         if kind == "message_delta":
-            state["reason"] = frame["delta"].get("stop_reason")
-            return [usage(state, output_tokens=frame.get("usage", {}).get("output_tokens"))]
+            state["reason"] = frame_object(frame["delta"]).get("stop_reason")
+            counts = frame_object(frame.get("usage", {}))
+            return [usage(state, output_tokens=counts.get("output_tokens"))]
         if kind == "message_stop":
             if state.get("reason") not in ["end_turn", "stop_sequence"]:
                 raise fail("GENERATION_INCOMPLETE")

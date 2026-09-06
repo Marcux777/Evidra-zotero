@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from collections.abc import AsyncIterator, Awaitable
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable
 from typing import Any, Protocol
 from urllib.parse import quote
 
@@ -24,22 +24,45 @@ from evidra.providers.models import (
 class GenerationProvider(Protocol):
     def generate(
         self, request: GenerationRequest, cancel_event: asyncio.Event
-    ) -> AsyncIterator[GenerationEvent]: ...
+    ) -> AsyncGenerator[GenerationEvent, None]: ...
 
 
 async def cancellable[T](work: Awaitable[T], cancel: asyncio.Event) -> T:
     task = asyncio.ensure_future(work)
     stop = asyncio.create_task(cancel.wait())
+    original: BaseException | None = None
     try:
         await asyncio.wait([task, stop], return_when=asyncio.FIRST_COMPLETED)
         if cancel.is_set():
             raise EvidraError("CANCELLED", "CANCELLED: provider request cancelled.")
         return await task
+    except BaseException as exc:
+        original = exc
+        raise
     finally:
         for pending in [task, stop]:
             if not pending.done():
                 pending.cancel()
-        await asyncio.gather(task, stop, return_exceptions=True)
+        outcomes = await asyncio.gather(task, stop, return_exceptions=True)
+        failures = [
+            result
+            for result in outcomes
+            if isinstance(result, BaseException)
+            and not isinstance(result, asyncio.CancelledError)
+            and result is not original
+        ]
+        if failures:
+            if original is not None and not isinstance(
+                original, (asyncio.CancelledError, GeneratorExit)
+            ):
+                if not isinstance(original, EvidraError) or original.code != "CANCELLED":
+                    failures.insert(0, original)
+            cause = (
+                failures[0]
+                if len(failures) == 1
+                else BaseExceptionGroup("Provider cancellation cleanup failures", failures)
+            )
+            raise fail("PROVIDER_CLEANUP_FAILED") from cause
 
 
 def fail(code: str) -> EvidraError:
@@ -48,6 +71,18 @@ def fail(code: str) -> EvidraError:
 
 def reject_nonfinite(value: str) -> None:
     raise ValueError("Nonfinite values are not JSON.")
+
+
+def frame_object(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise TypeError("Provider frame field must be an object.")
+    return value
+
+
+def frame_array(value: Any) -> list[Any]:
+    if not isinstance(value, list):
+        raise TypeError("Provider frame field must be an array.")
+    return value
 
 
 def status(response: httpx.Response) -> None:
@@ -179,16 +214,36 @@ class NativeProvider:
             "$ref",
         }
 
+        strict = self.profile.adapter in ["openai", "lm_studio", "openai_compatible"]
+        closed_objects = strict or self.profile.adapter == "anthropic"
+
         def native(value: Any, property_names: bool = False) -> bool:
             if isinstance(value, dict):
+                if not property_names:
+                    kind = value.get("type")
+                    object_schema = (
+                        kind == "object"
+                        or (isinstance(kind, list) and "object" in kind)
+                        or "properties" in value
+                    )
+                    if object_schema and closed_objects:
+                        if value.get("additionalProperties") is not False:
+                            return False
+                        if strict and set(value.get("required", [])) != set(
+                            value.get("properties", {})
+                        ):
+                            return False
                 return all(
                     (property_names or key in supported)
-                    and native(child, key in ["properties", "$defs"])
+                    and native(child, not property_names and key in ["properties", "$defs"])
                     for key, child in value.items()
                 )
             return all(native(x) for x in value) if isinstance(value, list) else True
 
-        if self.profile.supports("structured_output") and native(original):
+        root_supported = not strict or (
+            original.get("type") == "object" and "anyOf" not in original
+        )
+        if self.profile.supports("structured_output") and root_supported and native(original):
             return original, request.system, "native"
         instruction = "\nReturn only JSON matching this schema: " + json.dumps(original)
         return None, request.system + instruction, "local_validation"
@@ -220,7 +275,7 @@ class NativeProvider:
 
     async def generate(
         self, request: GenerationRequest, cancel_event: asyncio.Event
-    ) -> AsyncIterator[GenerationEvent]:
+    ) -> AsyncGenerator[GenerationEvent, None]:
         if self.profile.purpose != "generation" or not self.profile.supports("generation"):
             raise fail("CAPABILITY_UNSUPPORTED")
         if not self.profile.supports("streaming"):
@@ -287,7 +342,10 @@ class NativeProvider:
             raise fail("PROVIDER_PROTOCOL_ERROR") from exc
         finally:
             if response is not None:
-                await response.aclose()
+                try:
+                    await response.aclose()
+                except Exception as exc:
+                    raise fail("PROVIDER_CLEANUP_FAILED") from exc
 
 
 def usage(

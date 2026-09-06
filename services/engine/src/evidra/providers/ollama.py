@@ -1,6 +1,6 @@
 from typing import Any
 
-from evidra.providers.base import NativeProvider, fail, usage
+from evidra.providers.base import NativeProvider, fail, frame_object, usage
 from evidra.providers.models import GenerationEvent, GenerationRequest
 
 
@@ -35,7 +35,7 @@ class OllamaProvider(NativeProvider):
 
     def parse(self, frame: dict[str, Any], state: dict[str, Any]) -> list[GenerationEvent]:
         events = []
-        text = frame.get("message", {}).get("content", "")
+        text = frame_object(frame.get("message", {})).get("content", "")
         if text:
             events.append(GenerationEvent(kind="delta", text=text))
         if frame.get("done") is True:
