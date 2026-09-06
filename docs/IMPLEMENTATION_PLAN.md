@@ -97,17 +97,19 @@ Task2 source/review gate passed atb132506 after five fix rounds. Native first-no
 
 **Requirements:** Union selectors, optional descendants off, year/type/tags AND/OR/PDF filters apply to explicit inclusions, exclusions win, filter explanation, deduplicate compound identity. Normalize child results to parent while preserving content authorization; distinguish multiple attachments/principal/supplements, metadata, notes, annotations and AI artifacts (notes opt-in, AI excluded). Dynamic delta preview versus frozen snapshots, stale source/version marking and event invalidation. Snapshot capture is immutable and idempotent; source removal blocks all historical reads and in-flight commits. Do not scan disk/library outside selected sources. Check native permissions before bridge sync.
 
-- [ ] Write real SQLite/property tests: same key in two profiles/libraries remains distinct; overlapping collections deduplicate; excluded item absent; forged snapshot/evidence IDs and stale commits fail. Example:
+- [x] Write real SQLite/property tests: same key in two profiles/libraries remains distinct; overlapping collections deduplicate; excluded item absent; forged snapshot/source IDs and stale commits fail. The evidence-ID route check belongs to Task4's evidence implementation. Example:
   ```python
   scope = scopes.resolve(principal, notebook_a, snapshot_a)
   scopes.revoke_access(source_id)
   with pytest.raises(EvidraError, match='SCOPE_STALE|SOURCE_REVOKED'):
       scopes.assert_current(scope)
   ```
-- [ ] Observe RED using `rtk uv run --project services/engine --no-sync pytest services/engine/tests/test_scopes.py -q` and the focused TS resolver test.
-- [ ] Implement grants/snapshots and resolver UI with selection preview, snapshot history, revocation and notification handling. Every route/service read checks current authorization.
-- [ ] Run scope/property tests plus existing notebook tests, TS resolver/typecheck, and generated-contract drift check. Record exact expected membership fixtures.
-- [ ] Self-review and commit; report A02–A10 code/fixture/native status independently.
+- [x] Observe RED using `rtk uv run --project services/engine --no-sync pytest services/engine/tests/test_scopes.py -q` and the focused TS resolver test.
+- [x] Implement grants/snapshots and resolver UI with selection preview, snapshot history, revocation and notification handling. Every route/service read checks current authorization.
+- [x] Run scope/property tests plus existing notebook tests, TS resolver/typecheck, and generated-contract drift check. Record exact expected membership fixtures.
+- [x] Self-review and commit; report A02–A10 code/fixture/native status independently.
+
+Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-item selection, immutable capture, changed metadata, revocation persistence and trash invalidation were observed on the exact reviewed XPI/M1 engine. The initial helper's premature read timed out; the original FAILED receipt is retained, and a separate scoped continuation passed11checks after restart. Native plural collections/search/group-library/attachment permutations and later evidence/generation/cache/MCP/export enforcement remain separately tracked; the checklist does not declare those later consumers implemented.
 
 ## Task 4: M2 registered documents, parser, evidence and lexical search
 
@@ -116,6 +118,10 @@ Task2 source/review gate passed atb132506 after five fix rounds. Native first-no
 **Interfaces:** `register_attachment` is bridge-admin only and returns opaque ID; parsing accepts that ID, never a public path. Evidence references are server-generated and include document version, compound source identity, source kind, original excerpt, page index/label and verified offsets. Routes expose authorized evidence/search/indexing status and page previews.
 
 **Requirements:** Revalidate regular file/path/reparse points, size/content/stable file identity at registration and use; streaming SHA-256; subprocess parser with one worker (up to two explicit), timeout/memory/page/file limits. Parse every page or record its failure, preserve original text, labels, rotation/crop and normalization maps. Explicit FULL_TEXT_PARSED/PARTIAL_TEXT/METADATA_ONLY/NEEDS_OCR/UNREADABLE/MISSING_FILE/STALE; no OCR. Chunks per page target 2400 chars/overlap <=320 with policy version and offsets. FTS5 escaped parameterized queries with scope JOIN before ORDER/LIMIT and stable tiebreak. Note/abstract indexing preserves kind. Incremental hash/parser cache still requires current grants. Evidence opens correct native attachment/page; only highlight verified rectangles, otherwise label page precision. User-selected page/region preview is bounded and hashed.
+
+**Bounded operation contract:** The production bridge times out after ten seconds, so parsing/rendering returns a short scoped receipt and exposes status/cancel/result. One background supervisor controls one owned PDFium process. This durable document lifecycle remains the parser API consumed by Task8's extraction queue. Defaults:200000000bytes,1000pages,512MiB committed parser memory,120seconds wall time; finite user adjustments are explicit. Exceedance pauses with a reason and explicit resume, never truncation or automatic retry. Final page/chunk persistence is atomic after current scope/file-identity recheck and retains failed-page diagnostics.
+
+**Historical evidence contract:** Stored immutable text remains readable after a version change only while the exact source/content identity is currently available and granted, with historical-version/stale provenance. Removal/revocation blocks access. New ingestion must match frozen snapshot observations. Native open/highlight/preview verifies the registered file identity and full hash against the evidence version. Private note/abstract transfer can use scope/version-bound sequential8k-character parts with finite declared length and complete assembled-hash validation; renderer commands never supply arbitrary text or paths.
 
 - [ ] Author synthetic PDF fixtures with text, two columns/table, rotation/labels, empty text, corruption and multi-attachment scope; test real PDFium subprocess, real SQLite FTS and real symlink/file substitution where OS permits. Example:
   ```python
