@@ -2,6 +2,8 @@ import type { NativeReader, NativeSourceItem, NativeZotero } from './native-type
 import type { SourceBridge, SourceTransport } from './sources';
 import type { ConversationCommand, DocumentCommand, DocumentOperation, Evidence, RegisteredDocument, Source, SourceContent, TextStage } from './types';
 import { conversationCommand } from './conversations';
+import { matrixCommand } from './matrix';
+import type { MatrixCommand } from './types';
 import { identityKey } from '../sources/resolver';
 
 export interface IndexResult { document: RegisteredDocument; operation: DocumentOperation | null }
@@ -22,7 +24,7 @@ export class DocumentBridge {
         return item;
     }
 
-    async dispatch(message: DocumentCommand | ConversationCommand): Promise<unknown> {
+    async dispatch(message: DocumentCommand | ConversationCommand | MatrixCommand): Promise<unknown> {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
         // Scoped status-only cancellation must not queue behind native content revalidation.
         if (message.op === 'conversation.cancel' || message.op === 'conversation.vectors.cancel')
@@ -48,6 +50,7 @@ export class DocumentBridge {
                 documents.set(`${source.id}:${content.key}`, { document, item, path });
             }
             if (message.op.startsWith('conversation.')) return conversationCommand(message as ConversationCommand, request);
+            if (message.op.startsWith('matrix.')) return matrixCommand(message as MatrixCommand, request);
             switch (message.op) {
                 case 'documents.list': return request('GET', `/documents?offset=${message.offset}&limit=50`);
                 case 'documents.search': return request('POST', '/search', message.request);

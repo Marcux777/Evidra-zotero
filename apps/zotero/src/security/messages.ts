@@ -3,6 +3,7 @@ import validateSelection from '../../../../packages/contracts/generated/validate
 import validateDocument from '../../../../packages/contracts/generated/validate-document-command';
 import validateConversation from '../../../../packages/contracts/generated/validate-conversation-command';
 import validateProvider from '../../../../packages/contracts/generated/validate-provider-command';
+import validateMatrix from '../../../../packages/contracts/generated/validate-matrix-command';
 
 export function serializeUiResponse(id: string, result: unknown, error: string | null): string {
     const message = JSON.stringify({ channel: 'evidra-ui-v1', id, result, error });
@@ -13,6 +14,10 @@ const plain = (value: unknown): value is Record<string, unknown> => !!value && t
 export function parseUiMessage(value: unknown): UiMessage {
     if (!plain(value) || typeof value.op !== 'string')
         throw new Error('INVALID_UI_MESSAGE');
+    if (value.op.startsWith('matrix.')) {
+        if (!validateMatrix(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
     if (value.op.startsWith('conversation.')) {
         if (!validateConversation(value)) throw new Error('INVALID_UI_MESSAGE');
         return value;

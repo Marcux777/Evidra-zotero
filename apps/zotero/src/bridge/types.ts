@@ -24,6 +24,18 @@ export type AttachmentRole = components['schemas']['AttachmentRole'];
 export type SourceChange = components['schemas']['SourceChange'];
 export type DocumentCommand = components['schemas']['DocumentCommand'];
 export type ConversationCommand = components['schemas']['ConversationCommand'];
+export type MatrixCommand = components['schemas']['MatrixCommand'];
+export type FormVersion = components['schemas']['FormVersion'];
+export type FormPage = components['schemas']['FormPage'];
+export type FieldDefinition = components['schemas']['FieldDefinition'];
+export type MatrixCell = components['schemas']['MatrixCell'];
+export type MatrixPage = components['schemas']['MatrixPage'];
+export type MatrixQuery = components['schemas']['MatrixQuery'];
+export type ExtractionProposal = components['schemas']['ExtractionProposal'];
+export type ProposalPage = components['schemas']['ProposalPage'];
+export type DecisionPage = components['schemas']['DecisionPage'];
+export type DecisionWrite = components['schemas']['DecisionWrite'];
+export type BulkPreview = components['schemas']['BulkPreview'];
 export type ProviderCommand = components['schemas']['ProviderCommand'];
 export type ConversationRecord = components['schemas']['ConversationRecord'];
 export type ConversationPage = components['schemas']['ConversationPage'];
@@ -105,7 +117,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand | ConversationCommand | ProviderCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

@@ -123,6 +123,12 @@ class ConversationService:
         with self.scopes.guarded(context, capability=context.capability) as connection:
             return self._read(connection, context, run_id)
 
+    def read_from_connection(
+        self, connection: sqlite3.Connection, context: ScopeContext, run_id: str
+    ) -> RunRecord:
+        """Authorize dependent consumers inside their existing guarded transaction."""
+        return self._read(connection, context, run_id)
+
     def access(self, context: ScopeContext, run_id: str) -> RunAccess:
         with self.scopes.guarded(context, capability=context.capability) as connection:
             run = self._read(connection, context, run_id)

@@ -16,6 +16,9 @@ function allowedEngineRoute(method: string, path: string): boolean {
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
+    if (documentPath && (method === 'GET' && (documentPath === '/forms' && limit === '1'
+        || !page && /^\/forms\/(template|[a-f0-9]{32})$/.test(documentPath))
+        || method === 'POST' && !page && /^(\/forms|\/matrix\/(query|proposals|decisions|proposals\/query|decisions\/query|bulk-preview|bulk-approve))$/.test(documentPath))) return true;
     const profile = /^\/v1\/providers\/profiles\/[a-zA-Z0-9_-]{1,100}(\/secret|\/models|\/resume)?$/.exec(base);
     if (method === 'PUT') return !page && (base === '/v1/providers/settings'
         || !!profile && (!profile[1] || profile[1] === '/secret')

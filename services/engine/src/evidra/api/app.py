@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException
 
 from evidra.api.conversations import router as conversations_router
 from evidra.api.documents import router as documents_router
+from evidra.api.extraction import router as extraction_router
 from evidra.api.notebooks import router
 from evidra.api.providers import router as providers_router
 from evidra.api.sources import router as sources_router
@@ -19,6 +20,8 @@ from evidra.documents.text import TextIngestion
 from evidra.domain.errors import STATUS_CODES, ErrorResponse, EvidraError, public_error
 from evidra.domain.models import HealthStatus, RuntimeStatus
 from evidra.evidence.service import EvidenceService
+from evidra.extraction.forms import FormService
+from evidra.extraction.matrix import MatrixService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
@@ -44,6 +47,8 @@ class Services:
     providers: ProviderRegistry
     vectors: VectorSearch
     conversations: ConversationService
+    forms: FormService
+    matrix: MatrixService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -64,6 +69,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             lexical = LexicalSearch(evidence)
             vectors = VectorSearch(evidence, providers)
             conversations = ConversationService(lexical, vectors, providers, ingestion)
+            forms = FormService(scopes)
             app.state.services = Services(
                 database,
                 session,
@@ -78,6 +84,8 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 providers,
                 vectors,
                 conversations,
+                forms,
+                MatrixService(forms, evidence, conversations),
             )
             yield
         finally:
@@ -111,6 +119,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(documents_router)
     app.include_router(providers_router)
     app.include_router(conversations_router)
+    app.include_router(extraction_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:

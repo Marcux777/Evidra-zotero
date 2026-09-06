@@ -98,6 +98,9 @@ test('controller requires current consent, validates receipt, hides credential, 
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
     const requiredRoutes: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
+        ['GET', `${snapshot}/forms?offset=0&limit=1`], ['GET', `${snapshot}/forms/template`],
+        ['GET', `${snapshot}/forms/${'f'.repeat(32)}`], ['POST', `${snapshot}/forms`],
+        ...['query', 'proposals', 'decisions', 'proposals/query', 'decisions/query', 'bulk-preview', 'bulk-approve'].map(path => ['POST', `${snapshot}/matrix/${path}`] as ['POST', string]),
         ['GET', '/v1/providers/profiles?offset=0&limit=50'], ['GET', '/v1/providers/settings'],
         ['PUT', '/v1/providers/settings'], ['PUT', '/v1/providers/profiles/local'],
         ['GET', '/v1/providers/profiles/local/models?offset=0&limit=50'],
