@@ -13,7 +13,7 @@ export type SourceContent = components['schemas']['SourceContent'];
 export type SourcePage = components['schemas']['SourcePage'];
 export type SelectionSpec = components['schemas']['SelectionSpec'];
 export type Selector = components['schemas']['Selector'];
-export type SelectionPreview = components['schemas']['SelectionPreview'];
+export type PreviewPage = components['schemas']['PreviewPage'];
 export type Snapshot = components['schemas']['Snapshot'];
 export type SnapshotPage = components['schemas']['SnapshotPage'];
 export type SnapshotSourcePage = components['schemas']['SnapshotSourcePage'];
@@ -67,6 +67,8 @@ export type UiMessage = {
     op: 'sources.read'; notebook_id: string; snapshot_id: string; offset: number;
 } | {
     op: 'sources.preview'; notebook_id: string; selection: SelectionSpec; capture: boolean;
+} | {
+    op: 'sources.preview.page'; notebook_id: string; preview_id: string; offset: number;
 } | {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {

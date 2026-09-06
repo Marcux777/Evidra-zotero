@@ -11,7 +11,8 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
     const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
     const [spec, setSpec] = useState<SelectionSpec>({ include_selected_containers: false, include_descendants: false, include_notes: false, include_annotations: false, pdf_only: false, tag_mode: 'AND' });
     const [minimum, setMinimum] = useState(''), [maximum, setMaximum] = useState(''), [types, setTypes] = useState(''), [tags, setTags] = useState('');
-    const [preview, setPreview] = useState<SourcePreviewResult | null>(null), [valid, setValid] = useState(false), [previewOffset, setPreviewOffset] = useState(0);
+    const [preview, setPreview] = useState<SourcePreviewResult | null>(null), [valid, setValid] = useState(false);
+    const [previewOffsets, setPreviewOffsets] = useState<number[]>([]), [sourceOffsets, setSourceOffsets] = useState<number[]>([]), [historyOffsets, setHistoryOffsets] = useState<number[]>([]);
     const [history, setHistory] = useState(emptyHistory), [snapshot, setSnapshot] = useState<Snapshot | null>(null), [sources, setSources] = useState<SnapshotSourcePage | null>(null);
     const version = useRef(0), epoch = useRef<number | null>(null), actionBusy = useRef(false), alive = useRef(true), revision = useRef(notebook.revision), idempotency = useRef<string | null>(null);
     const report = (value: unknown) => setError(value instanceof Error ? value.message : 'OPERATION_FAILED');
@@ -46,10 +47,11 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
         catch (value) { if (current()) { setValid(false); report(value); } }
         finally { actionBusy.current = false; if (alive.current) setBusy(false); }
     }
-    async function loadHistory(offset: number, current: () => boolean, initial = false) {
+    async function loadHistory(offset: number, current: () => boolean, initial = false, direction: 'next' | 'previous' | 'replace' = 'replace') {
         const page = await bridge.request({ op: 'sources.history', notebook_id: notebook.id, offset }) as SnapshotPage;
         if (!current()) return;
         setHistory(page);
+        setHistoryOffsets(old => direction === 'next' ? [...old, history.offset] : direction === 'previous' ? old.slice(0, -1) : []);
         if (initial && page.items[0]) {
             const latest = page.items[0]; updateRevision(Math.max(revision.current, latest.revision));
             setSnapshot(latest);
@@ -74,8 +76,14 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
         setValid(false); setNotice('');
         const result = await bridge.request({ op: 'sources.preview', notebook_id: notebook.id, selection: options(), capture }) as SourcePreviewResult;
         if (!current()) return;
-        setPreview(result); setPreviewOffset(0); setValid(true); idempotency.current = null;
+        setPreview(result); setPreviewOffsets([]); setValid(true); idempotency.current = null;
         updateRevision(result.preview.expected_revision);
+    }); }
+    function previewPage(back: boolean) { if (!preview) return; void action(async current => {
+        const offset = back ? previewOffsets.at(-1) ?? 0 : preview.offset + preview.limit;
+        const page = await bridge.request({ op: 'sources.preview.page', notebook_id: notebook.id, preview_id: preview.preview.id, offset }) as SourcePreviewResult;
+        if (!current()) return;
+        setPreview(page); setPreviewOffsets(old => back ? old.slice(0, -1) : [...old, preview.offset]);
     }); }
     function capture() { if (!preview || !valid) return; void action(async current => {
         idempotency.current ??= Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
@@ -83,16 +91,17 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             preview_id: preview.preview.id, expected_revision: preview.preview.expected_revision, idempotency_key: idempotency.current
         } }) as Snapshot;
         if (!current()) return;
-        updateRevision(result.revision); setSnapshot(result); setPreview(null); setValid(false); setNotice(s.captured);
+        updateRevision(result.revision); setSnapshot(result); setSourceOffsets([]); setPreview(null); setValid(false); setNotice(s.captured);
         await loadHistory(0, current);
         if (!current()) return;
         const next = await bridge.request({ op: 'sources.read', notebook_id: notebook.id, snapshot_id: result.id, offset: 0 }) as SnapshotSourcePage;
         if (current()) setSources(next);
     }); }
-    function read(next: Snapshot, offset: number) { void action(async current => {
+    function read(next: Snapshot, offset: number, direction: 'next' | 'previous' | 'replace' = 'replace') { void action(async current => {
+        const previousOffset = sources?.offset ?? 0;
         setSources(null); setSnapshot(next);
         const page = await bridge.request({ op: 'sources.read', notebook_id: notebook.id, snapshot_id: next.id, offset }) as SnapshotSourcePage;
-        if (current()) setSources(page);
+        if (current()) { setSources(page); setSourceOffsets(old => direction === 'next' ? [...old, previousOffset] : direction === 'previous' ? old.slice(0, -1) : []); }
     }); }
     function revoke(source: Source) { void action(async current => {
         const result = await bridge.request({ op: 'sources.revoke', notebook_id: notebook.id, source_id: source.id, expected_revision: revision.current }) as SourceChange;
@@ -131,21 +140,22 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             {!!spec.exclusions?.length && <div><p>{s.exclusions}: {spec.exclusions.length}</p><button type="button" onClick={() => edit({ exclusions: [] })}>{s.clearExclusions}</button></div>}
         </fieldset>
         <div className="actions"><button type="button" disabled={busy} onClick={() => previewSelection(true)}>{s.preview}</button><button type="button" disabled={busy} onClick={() => previewSelection(false)}>{s.refresh}</button></div>
-        {preview && <div><h3>{s.previewTitle}: {preview.preview.items.length}</h3><p>{s.added}: {preview.preview.added.length} · {s.dropped}: {preview.preview.dropped.length} · {s.updated}: {preview.preview.changed.length}</p>
+        {preview && <div><h3>{s.previewTitle}: {preview.preview.included_count}</h3><p>{s.added}: {preview.preview.added_count} · {s.dropped}: {preview.preview.dropped_count} · {s.updated}: {preview.preview.changed_count}</p>
             {!valid && <p>{s.previewAgain}</p>}
-            {!!preview.preview.possible_duplicates.length && <p className="source-warning">{s.duplicates}: {preview.preview.possible_duplicates.length}</p>}
-            <ul className="source-list">{preview.preview.items.slice(previewOffset, previewOffset + 50).map(source => sourceRow(source, true))}</ul>
-            {preview.preview.items.length > 50 && <nav className="actions" aria-label={s.previewTitle}><button disabled={busy || !previewOffset} onClick={() => setPreviewOffset(Math.max(0, previewOffset - 50))}>{t.previous}</button><span>{previewOffset + 1}–{Math.min(previewOffset + 50, preview.preview.items.length)} / {preview.preview.items.length}</span><button disabled={busy || previewOffset + 50 >= preview.preview.items.length} onClick={() => setPreviewOffset(previewOffset + 50)}>{t.next}</button></nav>}
-            {!!(preview.preview.removed.length + preview.unavailable.length) && <details><summary>{s.removed}: {preview.preview.removed.length + preview.unavailable.length}</summary><ul>
+            {!!preview.preview.possible_duplicate_count && <p className="source-warning">{s.duplicates}: {preview.preview.possible_duplicate_count}</p>}
+            <ul className="source-list">{preview.preview.items.map(source => sourceRow(source, true))}</ul>
+            {!!(preview.preview.removed_count + preview.unavailable_total) && <p>{s.removed}: {preview.preview.removed_count + preview.unavailable_total}</p>}
+            {!!(preview.preview.removed.length + preview.unavailable.length) && <ul>
                 {preview.preview.removed.map((row, index) => <li key={`removed-${index}`}>{row.title ?? row.identity.item_key}: {s.reasons[row.reason]}</li>)}
                 {preview.unavailable.map((row, index) => <li key={`unavailable-${index}`}>{s.library} {row.identity.library_id} · {row.identity.item_key}: {s.reasons[row.reason]}</li>)}
-            </ul></details>}
+            </ul>}
+            {preview.total > preview.limit && <nav className="actions" aria-label={s.previewTitle}><button disabled={busy || !previewOffsets.length} onClick={() => previewPage(true)}>{t.previous}</button><span>{preview.offset + 1}–{preview.offset + preview.limit} / {preview.total}</span><button disabled={busy || preview.offset + preview.limit >= preview.total} onClick={() => previewPage(false)}>{t.next}</button></nav>}
         </div>}
         <button className="primary" type="button" disabled={busy || !preview || !valid} onClick={capture}>{s.capture}</button><p className="source-meta">{s.frozen}</p>
         <h3>{s.history}</h3><div className="actions">{history.items.map(row => <button type="button" disabled={busy} key={row.id} aria-pressed={snapshot?.id === row.id} onClick={() => read(row, 0)}>{t.revision} {row.revision} · {row.member_count} · {new Date(row.created_at).toLocaleString(locale)}</button>)}</div>
-        {history.total > history.limit && <nav className="actions" aria-label={s.history}><button disabled={busy || !history.offset} onClick={() => void action(current => loadHistory(Math.max(0, history.offset - 50), current))}>{t.previous}</button><button disabled={busy || history.offset + history.limit >= history.total} onClick={() => void action(current => loadHistory(history.offset + 50, current))}>{t.next}</button></nav>}
+        {history.total > history.limit && <nav className="actions" aria-label={s.history}><button disabled={busy || !historyOffsets.length} onClick={() => void action(current => loadHistory(historyOffsets.at(-1) ?? 0, current, false, 'previous'))}>{t.previous}</button><button disabled={busy || history.offset + history.limit >= history.total} onClick={() => void action(current => loadHistory(history.offset + history.limit, current, false, 'next'))}>{t.next}</button></nav>}
         {snapshot && <div><h3>{s.members} · {t.revision} {snapshot.revision}</h3>{sources && <><p>{s.accessible}: {sources.total} · {s.unavailable}: {sources.unavailable_count}</p><ul className="source-list">{sources.items.map(row => sourceRow(row.source, false, row.state))}</ul>
-            {sources.total > sources.limit && <nav className="actions" aria-label={s.members}><button disabled={busy || !sources.offset} onClick={() => read(snapshot, Math.max(0, sources.offset - 50))}>{t.previous}</button><button disabled={busy || sources.offset + sources.limit >= sources.total} onClick={() => read(snapshot, sources.offset + 50)}>{t.next}</button></nav>}</>}
+            {sources.total > sources.limit && <nav className="actions" aria-label={s.members}><button disabled={busy || !sourceOffsets.length} onClick={() => read(snapshot, sourceOffsets.at(-1) ?? 0, 'previous')}>{t.previous}</button><button disabled={busy || sources.offset + sources.limit >= sources.total} onClick={() => read(snapshot, sources.offset + sources.limit, 'next')}>{t.next}</button></nav>}</>}
             <button type="button" disabled={busy} onClick={() => read(snapshot, sources?.offset ?? 0)}>{s.readAgain}</button></div>}
         <p className="source-meta">{s.external}</p>
     </section>;

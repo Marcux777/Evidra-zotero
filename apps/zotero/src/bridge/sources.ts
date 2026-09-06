@@ -1,13 +1,14 @@
 import { captureSelectors, identityKey, resolveSelection } from '../sources/resolver';
+import { serializeUiResponse } from '../security/messages';
 import type { NativeSelection, UnavailableSource } from '../sources/resolver';
 import type { NativeSourcePane, NativeZotero } from './native-types';
-import type { IdentityPage, SelectionPreview, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
+import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
 
 interface SourceTransport {
     request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown>;
     stop(): Promise<void>;
 }
-export interface SourcePreviewResult { preview: SelectionPreview; unavailable: UnavailableSource[] }
+export interface SourcePreviewResult { preview: PreviewPage; unavailable: UnavailableSource[]; offset: number; limit: number; total: number; unavailable_total: number }
 export interface SourceState { revision: number }
 
 /** Native access must be checked before an engine content request, including after restart.
@@ -24,7 +25,7 @@ export class SourceBridge {
     #operations: Promise<unknown> = Promise.resolve();
     #known = new Map<string, SourceIdentity>();
     #observed = new Map<number, SourceIdentity>();
-    #previews = new Map<string, { notebook: string; stageId: string; spec: SelectionSpec; native: string; epoch: number }>();
+    #previews = new Map<string, { notebook: string; stageId: string; spec: SelectionSpec; native: string; unavailable: UnavailableSource[]; epoch: number }>();
     #selection = new Map<string, SelectionSpec>();
     #active = true;
 
@@ -121,7 +122,11 @@ export class SourceBridge {
         return stageId;
     }
     async history(notebook: string, offset: number): Promise<SnapshotPage> {
-        return this.#run(async () => await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots?offset=${offset}&limit=50`) as SnapshotPage);
+        return this.#run(async () => {
+            const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots?offset=${offset}&limit=50`) as SnapshotPage;
+            serializeUiResponse('0'.repeat(80), page, null);
+            return page;
+        });
     }
     async #latestSelection(notebook: string): Promise<SelectionSpec> {
         const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots?offset=0&limit=1`) as SnapshotPage;
@@ -137,13 +142,32 @@ export class SourceBridge {
             const native = await resolveSelection(this.#api, this.#profile, spec);
             const stageId = await this.#sync(notebook, native, epoch, 'selection', null);
             if (stageId === null) throw new Error('INVALID_SELECTION_STAGE_RECEIPT');
-            const preview = await this.#engine.request('POST', `/v1/notebooks/${notebook}/sources/preview`, { stage_id: stageId, selection: spec }) as SelectionPreview;
+            const preview = await this.#engine.request('POST', `/v1/notebooks/${notebook}/sources/preview`, { stage_id: stageId, selection: spec }) as PreviewPage;
             this.#assertEpoch(epoch);
             if (preview.stage_id !== stageId) throw new Error('INVALID_SELECTION_STAGE_RECEIPT');
             this.#selection.set(notebook, spec);
             this.#previews.clear();
-            this.#previews.set(preview.id, { notebook, stageId, spec, native: JSON.stringify({ items: native.items, unavailable: native.unavailable }), epoch });
-            return { preview, unavailable: native.unavailable };
+            this.#previews.set(preview.id, { notebook, stageId, spec, native: JSON.stringify({ items: native.items, unavailable: native.unavailable }), unavailable: native.unavailable, epoch });
+            return this.#previewResult(preview, native.unavailable, 0);
+        });
+    }
+    #previewResult(preview: PreviewPage, unavailable: UnavailableSource[], offset: number): SourcePreviewResult {
+        const start = Math.max(0, offset - preview.total);
+        const omitted = offset >= preview.total ? unavailable.slice(start, start + 50) : [];
+        const result = { preview, unavailable: omitted, offset, limit: preview.limit + omitted.length,
+            total: preview.total + unavailable.length, unavailable_total: unavailable.length };
+        // Measure the exact serialized envelope, reserving the maximum admitted ID.
+        serializeUiResponse('0'.repeat(80), result, null);
+        return result;
+    }
+    async previewPage(notebook: string, id: string, offset: number): Promise<SourcePreviewResult> {
+        return this.#run(async epoch => {
+            const stored = this.#previews.get(id);
+            if (!stored || stored.notebook !== notebook || stored.epoch !== epoch) throw new Error('SCOPE_STALE');
+            // Even native-unavailable pages validate the live server stage/fingerprint.
+            const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/sources/previews/${id}?offset=${offset}&limit=50`) as PreviewPage;
+            if (page.id !== id || page.stage_id !== stored.stageId) throw new Error('INVALID_SELECTION_STAGE_RECEIPT');
+            return this.#previewResult(page, stored.unavailable, offset);
         });
     }
     async create(notebook: string, request: SnapshotCreate): Promise<Snapshot> {
@@ -174,7 +198,9 @@ export class SourceBridge {
                 }) });
             await this.#sync(notebook, native, epoch, 'revalidation', null);
             this.#assertEpoch(epoch);
-            return await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/sources?offset=${offset}&limit=50`) as SnapshotSourcePage;
+            const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/sources?offset=${offset}&limit=50`) as SnapshotSourcePage;
+            serializeUiResponse('0'.repeat(80), page, null);
+            return page;
         });
     }
     async revoke(notebook: string, source: string, expectedRevision: number): Promise<unknown> {

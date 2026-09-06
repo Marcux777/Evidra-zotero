@@ -11,6 +11,7 @@ from evidra.domain.sources import (
     IdentityPage,
     Invalidation,
     InvalidationResult,
+    PreviewPage,
     PreviewRequest,
     RemovedSource,
     SelectionPreview,
@@ -162,7 +163,7 @@ class SnapshotService:
 
     def preview_selection(
         self, principal: Principal, notebook_id: str, request: PreviewRequest
-    ) -> SelectionPreview:
+    ) -> PreviewPage:
         with self.database.transaction() as connection:
             self.scopes.authorize(principal, "manage")
             notebook = self.scopes.notebook(connection, principal, notebook_id)
@@ -242,7 +243,71 @@ class SnapshotService:
                     json.dumps(sorted(candidates)),
                 ),
             )
-            return preview
+            return self._preview_page(preview, 0, 50)
+
+    @staticmethod
+    def _fits_page(page: PreviewPage | SnapshotSourcePage | SnapshotPage) -> bool:
+        # UTF-8 bounds the JSON's UTF-16 character count. Reserve room below the
+        # renderer's 1,000,000-character cap for the native result/envelope fields.
+        return len(page.model_dump_json().encode()) <= 900000
+
+    def _preview_page(self, preview: SelectionPreview, offset: int, limit: int) -> PreviewPage:
+        page = PreviewPage(
+            id=preview.id,
+            stage_id=preview.stage_id,
+            notebook_id=preview.notebook_id,
+            expected_revision=preview.expected_revision,
+            items=[],
+            removed=[],
+            offset=offset,
+            limit=0,
+            total=len(preview.items) + len(preview.removed),
+            included_count=len(preview.items),
+            removed_count=len(preview.removed),
+            added_count=len(preview.added),
+            dropped_count=len(preview.dropped),
+            changed_count=len(preview.changed),
+            possible_duplicate_count=len(preview.possible_duplicates),
+        )
+        for index in range(offset, min(offset + limit, page.total)):
+            if index < len(preview.items):
+                candidate = page.model_copy(
+                    update={"items": [*page.items, preview.items[index]], "limit": page.limit + 1}
+                )
+            else:
+                candidate = page.model_copy(
+                    update={
+                        "removed": [*page.removed, preview.removed[index - len(preview.items)]],
+                        "limit": page.limit + 1,
+                    }
+                )
+            if not self._fits_page(candidate):
+                if page.limit == 0:
+                    raise EvidraError(
+                        "BODY_TOO_LARGE", "Source metadata exceeds the response budget."
+                    )
+                break
+            page = candidate
+        return page
+
+    def read_preview(
+        self, principal: Principal, notebook_id: str, preview_id: str, offset: int, limit: int
+    ) -> PreviewPage:
+        with self.database.transaction() as connection:
+            notebook = self.scopes.notebook(connection, principal, notebook_id)
+            row = connection.execute(
+                "SELECT * FROM selection_previews WHERE id=? AND notebook_id=?",
+                (preview_id, notebook_id),
+            ).fetchone()
+            if row is None:
+                raise EvidraError("NOT_FOUND", "Preview not found.")
+            preview = SelectionPreview.model_validate_json(row["payload"])
+            self.scopes.selection_stage(connection, notebook_id, row["stage_id"])
+            if preview.expected_revision != notebook["revision"] or row[
+                "fingerprint"
+            ] != self.scopes.fingerprint(connection, json.loads(row["candidate_ids"])):
+                raise EvidraError("SCOPE_STALE", "Selection changed; request a new preview.")
+            return self._preview_page(preview, offset, limit)
 
     def _snapshot(self, connection: sqlite3.Connection, row: sqlite3.Row) -> Snapshot:
         selection = connection.execute(
@@ -346,12 +411,27 @@ class SnapshotService:
             total = connection.execute(
                 "SELECT COUNT(*) FROM snapshots WHERE notebook_id=?", (notebook_id,)
             ).fetchone()[0]
-            return SnapshotPage(
-                items=[self._snapshot(connection, r) for r in rows],
+            page = SnapshotPage(
+                items=[],
                 offset=offset,
-                limit=limit,
+                limit=0,
                 total=total,
             )
+            for row in rows:
+                candidate = page.model_copy(
+                    update={
+                        "items": [*page.items, self._snapshot(connection, row)],
+                        "limit": page.limit + 1,
+                    }
+                )
+                if not self._fits_page(candidate):
+                    if page.limit == 0:
+                        raise EvidraError(
+                            "BODY_TOO_LARGE", "Snapshot metadata exceeds the response budget."
+                        )
+                    break
+                page = candidate
+            return page
 
     def read_sources(
         self, principal: Principal, notebook_id: str, snapshot_id: str, offset: int, limit: int
@@ -363,19 +443,29 @@ class SnapshotService:
                 "SELECT COUNT(*) FROM snapshot_members WHERE snapshot_id=?", (snapshot_id,)
             ).fetchone()[0]
             # Authorization intersection precedes pagination (and later retrieval top-k).
-            return SnapshotSourcePage(
-                items=[
-                    SnapshotSource(
-                        source=self.scopes.content(r),
-                        state="current" if r["version_id"] == r["current_version"] else "stale",
-                    )
-                    for r in rows[offset : offset + limit]
-                ],
+            page = SnapshotSourcePage(
+                items=[],
                 offset=offset,
-                limit=limit,
+                limit=0,
                 total=len(rows),
                 unavailable_count=count - len(rows),
             )
+            for row in rows[offset : offset + limit]:
+                source = SnapshotSource(
+                    source=self.scopes.content(row),
+                    state="current" if row["version_id"] == row["current_version"] else "stale",
+                )
+                candidate = page.model_copy(
+                    update={"items": [*page.items, source], "limit": page.limit + 1}
+                )
+                if not self._fits_page(candidate):
+                    if page.limit == 0:
+                        raise EvidraError(
+                            "BODY_TOO_LARGE", "Source metadata exceeds the response budget."
+                        )
+                    break
+                page = candidate
+            return page
 
     def identities(
         self, principal: Principal, notebook_id: str, snapshot_id: str, offset: int, limit: int

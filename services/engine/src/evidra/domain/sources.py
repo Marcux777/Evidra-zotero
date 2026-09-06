@@ -149,6 +149,24 @@ class SelectionPreview(StrictModel):
     possible_duplicates: list[list[str]]
 
 
+class PreviewPage(StrictModel):
+    id: str
+    stage_id: str
+    notebook_id: str
+    expected_revision: int
+    items: list[Source]
+    removed: list[RemovedSource]
+    offset: int
+    limit: int
+    total: int
+    included_count: int
+    removed_count: int
+    added_count: int
+    dropped_count: int
+    changed_count: int
+    possible_duplicate_count: int
+
+
 class SnapshotCreate(StrictModel):
     preview_id: str = Field(min_length=1, max_length=200)
     expected_revision: int = Field(ge=1)

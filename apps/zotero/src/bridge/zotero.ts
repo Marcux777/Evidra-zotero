@@ -1,7 +1,7 @@
 import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
-import { isUiEvent, parseUiMessage } from '../security/messages';
+import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
 import { catalog } from '../ui/i18n';
 import type { NativeGlobals, NativePicker, NativeSourcePane } from './native-types';
@@ -63,6 +63,7 @@ export class ZoteroBridge {
             case 'sources.state': return sources().state();
             case 'sources.history': return sources().history(message.notebook_id, message.offset);
             case 'sources.read': return sources().read(message.notebook_id, message.snapshot_id, message.offset);
+            case 'sources.preview.page': return sources().previewPage(message.notebook_id, message.preview_id, message.offset);
             case 'sources.create': return sources().create(message.notebook_id, message.request);
             case 'sources.revoke': return sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
             case 'sources.preview': {
@@ -147,8 +148,17 @@ export class ZoteroBridge {
                 return;
             const id = envelope.id;
             pending.add(id);
-            const send = (result: unknown, error: string | null) => { pending.delete(id); if (active)
-                frameWindow?.postMessage(JSON.stringify({ channel: 'evidra-ui-v1', id, result, error }), '*'); };
+            const send = (result: unknown, error: string | null) => {
+                pending.delete(id);
+                if (!active) return;
+                let message: string;
+                try { message = serializeUiResponse(id, result, error); }
+                catch (failure) {
+                    this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(failure))));
+                    message = serializeUiResponse(id, null, publicCode(failure));
+                }
+                frameWindow?.postMessage(message, '*');
+            };
             void Promise.resolve().then(() => this.dispatch(parseUiMessage(envelope.request), window, close)).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
         };
         const loaded = (event: Event) => {

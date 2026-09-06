@@ -1,5 +1,11 @@
 import type { UiMessage } from '../bridge/types';
 import validateSelection from '../../../../packages/contracts/generated/validate-selection';
+
+export function serializeUiResponse(id: string, result: unknown, error: string | null): string {
+    const message = JSON.stringify({ channel: 'evidra-ui-v1', id, result, error });
+    if (message.length > 1000000) throw new Error('UI_RESPONSE_TOO_LARGE');
+    return message;
+}
 const plain = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
 export function parseUiMessage(value: unknown): UiMessage {
     if (!plain(value) || typeof value.op !== 'string')
@@ -7,7 +13,8 @@ export function parseUiMessage(value: unknown): UiMessage {
     const fields: Record<string, string[]> = { status: [], 'engine.choose': [], 'engine.verify': [], 'workspace.close': [], 'workspace.open': [], 'engine.start': ['fingerprint', 'consent'], 'notebook.list': ['offset'], 'notebook.create': ['name', 'idempotency_key'], 'notebook.select': ['id'], preferences: ['locale', 'theme', 'mode'],
         'sources.state': [], 'sources.history': ['notebook_id', 'offset'], 'sources.read': ['notebook_id', 'snapshot_id', 'offset'],
         'sources.preview': ['notebook_id', 'selection', 'capture'], 'sources.create': ['notebook_id', 'request'],
-        'sources.revoke': ['notebook_id', 'source_id', 'expected_revision'] };
+        'sources.revoke': ['notebook_id', 'source_id', 'expected_revision'],
+        'sources.preview.page': ['notebook_id', 'preview_id', 'offset'] };
     const keys = fields[value.op];
     if (!keys || Object.keys(value).length !== keys.length + 1 || keys.some(k => !Object.hasOwn(value, k)))
         throw new Error('INVALID_UI_MESSAGE');
@@ -16,6 +23,9 @@ export function parseUiMessage(value: unknown): UiMessage {
     if (value.op.startsWith('sources.') && value.op !== 'sources.state'
         && (typeof value.notebook_id !== 'string' || !/^[a-f0-9-]{36}$/.test(value.notebook_id))) throw new Error('INVALID_UI_MESSAGE');
     switch (value.op) {
+        case 'sources.preview.page':
+            if (typeof value.preview_id !== 'string' || !/^[a-f0-9]{32}$/.test(value.preview_id) || !integer(value.offset, 0)) throw new Error('INVALID_UI_MESSAGE');
+            break;
         case 'sources.preview':
             if (typeof value.capture !== 'boolean' || !validateSelection(value.selection) || (value.selection.selectors?.length ?? 0) !== 0)
                 throw new Error('INVALID_UI_MESSAGE');

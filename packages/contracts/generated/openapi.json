@@ -619,7 +619,151 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SelectionPreview"
+                  "$ref": "#/components/schemas/PreviewPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/sources/previews/{preview_id}": {
+      "get": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Read Preview",
+        "operationId": "read_preview_v1_notebooks__notebook_id__sources_previews__preview_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "preview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Preview Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewPage"
                 }
               }
             }
@@ -1954,6 +2098,96 @@
         ],
         "title": "NotebookPage"
       },
+      "PreviewPage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "stage_id": {
+            "type": "string",
+            "title": "Stage Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "title": "Expected Revision"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "removed": {
+            "items": {
+              "$ref": "#/components/schemas/RemovedSource"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "included_count": {
+            "type": "integer",
+            "title": "Included Count"
+          },
+          "removed_count": {
+            "type": "integer",
+            "title": "Removed Count"
+          },
+          "added_count": {
+            "type": "integer",
+            "title": "Added Count"
+          },
+          "dropped_count": {
+            "type": "integer",
+            "title": "Dropped Count"
+          },
+          "changed_count": {
+            "type": "integer",
+            "title": "Changed Count"
+          },
+          "possible_duplicate_count": {
+            "type": "integer",
+            "title": "Possible Duplicate Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "stage_id",
+          "notebook_id",
+          "expected_revision",
+          "items",
+          "removed",
+          "offset",
+          "limit",
+          "total",
+          "included_count",
+          "removed_count",
+          "added_count",
+          "dropped_count",
+          "changed_count",
+          "possible_duplicate_count"
+        ],
+        "title": "PreviewPage"
+      },
       "PreviewRequest": {
         "properties": {
           "selection": {
@@ -2059,90 +2293,6 @@
           "profile_instance_id"
         ],
         "title": "RuntimeStatus"
-      },
-      "SelectionPreview": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "stage_id": {
-            "type": "string",
-            "title": "Stage Id"
-          },
-          "notebook_id": {
-            "type": "string",
-            "title": "Notebook Id"
-          },
-          "expected_revision": {
-            "type": "integer",
-            "title": "Expected Revision"
-          },
-          "selection": {
-            "$ref": "#/components/schemas/SelectionSpec"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/Source"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "removed": {
-            "items": {
-              "$ref": "#/components/schemas/RemovedSource"
-            },
-            "type": "array",
-            "title": "Removed"
-          },
-          "added": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Added"
-          },
-          "dropped": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Dropped"
-          },
-          "changed": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Changed"
-          },
-          "possible_duplicates": {
-            "items": {
-              "items": {
-                "type": "string"
-              },
-              "type": "array"
-            },
-            "type": "array",
-            "title": "Possible Duplicates"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "id",
-          "stage_id",
-          "notebook_id",
-          "expected_revision",
-          "selection",
-          "items",
-          "removed",
-          "added",
-          "dropped",
-          "changed",
-          "possible_duplicates"
-        ],
-        "title": "SelectionPreview"
       },
       "SelectionSpec": {
         "properties": {

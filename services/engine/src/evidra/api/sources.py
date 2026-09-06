@@ -4,9 +4,9 @@ from evidra.domain.sources import (
     IdentityPage,
     Invalidation,
     InvalidationResult,
+    PreviewPage,
     PreviewRequest,
     Revocation,
-    SelectionPreview,
     Snapshot,
     SnapshotCreate,
     SnapshotPage,
@@ -38,10 +38,22 @@ def invalidate_sources(body: Invalidation, request: Request) -> InvalidationResu
     return service.invalidate(principal, body)
 
 
-@router.post("/notebooks/{notebook_id}/sources/preview", response_model=SelectionPreview)
-def preview_selection(notebook_id: str, body: PreviewRequest, request: Request) -> SelectionPreview:
+@router.post("/notebooks/{notebook_id}/sources/preview", response_model=PreviewPage)
+def preview_selection(notebook_id: str, body: PreviewRequest, request: Request) -> PreviewPage:
     service, principal = services(request)
     return service.preview_selection(principal, notebook_id, body)
+
+
+@router.get("/notebooks/{notebook_id}/sources/previews/{preview_id}", response_model=PreviewPage)
+def read_preview(
+    notebook_id: str,
+    preview_id: str,
+    request: Request,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=100),
+) -> PreviewPage:
+    service, principal = services(request)
+    return service.read_preview(principal, notebook_id, preview_id, offset, limit)
 
 
 @router.post("/notebooks/{notebook_id}/snapshots", response_model=Snapshot, status_code=201)

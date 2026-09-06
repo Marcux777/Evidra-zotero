@@ -1,11 +1,78 @@
 import { existsSync } from 'node:fs';
 import { URL as NodeURL } from 'node:url';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
+import { createUiTransport } from '../src/ui/transport';
 
 async function production() {
     expect(existsSync(new NodeURL('../src/sources/resolver.ts', import.meta.url)), 'source resolver is missing').toBe(true);
     return import(/* @vite-ignore */ new NodeURL('../src/sources/resolver.ts', import.meta.url).href);
 }
+
+test('a valid large selection crosses the real renderer transport without losing sources', async () => {
+    const { SourceBridge } = await import('../src/bridge/sources');
+    const f = fixture();
+    const selected = Array.from({ length: 101 }, (_, index) => f.item(1000 + index, `LARGE${index}`));
+    const unavailable = Array.from({ length: 101 }, (_, index) => f.item(2000 + index, `ARCH${index}`, 3));
+    for (const source of selected) { const get = source.getField; source.getField = name => name === 'title' ? 'T'.repeat(10000) : get(name); }
+    const api = { ...f.api, Notifier: { registerObserver: () => 'observer', unregisterObserver() {} } };
+    const staged: any[] = [];
+    const notebook = '11111111-1111-4111-8111-111111111111';
+    const stageId = 'a'.repeat(32), previewId = 'b'.repeat(32);
+    const pageAt = (offset: number) => ({ id: previewId, stage_id: stageId, notebook_id: notebook, expected_revision: 1,
+        items: staged.slice(offset, offset + 50).map((item, index) => ({ ...item, id: (offset + index).toString(16).padStart(64, '0'), version_id: 'version', year_state: 'known' })),
+        removed: [], offset, limit: Math.min(50, Math.max(0, 101 - offset)), total: 101, included_count: 101, removed_count: 0,
+        added_count: 101, dropped_count: 0, changed_count: 0, possible_duplicate_count: 1 });
+    const engine = { request: async (_: string, path: string, body?: any) => {
+        if (path.includes('/snapshots?')) return { items: [{ selection: {} }], offset: 0, limit: 1, total: 1 };
+        if (path.endsWith('/sources/sync')) { staged.push(...body.items); return { items: [], offset: 0, limit: 0, total: 0, stage_id: stageId }; }
+        if (path.endsWith('/sources/preview')) return pageAt(0);
+        if (path.includes('/sources/previews/')) { expect(path).toContain(previewId); return pageAt(Number(new URL(`http://127.0.0.1${path}`).searchParams.get('offset'))); }
+        if (path === '/v1/sources/invalidate') return { invalidated_count: 0 };
+        throw new Error(`Unexpected source path ${path}`);
+    }, stop: async () => {} };
+    const native = new SourceBridge(api as any, engine, 'p1', () => {});
+    const listeners = new Set<EventListener>();
+    const lengths: number[] = [];
+    const deliver = (data: string) => { for (const listener of listeners) listener({ data, isTrusted: true, source: null, origin: '' } as unknown as Event); };
+    const target = { addEventListener: (type: string, listener: EventListener) => { if (type === 'message') listeners.add(listener); },
+        removeEventListener: (_: string, listener: EventListener) => listeners.delete(listener),
+        postMessage: (data: string) => {
+            const request = JSON.parse(data);
+            const response = request.request.op === 'sources.preview'
+                ? native.preview(notebook, request.request.selection, { ...f.pane, getSelectedItems: () => [...selected, ...unavailable] } as any)
+                : native.previewPage(notebook, request.request.preview_id, request.request.offset);
+            void response.then(result => {
+                const message = JSON.stringify({ channel: 'evidra-ui-v1', id: request.id, result, error: null });
+                lengths.push(message.length); deliver(message);
+            }, error => deliver(JSON.stringify({ channel: 'evidra-ui-v1', id: request.id, result: null, error: error.message })));
+        } } as unknown as Window;
+    vi.useFakeTimers();
+    const transport = createUiTransport(target);
+    try {
+        deliver(JSON.stringify({ channel: 'evidra-ui-v1', ready: true }));
+        const request = transport.bridge.request({ op: 'sources.preview', notebook_id: notebook, capture: true,
+            selection: { include_selected_containers: false, include_descendants: false, include_notes: false, include_annotations: false, tag_mode: 'AND', pdf_only: false } })
+            .then(value => ({ value }), error => ({ error: error.message }));
+        await vi.advanceTimersByTimeAsync(60000);
+        const response = await request;
+        expect(response, `serialized native responses: ${lengths.join(',')}`).not.toHaveProperty('error');
+        let page = (response as { value: import('../src/bridge/sources').SourcePreviewResult }).value;
+        const sourceKeys: string[] = [], unavailableKeys: string[] = [];
+        while (true) {
+            expect(page.preview.id).toBe(previewId); expect(page.preview.stage_id).toBe(stageId);
+            sourceKeys.push(...page.preview.items.map(item => item.identity.item_key));
+            unavailableKeys.push(...page.unavailable.map(item => item.identity.item_key));
+            if (page.offset + page.limit >= page.total) break;
+            expect(page.limit).toBeGreaterThan(0);
+            page = await transport.bridge.request({ op: 'sources.preview.page', notebook_id: notebook, preview_id: previewId, offset: page.offset + page.limit }) as typeof page;
+        }
+        expect(sourceKeys).toEqual(Array.from({ length: 101 }, (_, index) => `LARGE${index}`));
+        expect(unavailableKeys).toEqual(Array.from({ length: 101 }, (_, index) => `ARCH${index}`));
+        expect(lengths.every(length => length <= 1000000)).toBe(true);
+        expect(f.fetched.some(id => id >= 2000)).toBe(false);
+        await expect(native.previewPage('22222222-2222-4222-8222-222222222222', previewId, 0)).rejects.toThrow('SCOPE_STALE');
+    } finally { transport.close(); native.shutdown(); vi.useRealTimers(); }
+});
 
 // Controlled native API fixture, not a live Zotero profile or native smoke.
 function fixture() {
@@ -202,7 +269,7 @@ test('selection batches bind one completed server stage; empty selection, revali
             previews.push(body);
             expect(Object.keys(body).sort()).toEqual(['selection', 'stage_id']);
             expect(stage?.complete).toBe(true); expect(body.stage_id).toBe(stage?.id);
-            return { id: 'b'.repeat(31) + stageNumber, stage_id: stage!.id, notebook_id: 'notebook', expected_revision: revision, selection: body.selection, items: [], removed: [], added: [], dropped: [], changed: [], possible_duplicates: [] };
+            return { id: 'b'.repeat(31) + stageNumber, stage_id: stage!.id, notebook_id: 'notebook', expected_revision: revision, items: [], removed: [], offset: 0, limit: 0, total: 0, included_count: 0, removed_count: 0, added_count: 0, dropped_count: 0, changed_count: 0, possible_duplicate_count: 0 };
         }
         if (path === '/v1/sources/invalidate') return { invalidated_count: 0 };
         if (path.includes('/snapshots?')) return { items: [{ selection: {} }], offset: 0, limit: 1, total: 1 };
@@ -228,11 +295,11 @@ test('selection batches bind one completed server stage; empty selection, revali
         expect(commits).toHaveLength(1);
         const empty = await bridge.preview('notebook', options, { ...pane, getSelectedItems: () => [] });
         expect(synced.at(-1)).toEqual({ items: [], purpose: 'selection', stage_id: null, final: true });
-        expect(empty.preview.selection.selectors).toEqual([]);
+        expect(previews.at(-1).selection.selectors).toEqual([]);
         const containers = await bridge.preview('notebook', { ...options, include_selected_containers: true }, f.pane);
-        expect(containers.preview.selection.selectors?.map(s => s.kind)).toEqual(['collection', 'collection', 'item', 'item']);
+        expect(previews.at(-1).selection.selectors?.map((s: any) => s.kind)).toEqual(['collection', 'collection', 'item', 'item']);
         const itemsOnly = await bridge.preview('notebook', options, null);
-        expect(itemsOnly.preview.selection.selectors?.map(s => s.kind)).toEqual(['item', 'item']);
+        expect(previews.at(-1).selection.selectors?.map((s: any) => s.kind)).toEqual(['item', 'item']);
         failAt = synced.length + 2;
         const previewCount = previews.length;
         await expect(bridge.preview('notebook', options, pane)).rejects.toThrow('BATCH_INTERRUPTED');

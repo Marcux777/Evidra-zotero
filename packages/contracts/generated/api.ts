@@ -85,6 +85,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/sources/previews/{preview_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Preview */
+        get: operations["read_preview_v1_notebooks__notebook_id__sources_previews__preview_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots": {
         parameters: {
             query?: never;
@@ -318,6 +335,39 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** PreviewPage */
+        PreviewPage: {
+            /** Id */
+            id: string;
+            /** Stage Id */
+            stage_id: string;
+            /** Notebook Id */
+            notebook_id: string;
+            /** Expected Revision */
+            expected_revision: number;
+            /** Items */
+            items: components["schemas"]["Source"][];
+            /** Removed */
+            removed: components["schemas"]["RemovedSource"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+            /** Included Count */
+            included_count: number;
+            /** Removed Count */
+            removed_count: number;
+            /** Added Count */
+            added_count: number;
+            /** Dropped Count */
+            dropped_count: number;
+            /** Changed Count */
+            changed_count: number;
+            /** Possible Duplicate Count */
+            possible_duplicate_count: number;
+        };
         /** PreviewRequest */
         PreviewRequest: {
             selection: components["schemas"]["SelectionSpec"];
@@ -364,30 +414,6 @@ export interface components {
              * @default 30
              */
             heartbeat_timeout_seconds: number;
-        };
-        /** SelectionPreview */
-        SelectionPreview: {
-            /** Id */
-            id: string;
-            /** Stage Id */
-            stage_id: string;
-            /** Notebook Id */
-            notebook_id: string;
-            /** Expected Revision */
-            expected_revision: number;
-            selection: components["schemas"]["SelectionSpec"];
-            /** Items */
-            items: components["schemas"]["Source"][];
-            /** Removed */
-            removed: components["schemas"]["RemovedSource"][];
-            /** Added */
-            added: string[];
-            /** Dropped */
-            dropped: string[];
-            /** Changed */
-            changed: string[];
-            /** Possible Duplicates */
-            possible_duplicates: string[][];
         };
         /** SelectionSpec */
         SelectionSpec: {
@@ -1181,7 +1207,105 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SelectionPreview"];
+                    "application/json": components["schemas"]["PreviewPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_preview_v1_notebooks__notebook_id__sources_previews__preview_id__get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                notebook_id: string;
+                preview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewPage"];
                 };
             };
             /** @description Unauthorized */

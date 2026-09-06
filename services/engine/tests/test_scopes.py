@@ -1,5 +1,6 @@
 """Real SQLite/HTTP evidence for scope membership, revocation and immutable capture."""
 
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -160,7 +161,7 @@ def test_filters_versions_delta_and_stale_preview(tmp_path: Path):
                 "stage_id": synced["stage_id"],
             },
         ).json()
-        assert preview["changed"] == [synced["items"][0]["id"]]
+        assert preview["changed_count"] == 1
         # Filtered candidates also bind the preview; a newly eligible item needs a new preview.
         refreshed = sync(
             client,
@@ -448,3 +449,146 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
             },
         )
         assert old_empty.status_code in {404, 409}
+
+
+def test_preview_and_source_pages_fit_transport_without_losing_members_or_stage_guards(
+    tmp_path: Path,
+):
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        notebook = setup(client)
+        stage_id = None
+        expected = {f"LARGE{i:03d}" for i in range(101)}
+        for index in range(101):
+            item = source(f"LARGE{index:03d}") | {
+                "title": "T" * 10000,
+                "year": 1990 if index >= 96 else 2020,
+                "contents": [
+                    dict(key=f"PDF{child}", kind="pdf", title='"\\' * 500) for child in range(20)
+                ],
+            }
+            result = sync(client, notebook, [item], stage_id=stage_id, final=index == 100)
+            assert result.status_code == 200, result.text
+            stage_id = result.json()["stage_id"]
+        response = client.post(
+            f"/v1/notebooks/{notebook}/sources/preview",
+            headers=HEADERS,
+            json={"stage_id": stage_id, "selection": {"year_min": 2000}},
+        )
+        assert response.status_code == 200, response.text
+        page = response.json()
+        preview_id = page["id"]
+        seen = []
+        while True:
+            envelope = {
+                "channel": "evidra-ui-v1",
+                "id": "x" * 80,
+                "result": {
+                    "preview": page,
+                    "unavailable": [],
+                    "offset": page.get("offset", 0),
+                    "limit": page.get("limit", 0),
+                    "total": page.get("total", 0),
+                    "unavailable_total": 0,
+                },
+                "error": None,
+            }
+            assert len(json.dumps(envelope, ensure_ascii=False)) <= 1000000, (
+                "preview exceeded renderer transport before pagination"
+            )
+            assert page["id"] == preview_id and page["stage_id"] == stage_id
+            seen.extend(row["identity"]["item_key"] for row in page["items"] + page["removed"])
+            if page["offset"] + page["limit"] >= page["total"]:
+                break
+            assert page["limit"] > 0
+            response = client.get(
+                f"/v1/notebooks/{notebook}/sources/previews/{preview_id}"
+                f"?offset={page['offset'] + page['limit']}&limit=50",
+                headers=HEADERS,
+            )
+            assert response.status_code == 200
+            page = response.json()
+        assert len(seen) == 101 and set(seen) == expected
+        assert page["included_count"] == 96 and page["removed_count"] == 5
+        captured = client.post(
+            f"/v1/notebooks/{notebook}/snapshots",
+            headers=HEADERS,
+            json={
+                "preview_id": preview_id,
+                "expected_revision": 1,
+                "idempotency_key": "large-preview",
+            },
+        )
+        assert captured.status_code == 201 and captured.json()["member_count"] == 96
+        snapshot_id = captured.json()["id"]
+        offset = 0
+        visible = []
+        while True:
+            response = client.get(
+                f"/v1/notebooks/{notebook}/snapshots/{snapshot_id}/sources?offset={offset}&limit=50",
+                headers=HEADERS,
+            )
+            assert response.status_code == 200
+            page = response.json()
+            assert (
+                len(
+                    json.dumps(
+                        {"channel": "evidra-ui-v1", "id": "x" * 80, "result": page, "error": None}
+                    )
+                )
+                <= 1000000
+            ), "source page exceeded renderer transport"
+            visible.extend(row["source"]["identity"]["item_key"] for row in page["items"])
+            offset += page["limit"]
+            if offset >= page["total"]:
+                break
+            assert page["limit"] > 0
+        assert len(visible) == 96 and set(visible) == {f"LARGE{i:03d}" for i in range(96)}
+        other = client.post(
+            "/v1/notebooks", headers=HEADERS, json={"name": "Other", "idempotency_key": "other"}
+        ).json()["id"]
+        assert (
+            client.get(
+                f"/v1/notebooks/{other}/sources/previews/{preview_id}", headers=HEADERS
+            ).status_code
+            == 404
+        )
+        assert (
+            client.get(
+                f"/v1/notebooks/{notebook}/sources/previews/{preview_id}", headers=HEADERS
+            ).status_code
+            == 409
+        )
+        latest = client.post(
+            f"/v1/notebooks/{notebook}/sources/preview",
+            headers=HEADERS,
+            json={"stage_id": stage_id, "selection": {}},
+        ).json()
+        sync(client, notebook, [], final=True)
+        assert client.get(
+            f"/v1/notebooks/{notebook}/sources/previews/{latest['id']}", headers=HEADERS
+        ).status_code in {404, 409}
+        # A valid SelectionSpec is repeated by snapshot history, which shares the envelope.
+        for index in range(20):
+            capture(client, notebook, [], {"tags": ["t" * 50000]}, f"history-{index}", 2 + index)
+        offset, historical_ids = 0, []
+        while True:
+            response = client.get(
+                f"/v1/notebooks/{notebook}/snapshots?offset={offset}&limit=50", headers=HEADERS
+            )
+            assert response.status_code == 200
+            page = response.json()
+            assert (
+                len(
+                    json.dumps(
+                        {"channel": "evidra-ui-v1", "id": "x" * 80, "result": page, "error": None}
+                    )
+                )
+                <= 1000000
+            ), "snapshot history exceeded renderer transport"
+            historical_ids.extend(row["id"] for row in page["items"])
+            offset += page["limit"]
+            if offset >= page["total"]:
+                break
+            assert page["limit"] > 0
+        assert len(historical_ids) == len(set(historical_ids)) == 22
