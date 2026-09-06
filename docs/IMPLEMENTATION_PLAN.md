@@ -164,15 +164,17 @@ Task5 source/review completed at12b6aa7 after I1–I4/N1 fixes; actual scoped lo
 
 **Requirements:** Exact NumPy cosine search over permitted IDs in blocks, cache <=512MB, reject mismatched generations/dimensions and keep previous generation consistent until commit. RRF k60 of 40 lexical/40 vector candidates; up to12 diverse non-overlapping chunks within token budget; no assertion of full-corpus reading. Draft SSE with authenticated fetch/cursor and no token URL. Validate final schema and chosen evidence/excerpts against server records; fabricated anchors fail. No automatic repair retry (zero allowed; one only explicit authorized command with separate ledger). Scope revision recheck before final commit; removed historical evidence unavailable. Persist effective provenance/coverage and distinguish valid anchor/proposed support/human review. Settings implement provider/model/manual catalog/capability/consent/cost controls and stop actions; no model still permits lexical/manual workflows.
 
-- [ ] Write tests for unauthorized dominant vectors excluded before top-k, mismatched dimensions, revoked evidence during stream, fabricated evidence and bounded context. Example:
+- [x] Write tests for unauthorized dominant vectors excluded before top-k, mismatched dimensions, revoked evidence during stream, fabricated evidence and bounded context. Example:
   ```python
   assert vector_search(scope_a, query, limit=1)[0].source_id == authorized_source
   with pytest.raises(EvidraError, match='INVALID_MODEL_OUTPUT'):
       validator.promote(scope_a, {'evidence_ids': ['invented-id']})
   ```
-- [ ] Observe RED, implement services and then real UI streaming/coverage/error handling. Never keep SQLite locks over provider I/O.
-- [ ] Run focused service/protocol tests and TS stream/security tests/typecheck/build; record no live-model claims without a real endpoint.
-- [ ] Commit and report A05–A10/A13–A15/A23–A26 with evidence.
+- [x] Observe RED, implement services and then real UI streaming/coverage/error handling. Never keep SQLite locks over provider I/O.
+- [x] Run focused service/protocol tests and TS stream/security tests/typecheck/build; record no live-model claims without a real endpoint.
+- [x] Commit and report A05–A10/A13–A15/A23–A26 with evidence.
+
+Task6 source and bounded native conversation acceptance completed at `9bd75f45a9adfff605af044a2a021b446433e302`. See TEST_REPORT.md for exact reviewed XPI/engine identities, actual local generation, persisted-history/evidence navigation, cancellation and Reader checks. This slice does not close broader vision, paid-provider, corpus-performance or final UI/export acceptance.
 
 ## Task 7: M4 versioned forms and human-reviewed matrix
 
