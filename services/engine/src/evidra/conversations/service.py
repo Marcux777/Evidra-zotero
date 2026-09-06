@@ -229,6 +229,7 @@ class ConversationService:
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "The prepared request differs.")
                 return self._read(connection, context, prior["id"])
             history = []
+            history_categories: set[ContentCategory] = set()
             history_evidence: set[str] = set()
             history_visual: set[str] = set()
             for row in connection.execute(
@@ -238,6 +239,11 @@ class ConversationService:
             ):
                 run = self._read(connection, context, row[0])
                 assert run.output is not None
+                # Historical prose can retain source metadata/quotations even when this
+                # turn retrieves nothing. Images themselves are not replayed in history.
+                history_categories.update(run.categories & {"excerpts", "metadata"})
+                if any(claim.evidence for claim in run.output.claims):
+                    history_categories.update({"excerpts", "metadata"})
                 history_evidence.update(value.id for value in run.context.evidence)
                 history_evidence.update(run.context.history_evidence_ids)
                 history_visual.update(run.context.history_visual_versions)
@@ -334,6 +340,7 @@ class ConversationService:
             }
         )
         categories: set[ContentCategory] = {"excerpts", "metadata"} if built.evidence else set()
+        categories.update(history_categories)
         if history:
             categories.add("history")
         if visual:

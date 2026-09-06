@@ -65,11 +65,11 @@ def profile(client):
     assert response.status_code == 200, response.text
 
 
-@pytest.mark.parametrize("scenario", ["text", "visual", "monetary_cap"])
+@pytest.mark.parametrize("scenario", ["text", "visual", "monetary_cap", "historical_consent"])
 def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp_path, scenario):
     from pdf_fixtures import write_pdf
     from test_documents import finished, ingest, register
-    from test_providers import stream
+    from test_providers import profile_data, stream
 
     app = make_app(tmp_path, [0.0])
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:
@@ -77,7 +77,7 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
         profile(client)
         preview_id = None
         pixels = None
-        if scenario == "visual":
+        if scenario in ["visual", "historical_consent"]:
             path = tmp_path / "visual.pdf"
             write_pdf(path)
             _, _, sources, prefix = document_scope(client, key="visual")
@@ -114,15 +114,41 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
                 == 200
             )
         calls = []
+        cloud_calls = []
 
         def boundary(request):
             body = json.loads(request.content)
+            if request.url.host != "127.0.0.1":
+                cloud_calls.append(body)
+                return httpx.Response(
+                    200,
+                    text=stream(
+                        "openai",
+                        json.dumps(
+                            {
+                                "claims": [
+                                    {
+                                        "text": "Controlled visual continuation",
+                                        "kind": "visual_proposal",
+                                        "evidence": [],
+                                    }
+                                ]
+                            }
+                        ),
+                    ),
+                )
             calls.append(body)
             claim = {
                 "text": "Controlled interpretation",
                 "kind": "visual_proposal" if scenario == "visual" else "general",
                 "evidence": [],
             }
+            if scenario == "historical_consent":
+                evidence = json.loads(body["messages"][-1]["content"])["evidence"][0]
+                claim.update(
+                    kind="source",
+                    evidence=[{"evidence_id": evidence["id"], "excerpt": evidence["excerpt"]}],
+                )
             return httpx.Response(200, text=stream("ollama", json.dumps({"claims": [claim]})))
 
         app.state.services.providers.client = httpx.AsyncClient(
@@ -200,7 +226,82 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
                 assert calls[0]["messages"][-1]["images"] == [pixels["data_base64"]]
                 assert result["visual"]["sha256"] == pixels["sha256"]
                 assert result["visual"]["interpretation"] == "PROPOSED_REQUIRES_HUMAN_REVIEW"
-                assert result["anchor_status"] is None and "images" in result["categories"]
+                assert "images" in result["categories"]
+                if scenario != "historical_consent":
+                    assert result["anchor_status"] is None
+            if scenario == "historical_consent":
+                response = client.put(
+                    "/v1/providers/profiles/cloud",
+                    headers=HEADERS,
+                    json={
+                        "spec": profile_data("openai"),
+                        "expected_revision": 0,
+                        "idempotency_key": "cloud",
+                    },
+                )
+                assert response.status_code == 200, response.text
+                app.state.services.providers.secrets.set(
+                    "cloud", "synthetic-only", memory_only=True
+                )
+                assert (
+                    client.put(
+                        "/v1/providers/settings",
+                        headers=HEADERS,
+                        json={
+                            "block_paid_apis": False,
+                            "expected_revision": 0,
+                            "idempotency_key": "cloud",
+                        },
+                    ).status_code
+                    == 200
+                )
+                assert (
+                    client.put(
+                        f"/v1/notebooks/{conversation['notebook_id']}/providers/cloud/consent",
+                        headers=HEADERS,
+                        json={
+                            "granted": True,
+                            "categories": ["history", "images", "metadata"],
+                            "expected_revision": 0,
+                            "profile_revision": 1,
+                            "idempotency_key": "no-excerpts",
+                        },
+                    ).status_code
+                    == 200
+                )
+                followup = client.post(
+                    prefix + "/conversations/" + conversation["id"] + "/runs",
+                    headers=HEADERS,
+                    json={
+                        "idempotency_key": "historical-visual",
+                        "expected_revision": 1,
+                        "profile_id": "cloud",
+                        "question": "unmatchedterm",
+                        "context_tokens": 16384,
+                        "max_output_tokens": 512,
+                        "preview_operation_id": preview_id,
+                    },
+                )
+                assert followup.status_code == 201, followup.text
+                historical = followup.json()
+                assert historical["context"]["evidence"] == []
+                assert (
+                    result["output"]["claims"][0]["evidence"][0]["excerpt"]
+                    in historical["context"]["history"][-1]["text"]
+                )
+                path = prefix + "/runs/" + historical["id"]
+                rejected = client.post(path + "/start", headers=HEADERS)
+                assert not cloud_calls, "Historical quotation was sent without excerpt consent"
+                assert rejected.status_code == 403 and "CONSENT_REQUIRED" in rejected.text, (
+                    rejected.text
+                )
+                assert client.get(path, headers=HEADERS).json()["state"] == "PREPARED"
+                assert set(historical["categories"]) == {
+                    "excerpts",
+                    "metadata",
+                    "history",
+                    "images",
+                }
 
 
 def test_prepared_run_stream_promotes_only_verified_evidence_and_preserves_history(tmp_path):
