@@ -9,6 +9,7 @@ from starlette.exceptions import HTTPException
 
 from evidra.api.documents import router as documents_router
 from evidra.api.notebooks import router
+from evidra.api.providers import router as providers_router
 from evidra.api.sources import router as sources_router
 from evidra.documents.ingestion import IngestionService
 from evidra.documents.registry import DocumentRegistry
@@ -18,6 +19,7 @@ from evidra.domain.models import HealthStatus, RuntimeStatus
 from evidra.evidence.service import EvidenceService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
+from evidra.providers.registry import ProviderRegistry
 from evidra.retrieval.lexical import LexicalSearch
 from evidra.scope.service import ScopeService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
@@ -36,6 +38,7 @@ class Services:
     evidence: EvidenceService
     lexical: LexicalSearch
     text: TextIngestion
+    providers: ProviderRegistry
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -43,12 +46,14 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         database = Database(settings.data_dir / "evidra.sqlite3")
         ingestion = None
+        providers = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
             registry = DocumentRegistry(scopes)
             ingestion = IngestionService(registry)
             evidence = EvidenceService(registry)
+            providers = ProviderRegistry(scopes)
             app.state.services = Services(
                 database,
                 session,
@@ -60,6 +65,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 evidence,
                 LexicalSearch(evidence),
                 TextIngestion(registry),
+                providers,
             )
             yield
         finally:
@@ -67,7 +73,11 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 if ingestion is not None:
                     ingestion.close()
             finally:
-                database.close()
+                try:
+                    if providers is not None:
+                        await providers.close()
+                finally:
+                    database.close()
 
     app = FastAPI(
         title="Evidra Engine",
@@ -83,6 +93,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(router)
     app.include_router(sources_router)
     app.include_router(documents_router)
+    app.include_router(providers_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:

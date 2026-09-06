@@ -6,6 +6,7 @@ from evidra.api.app import create_app
 from evidra.distribution import EngineManifest
 from evidra.domain.sources import SelectionSpec
 from evidra.domain.documents import DocumentCommand
+from evidra.providers.models import EmbeddingBatch, GenerationEvent, GenerationRequest
 from evidra.security.runtime import RuntimeSettings
 from pydantic import SecretStr, TypeAdapter
 
@@ -18,6 +19,10 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
+for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch):
+    provider_schema = provider_model.model_json_schema()
+    schema["components"]["schemas"].update(provider_schema.pop("$defs", {}))
+    schema["components"]["schemas"][provider_model.__name__] = provider_schema
 documents = TypeAdapter(DocumentCommand).json_schema()
 (destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
 schema["components"]["schemas"].update(documents.pop("$defs"))
