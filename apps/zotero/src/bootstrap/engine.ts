@@ -1,5 +1,32 @@
 import validateManifest from '../../../../packages/contracts/generated/validate-manifest.js';
 import type { EngineManifest, EnginePreview, RuntimeStatus } from '../bridge/types';
+
+const notebookRoute = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(\/.*)?$/;
+const snapshotSourcesRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/(sources|identities)$/;
+
+function allowedEngineRoute(method: string, path: string): boolean {
+    // Match the literal path before fetch can normalize traversal or encoded segments.
+    if (/[\u0000-\u0020\u007f\\%#]/.test(path)) return false;
+    const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|50|100)$/.exec(path);
+    if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
+    const base = page?.[1] ?? path, limit = page?.[3];
+    const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
+    if (method === 'POST') {
+        if (page) return false;
+        return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate'].includes(base)
+            || !!notebook && (['/sources/sync', '/sources/preview', '/snapshots'].includes(suffix)
+                || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix));
+    }
+    if (method !== 'GET') return false;
+    if (!page) return base === '/v1/status' || base === '/v1/notebooks' || !!notebook && suffix === '';
+    if (base === '/v1/notebooks') return limit === '50';
+    if (!notebook) return false;
+    if (suffix === '/snapshots') return limit === '1' || limit === '50';
+    if (/^\/sources\/previews\/[a-f0-9]{32}$/.test(suffix)) return limit === '50';
+    const snapshot = snapshotSourcesRoute.exec(suffix);
+    return !!snapshot && limit === (snapshot[1] === 'identities' ? '100' : '50');
+}
+
 export interface PackageIO {
     readJson(path: string): Promise<unknown>;
     listFiles(root: string): Promise<string[]>;
@@ -133,7 +160,7 @@ export class EngineController {
     async request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
         if (this.#state !== 'running' || !this.#session)
             throw new Error('ENGINE_NOT_RUNNING');
-        if (!(/^\/v1\/(status|bridge\/heartbeat|notebooks(?:\?offset=\d+&limit=50|\/[a-f0-9-]{36})?)$/.test(path)))
+        if (!allowedEngineRoute(method, path))
             throw new Error('INVALID_ENGINE_ROUTE');
         const controller = new AbortController();
         this.#requests.add(controller);

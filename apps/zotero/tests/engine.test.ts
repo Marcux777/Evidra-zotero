@@ -95,6 +95,54 @@ test('controller requires current consent, validates receipt, hides credential, 
     expect(JSON.stringify(controller)).not.toContain('d'.repeat(64));
     expect(requests[0]!.url).toBe('http://127.0.0.1:49234/v1/status');
     expect(new Headers(requests[0]!.init.headers).get('Authorization')).toBe(`Bearer ${'d'.repeat(64)}`);
+    const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
+    const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
+    const requiredRoutes: ['GET' | 'POST', string][] = [
+        ['GET', `${notebook}/snapshots?offset=0&limit=50`],
+        ['GET', `${notebook}/snapshots?offset=0&limit=1`],
+        ['GET', `${snapshot}/identities?offset=0&limit=100`],
+        ['GET', `${snapshot}/sources?offset=0&limit=50`],
+        ['GET', `${notebook}/snapshots/22222222-2222-4222-8222-222222222222/sources?offset=0&limit=50`],
+        ['GET', `${notebook}/snapshots/22222222-2222-4222-8222-222222222222/identities?offset=0&limit=100`],
+        ['GET', `${notebook}/sources/previews/${'b'.repeat(32)}?offset=50&limit=50`],
+        ['POST', `${notebook}/sources/sync`], ['POST', '/v1/sources/invalidate'],
+        ['POST', `${notebook}/sources/preview`], ['POST', `${notebook}/snapshots`],
+        ['POST', `${notebook}/sources/${'c'.repeat(64)}/revoke`],
+        ['GET', '/v1/notebooks?offset=9007199254740991&limit=50'], ['GET', notebook],
+        ['GET', '/v1/notebooks'], ['POST', '/v1/notebooks']
+    ];
+    for (const [method, path] of requiredRoutes) {
+        await controller.request(method, path, method === 'POST' ? { check: 'route-boundary' } : undefined);
+        const sent = requests.at(-1)!;
+        expect(sent.url).toBe(`http://127.0.0.1:49234${path}`);
+        expect(sent.init).toMatchObject({ method, credentials: 'omit', redirect: 'error' });
+        expect(new Headers(sent.init.headers).get('Authorization')).toBe(`Bearer ${'d'.repeat(64)}`);
+        expect(new Headers(sent.init.headers).get('X-Evidra-Client')).toBe('bridge');
+    }
+    const rejectedRoutes: [string, string][] = [
+        ['GET', '/v1/sources/invalidate'], ['POST', '/v1/status'], ['GET', '/v1/bridge/heartbeat'],
+        ['DELETE', `${notebook}/snapshots`], ['POST', `${snapshot}/sources?offset=0&limit=50`],
+        ['GET', `${notebook}/sources/sync`], ['POST', `${notebook}/snapshots?offset=0&limit=50`],
+        ['GET', `${snapshot}/sources`], ['GET', `${snapshot}/sources?offset=0&limit=100`],
+        ['GET', `${snapshot}/identities?offset=0&limit=50`], ['GET', `${notebook}/snapshots?offset=0&limit=100`],
+        ['GET', `${notebook}/sources/previews/${'b'.repeat(32)}?offset=0&limit=1`],
+        ['GET', `${notebook}/snapshots?offset=0&limit=50&extra=true`],
+        ['GET', `${notebook}/snapshots?offset=0&offset=1&limit=50`],
+        ['GET', `${notebook}/snapshots?offset=-1&limit=50`],
+        ['GET', `${notebook}/snapshots?offset=9007199254740992&limit=50`],
+        ['GET', `${notebook}/snapshots?offset=1.5&limit=50`],
+        ['GET', `${notebook}/snapshots/${'a'.repeat(33)}/sources?offset=0&limit=50`],
+        ['POST', `${notebook}/sources/${'c'.repeat(63)}/revoke`],
+        ['GET', `${notebook}/../status`], ['GET', `${notebook}/%2e%2e/status`],
+        ['GET', `${notebook}\n`], ['GET', `${notebook}/snapshots?offset=0&limit=50\n`],
+        ['GET', `${notebook}\\snapshots?offset=0&limit=50`],
+        ['GET', `${notebook}/snapshots?offset=0&limit=50#fragment`],
+        ['GET', '/v1/unknown'], ['GET', 'https://example.invalid/v1/status']
+    ];
+    const beforeRejected = requests.length;
+    for (const [method, path] of rejectedRoutes)
+        await expect(controller.request(method as 'GET', path)).rejects.toThrow('INVALID_ENGINE_ROUTE');
+    expect(requests).toHaveLength(beforeRejected);
     heartbeat!();
     await new Promise(resolve => setImmediate(resolve));
     expect(requests.at(-1)!.url).toContain('/v1/bridge/heartbeat');
