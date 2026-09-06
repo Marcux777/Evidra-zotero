@@ -374,9 +374,9 @@ class ExtractionRunner:
                             key = json.dumps(
                                 {k: v for k, v in value.items() if k != "number"}, sort_keys=True
                             )
-                            if key in contexts and contexts[key] != value["number"]:
+                            if key in contexts and contexts[key] != value["number"]["normalized"]:
                                 conflicting = True
-                            contexts[key] = value["number"]
+                            contexts[key] = value["number"]["normalized"]
                 if not conflicting:
                     try:
                         output = BatchOutput.model_validate(
@@ -396,6 +396,12 @@ class ExtractionRunner:
                         raise EvidraError(
                             "OUTPUT_LIMIT", "Combined results exceed the bounded proposal size."
                         ) from exc
+            elif isinstance(output.value, NumericValue):
+                normalized = output.value.normalized
+                conflicting |= any(
+                    not isinstance(o.value, NumericValue) or o.value.normalized != normalized
+                    for o in found[1:]
+                )
             elif any(o.value != output.value for o in found[1:]):
                 conflicting = True
             if conflicting:

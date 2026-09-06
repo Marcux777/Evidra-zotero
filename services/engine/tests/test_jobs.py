@@ -359,8 +359,17 @@ def test_absence_requires_measured_scan_and_preserves_batches(
             assert response.json()["code"] == "SOURCE_REVOKED", response.text
 
 
-@pytest.mark.parametrize("conflict", [False, True])
-def test_experimental_results_keep_distinct_batch_contexts(tmp_path, conflict):
+@pytest.mark.parametrize(
+    "kind,scenario",
+    [
+        ("experimental_result", "distinct"),
+        ("experimental_result", "conflict"),
+        ("experimental_result", "equivalent"),
+        ("number", "equivalent"),
+        ("number", "conflict"),
+    ],
+)
+def test_results_keep_batch_contexts_and_numeric_meaning(tmp_path, kind, scenario):
     from test_conversations import indexed
 
     app = make_app(tmp_path, [0.0])
@@ -372,36 +381,49 @@ def test_experimental_results_keep_distinct_batch_contexts(tmp_path, conflict):
             headers=HEADERS,
             json={
                 "name": "Results",
-                "fields": [dict(fields[0], key="result", kind="experimental_result")],
+                "fields": [dict(fields[0], key="result", kind=kind, unit="%")],
                 "expected_revision": 0,
                 "idempotency_key": "form",
             },
         ).json()
         profile(client)
         results = []
+        citations = []
 
         def boundary(request):
             prompt = json.loads(json.loads(request.content)["messages"][-1]["content"])
-            result = {
-                "metric": "accuracy",
-                "number": {
+            number = (
+                {"original": f"{42:.{len(results)}f}%", "normalized": 42}
+                if scenario == "equivalent"
+                else {
                     "original": str(42 + len(results)) + "%",
                     "normalized": 42 + len(results),
-                },
-                "dataset": "Same dataset" if conflict else "Dataset " + str(len(results)),
-                "condition": "test",
-                "unit": "%",
-                "baseline": "control",
-                "direction": "HIGHER_BETTER",
-            }
+                }
+            )
+            result = (
+                number
+                if kind == "number"
+                else {
+                    "metric": "accuracy",
+                    "number": number,
+                    "dataset": "Dataset " + str(len(results))
+                    if scenario == "distinct"
+                    else "Same dataset",
+                    "condition": "test",
+                    "unit": "%",
+                    "baseline": "control",
+                    "direction": "HIGHER_BETTER",
+                }
+            )
             results.append(result)
+            citations.append(prompt["evidence"][0]["id"])
             return httpx.Response(
                 200,
                 text=stream(
                     "ollama",
                     json.dumps(
                         {
-                            "value": [result],
+                            "value": result if kind == "number" else [result],
                             "value_state": "FOUND",
                             "evidence_ids": [prompt["evidence"][0]["id"]],
                             "rationale": "Explicit experimental context",
@@ -429,10 +451,23 @@ def test_experimental_results_keep_distinct_batch_contexts(tmp_path, conflict):
             },
         ).json()["items"][0]
         assert len(results) > 1
-        if conflict:
+        if scenario == "conflict":
             assert proposal["value_state"] == "CONFLICTING" and proposal["value"] is None
         else:
-            assert proposal["value_state"] == "FOUND" and proposal["value"] == results
+            assert proposal["value_state"] == "FOUND"
+            assert proposal["value"] == (results[0] if kind == "number" else results)
+        with app.state.services.database.transaction() as conn:
+            stored = [
+                json.loads(row[0])
+                for row in conn.execute(
+                    "SELECT output FROM extraction_batches WHERE unit_id=? ORDER BY batch_index",
+                    (unit["id"],),
+                )
+            ]
+        assert [
+            value["value"] if kind == "number" else value["value"][0] for value in stored
+        ] == results
+        assert [value["evidence_ids"][0] for value in stored] == citations
 
 
 def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkeypatch):
