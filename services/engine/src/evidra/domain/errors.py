@@ -35,6 +35,8 @@ def public_error(error: EvidraError) -> ErrorResponse:
 
 
 STATUS_CODES = {
+    "SCOPE_STALE": 409,
+    "SOURCE_REVOKED": 403,
     "FORBIDDEN": 403,
     "UNAUTHENTICATED": 401,
     "BRIDGE_EXPIRED": 503,

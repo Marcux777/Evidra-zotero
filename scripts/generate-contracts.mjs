@@ -12,4 +12,8 @@ const ajv=new Ajv2020({code:{source:true,esm:true},allErrors:false});
 const compiled=await build({stdin:{contents:standaloneCode(ajv,ajv.compile(manifest)),resolveDir:process.cwd(),sourcefile:'validate-manifest.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
 await writeFile('packages/contracts/generated/validate-manifest.js',compiled.outputFiles[0].text);
 await writeFile('packages/contracts/generated/validate-manifest.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['EngineManifest'];\n`);
+const selection=JSON.parse(await readFile('packages/contracts/generated/selection.schema.json','utf8'));
+const selectionCompiled=await build({stdin:{contents:standaloneCode(ajv,ajv.compile(selection)),resolveDir:process.cwd(),sourcefile:'validate-selection.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+await writeFile('packages/contracts/generated/validate-selection.js',selectionCompiled.outputFiles[0].text);
+await writeFile('packages/contracts/generated/validate-selection.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['SelectionSpec'];\n`);
 console.log('Generated OpenAPI and TypeScript from Pydantic (no service startup).');

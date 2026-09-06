@@ -352,6 +352,1035 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/sources/sync": {
+      "post": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Sync Sources",
+        "operationId": "sync_sources_v1_notebooks__notebook_id__sources_sync_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceSync"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/sources/invalidate": {
+      "post": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Invalidate Sources",
+        "operationId": "invalidate_sources_v1_sources_invalidate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Invalidation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidationResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request Entity Too Large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/sources/preview": {
+      "post": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Preview Selection",
+        "operationId": "preview_selection_v1_notebooks__notebook_id__sources_preview_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelectionPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots": {
+      "post": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Create Snapshot",
+        "operationId": "create_snapshot_v1_notebooks__notebook_id__snapshots_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SnapshotCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Snapshot"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "List Snapshots",
+        "operationId": "list_snapshots_v1_notebooks__notebook_id__snapshots_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/sources": {
+      "get": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Read Sources",
+        "operationId": "read_sources_v1_notebooks__notebook_id__snapshots__snapshot_id__sources_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SnapshotSourcePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/identities": {
+      "get": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Source Identities",
+        "operationId": "source_identities_v1_notebooks__notebook_id__snapshots__snapshot_id__identities_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/sources/{source_id}/revoke": {
+      "post": {
+        "tags": [
+          "sources"
+        ],
+        "summary": "Revoke Source",
+        "operationId": "revoke_source_v1_notebooks__notebook_id__sources__source_id__revoke_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Revocation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceChange"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -649,6 +1678,36 @@
   },
   "components": {
     "schemas": {
+      "AttachmentRole": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "unassigned",
+              "principal",
+              "supplement"
+            ],
+            "title": "Role"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "key",
+          "role"
+        ],
+        "title": "AttachmentRole"
+      },
       "ErrorResponse": {
         "properties": {
           "code": {
@@ -719,6 +1778,82 @@
         },
         "type": "object",
         "title": "HealthStatus"
+      },
+      "IdentityPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceIdentity"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "IdentityPage"
+      },
+      "Invalidation": {
+        "properties": {
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/SourceIdentity"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Identities"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "changed",
+              "deleted",
+              "missing",
+              "library_missing",
+              "archived"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identities",
+          "reason"
+        ],
+        "title": "Invalidation"
+      },
+      "InvalidationResult": {
+        "properties": {
+          "invalidated_count": {
+            "type": "integer",
+            "title": "Invalidated Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "invalidated_count"
+        ],
+        "title": "InvalidationResult"
       },
       "Notebook": {
         "properties": {
@@ -819,6 +1954,79 @@
         ],
         "title": "NotebookPage"
       },
+      "PreviewRequest": {
+        "properties": {
+          "selection": {
+            "$ref": "#/components/schemas/SelectionSpec"
+          },
+          "stage_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Stage Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "selection",
+          "stage_id"
+        ],
+        "title": "PreviewRequest"
+      },
+      "RemovedSource": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "excluded",
+              "year",
+              "type",
+              "tags",
+              "pdf",
+              "unavailable"
+            ],
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "title",
+          "reason"
+        ],
+        "title": "RemovedSource"
+      },
+      "Revocation": {
+        "properties": {
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "expected_revision"
+        ],
+        "title": "Revocation"
+      },
       "RuntimeStatus": {
         "properties": {
           "status": {
@@ -851,6 +2059,788 @@
           "profile_instance_id"
         ],
         "title": "RuntimeStatus"
+      },
+      "SelectionPreview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "stage_id": {
+            "type": "string",
+            "title": "Stage Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "title": "Expected Revision"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/SelectionSpec"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "removed": {
+            "items": {
+              "$ref": "#/components/schemas/RemovedSource"
+            },
+            "type": "array",
+            "title": "Removed"
+          },
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Added"
+          },
+          "dropped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dropped"
+          },
+          "changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changed"
+          },
+          "possible_duplicates": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Possible Duplicates"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "stage_id",
+          "notebook_id",
+          "expected_revision",
+          "selection",
+          "items",
+          "removed",
+          "added",
+          "dropped",
+          "changed",
+          "possible_duplicates"
+        ],
+        "title": "SelectionPreview"
+      },
+      "SelectionSpec": {
+        "properties": {
+          "selectors": {
+            "items": {
+              "$ref": "#/components/schemas/Selector"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Selectors"
+          },
+          "include_descendants": {
+            "type": "boolean",
+            "title": "Include Descendants",
+            "default": false
+          },
+          "year_min": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9999.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Min"
+          },
+          "year_max": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9999.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year Max"
+          },
+          "item_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Item Types"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Tags"
+          },
+          "tag_mode": {
+            "type": "string",
+            "enum": [
+              "AND",
+              "OR"
+            ],
+            "title": "Tag Mode",
+            "default": "AND"
+          },
+          "pdf_only": {
+            "type": "boolean",
+            "title": "Pdf Only",
+            "default": false
+          },
+          "include_notes": {
+            "type": "boolean",
+            "title": "Include Notes",
+            "default": false
+          },
+          "include_annotations": {
+            "type": "boolean",
+            "title": "Include Annotations",
+            "default": false
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/SourceIdentity"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Exclusions"
+          },
+          "attachment_roles": {
+            "items": {
+              "$ref": "#/components/schemas/AttachmentRole"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Attachment Roles"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SelectionSpec"
+      },
+      "Selector": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "library",
+              "collection",
+              "search",
+              "item"
+            ],
+            "title": "Kind"
+          },
+          "library_id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Library Id"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "library_id"
+        ],
+        "title": "Selector"
+      },
+      "Snapshot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/SelectionSpec"
+          },
+          "member_count": {
+            "type": "integer",
+            "title": "Member Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "notebook_id",
+          "revision",
+          "created_at",
+          "selection",
+          "member_count"
+        ],
+        "title": "Snapshot"
+      },
+      "SnapshotCreate": {
+        "properties": {
+          "preview_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Preview Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Expected Revision"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "preview_id",
+          "expected_revision",
+          "idempotency_key"
+        ],
+        "title": "SnapshotCreate"
+      },
+      "SnapshotPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Snapshot"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "SnapshotPage"
+      },
+      "SnapshotSource": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "current",
+              "stale"
+            ],
+            "title": "State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source",
+          "state"
+        ],
+        "title": "SnapshotSource"
+      },
+      "SnapshotSourcePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotSource"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "unavailable_count": {
+            "type": "integer",
+            "title": "Unavailable Count"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total",
+          "unavailable_count"
+        ],
+        "title": "SnapshotSourcePage"
+      },
+      "Source": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Title"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9999.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "item_type": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Item Type"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Tags"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "remote_library_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Library Id"
+          },
+          "remote_group_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Group Id"
+          },
+          "contents": {
+            "items": {
+              "$ref": "#/components/schemas/SourceContent"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Contents"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version_id": {
+            "type": "string",
+            "title": "Version Id"
+          },
+          "year_state": {
+            "type": "string",
+            "enum": [
+              "known",
+              "missing"
+            ],
+            "title": "Year State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "version",
+          "title",
+          "item_type",
+          "id",
+          "version_id",
+          "year_state"
+        ],
+        "title": "Source"
+      },
+      "SourceChange": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision"
+        ],
+        "title": "SourceChange"
+      },
+      "SourceContent": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Kind"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "unassigned",
+              "principal",
+              "supplement"
+            ],
+            "title": "Role",
+            "default": "unassigned"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Title",
+            "default": ""
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Version",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "kind"
+        ],
+        "title": "SourceContent"
+      },
+      "SourceIdentity": {
+        "properties": {
+          "profile_instance_id": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Profile Instance Id"
+          },
+          "library_id": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Library Id"
+          },
+          "item_key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Item Key"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profile_instance_id",
+          "library_id",
+          "item_key"
+        ],
+        "title": "SourceIdentity"
+      },
+      "SourceInput": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "version": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 10000,
+            "title": "Title"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9999.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "item_type": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Item Type"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Tags"
+          },
+          "doi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doi"
+          },
+          "remote_library_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Library Id"
+          },
+          "remote_group_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remote Group Id"
+          },
+          "contents": {
+            "items": {
+              "$ref": "#/components/schemas/SourceContent"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "title": "Contents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "version",
+          "title",
+          "item_type"
+        ],
+        "title": "SourceInput"
+      },
+      "SourcePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "default": 0
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "limit",
+          "total",
+          "stage_id"
+        ],
+        "title": "SourcePage"
+      },
+      "SourceSync": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceInput"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Items"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "selection",
+              "revalidation"
+            ],
+            "title": "Purpose"
+          },
+          "stage_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Id"
+          },
+          "final": {
+            "type": "boolean",
+            "title": "Final"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "purpose",
+          "stage_id",
+          "final"
+        ],
+        "title": "SourceSync"
       },
       "EngineManifest": {
         "additionalProperties": false,

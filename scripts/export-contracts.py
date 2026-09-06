@@ -4,6 +4,7 @@ from pathlib import Path
 
 from evidra.api.app import create_app
 from evidra.distribution import EngineManifest
+from evidra.domain.sources import SelectionSpec
 from evidra.security.runtime import RuntimeSettings
 from pydantic import SecretStr
 
@@ -16,6 +17,7 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
+(destination / "selection.schema.json").write_text(json.dumps(SelectionSpec.model_json_schema(), indent=2) + "\n", encoding="utf-8")
 manifest = EngineManifest.model_json_schema()
 (destination / "engine-manifest.schema.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 schema["components"]["schemas"]["EngineManifest"] = EngineManifest.model_json_schema()

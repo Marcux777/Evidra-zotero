@@ -8,9 +8,12 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
 from evidra.api.notebooks import router
+from evidra.api.sources import router as sources_router
 from evidra.domain.errors import STATUS_CODES, ErrorResponse, EvidraError, public_error
 from evidra.domain.models import HealthStatus, RuntimeStatus
 from evidra.notebooks.service import NotebookService
+from evidra.notebooks.snapshots import SnapshotService
+from evidra.scope.service import ScopeService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
 from evidra.storage.database import Database
 
@@ -20,6 +23,8 @@ class Services:
     database: Database
     session: BridgeSession
     notebooks: NotebookService
+    scopes: ScopeService
+    snapshots: SnapshotService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -28,8 +33,10 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
         database = Database(settings.data_dir / "evidra.sqlite3")
         try:
             session = BridgeSession(settings)
+            scopes = ScopeService(database, session)
             app.state.services = Services(
-                database, session, NotebookService(database, session, settings.profile_instance_id)
+                database, session, NotebookService(database, session, settings.profile_instance_id),
+                scopes, SnapshotService(scopes)
             )
             yield
         finally:
@@ -47,6 +54,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     )
     app.add_middleware(SessionGuard, settings=settings)
     app.include_router(router)
+    app.include_router(sources_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:
