@@ -1,6 +1,6 @@
 from typing import Any
 
-from evidra.providers.base import NativeProvider, fail, frame_object, usage
+from evidra.providers.base import NativeProvider, frame_object, usage
 from evidra.providers.models import GenerationEvent, GenerationRequest
 
 
@@ -40,7 +40,7 @@ class OllamaProvider(NativeProvider):
             events.append(GenerationEvent(kind="delta", text=text))
         if frame.get("done") is True:
             if frame.get("done_reason") not in [None, "stop"]:
-                raise fail("GENERATION_INCOMPLETE")
+                state["termination_failure"] = frame["done_reason"]
             state["terminal"] = True
             events.append(usage(state, frame.get("prompt_eval_count"), frame.get("eval_count")))
         return events

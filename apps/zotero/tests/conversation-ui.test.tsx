@@ -11,7 +11,7 @@ test('native conversation prepares explicitly, keeps uncertain request keys, sho
     const profile = { id: 'local', revision: 1, adapter: 'ollama', model: 'fixture', mode: 'LOCAL', purpose: 'generation', base_url: 'http://127.0.0.1:11434', capabilities: { generation: { supported: true, provenance: 'USER_DECLARED' } } };
     const run: any = { id: 'c'.repeat(32), conversation_id: conversation.id, state: 'PREPARED', profile, categories: ['excerpts'], question: 'question', prompt_version: 'conversation-v1',
         context: { documents_retrieved: 1, documents_used: 1, excluded_budget: 0, excluded_overlap: 0, excluded_limit: 0,
-            estimated_input_tokens: 1000, max_output_tokens: 512, context_tokens: 4096, system: 'system', history: [], prompt: 'authorized excerpt' }, output: null, visual: null, error: null };
+            estimated_input_tokens: 1000, max_output_tokens: 512, context_tokens: 4096, system: 'system', schema_mode: 'native', output_schema: { type: 'object', minProperties: 1 }, history: [], prompt: 'authorized excerpt' }, output: null, visual: null, error: null };
     const messages: any[] = [];
     let prepares = 0, release!: () => void;
     const gate = new Promise<void>(resolve => { release = resolve; });
@@ -53,6 +53,8 @@ test('native conversation prepares explicitly, keeps uncertain request keys, sho
         expect(prepared).toHaveLength(2); expect(prepared[0]).toEqual(prepared[1]);
         expect(messages.some(message => message.op === 'conversation.start')).toBe(false);
         expect(host.textContent).toContain('nothing sent to the generator');
+        expect(host.textContent).toContain('Native schema');
+        expect(host.textContent).toContain('"minProperties": 1');
         await click('Send context and start');
         expect(host.textContent).toContain('Draft — not yet validated');
         expect(host.querySelector('.answer')).toBeNull();
@@ -72,7 +74,7 @@ test.each(['stop-pending', 'unmount-pending', 'unmount-running', 'unmount-uncert
     const profile = { id: 'local', revision: 1, adapter: 'ollama', model: 'fixture', mode: 'LOCAL', purpose: 'generation', base_url: 'http://127.0.0.1:11434', capabilities: { generation: { supported: true, provenance: 'USER_DECLARED' } } };
     const run: any = { id: 'c'.repeat(32), conversation_id: conversation.id, state: 'PREPARED', profile, categories: ['excerpts'], question: 'question', prompt_version: 'conversation-v1',
         context: { documents_retrieved: 1, documents_used: 1, excluded_budget: 0, excluded_overlap: 0, excluded_limit: 0,
-            estimated_input_tokens: 1000, max_output_tokens: 512, context_tokens: 4096, system: 'system', history: [], prompt: 'authorized excerpt' }, output: null, visual: null, error: null };
+            estimated_input_tokens: 1000, max_output_tokens: 512, context_tokens: 4096, system: 'system', schema_mode: 'native', output_schema: {}, history: [], prompt: 'authorized excerpt' }, output: null, visual: null, error: null };
     if (scenario === 'unmount-observer') run.state = 'RUNNING';
     const messages: any[] = [];
     let releaseStart!: () => void, releaseEvents!: () => void, settled = false;

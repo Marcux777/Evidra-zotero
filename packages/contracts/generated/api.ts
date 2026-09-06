@@ -1043,6 +1043,12 @@ export interface components {
             history_visual_versions?: string[];
             /** System */
             system: string;
+            /** Output Schema */
+            output_schema?: {
+                [key: string]: unknown;
+            } | null;
+            /** Schema Mode */
+            schema_mode?: ("native" | "local_validation" | "none") | null;
             /** Prompt */
             prompt: string;
             /**
@@ -1797,6 +1803,8 @@ export interface components {
             output?: components["schemas"]["Answer"] | null;
             /** Error */
             error?: string | null;
+            /** Termination Reason */
+            termination_reason?: string | null;
             /** Created At */
             created_at: string;
             /** Anchor Status */
@@ -2451,6 +2459,11 @@ export interface components {
             output_schema: {
                 [key: string]: unknown;
             } | null;
+            /**
+             * Prepared Schema Mode
+             * @default null
+             */
+            prepared_schema_mode: ("native" | "local_validation" | "none") | null;
             /**
              * Categories
              * @default [

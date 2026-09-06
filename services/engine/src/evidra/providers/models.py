@@ -136,8 +136,15 @@ class GenerationRequest(StrictModel):
     system: str = Field(default="", max_length=100_000, repr=False)
     max_output_tokens: int = Field(gt=0, le=1_000_000)
     output_schema: dict[str, Any] | None = Field(default=None, repr=False)
+    prepared_schema_mode: SchemaMode | None = None
     categories: frozenset[ContentCategory] = frozenset({"excerpts"})
     ollama_options: "OllamaOptions | None" = None
+
+
+class SchemaPlan(StrictModel):
+    system: str
+    output_schema: dict[str, Any] | None
+    mode: SchemaMode
 
 
 class OllamaOptions(StrictModel):

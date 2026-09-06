@@ -28,6 +28,7 @@ from evidra.conversations.validation import validate_answer
 from evidra.documents.ingestion import IngestionService
 from evidra.domain.documents import SearchRequest
 from evidra.domain.errors import EvidraError
+from evidra.providers.base import GenerationIncomplete, NativeProvider
 from evidra.providers.models import (
     ContentCategory,
     GenerationRequest,
@@ -37,7 +38,7 @@ from evidra.providers.models import (
 )
 from evidra.providers.registry import ProviderRegistry
 from evidra.providers.usage import CallIdentity
-from evidra.retrieval.context import build_context
+from evidra.retrieval.context import SYSTEM, build_context
 from evidra.retrieval.fusion import fuse
 from evidra.retrieval.lexical import LexicalSearch
 from evidra.retrieval.vectors import VectorSearch
@@ -324,7 +325,7 @@ class ConversationService:
             history,
             body.context_tokens,
             body.max_output_tokens,
-            json.dumps(Answer.model_json_schema()),
+            NativeProvider.plan_schema(profile, SYSTEM, Answer.model_json_schema()),
             image_estimate=4096 if visual else 0,
         )
         if not built.evidence and not visual:
@@ -387,6 +388,11 @@ class ConversationService:
         run = self.read(context, run_id)
         if run.state != "PREPARED":
             return run  # A transport retry never dispatches a second call.
+        if run.context.schema_mode is None or run.context.output_schema is None:
+            raise EvidraError(
+                "SCHEMA_PLAN_MISSING",
+                "Historical preparation has no exact schema plan; prepare a new run.",
+            )
         current = self.providers.profiles.authorize(context, run.profile.id, run.categories)
         if current != run.profile:
             raise EvidraError("REVISION_CONFLICT", "Prepared provider changed.")
@@ -458,7 +464,8 @@ class ConversationService:
                 + [Message(role="user", text=run.context.prompt, images=images)],
                 system=run.context.system,
                 max_output_tokens=run.context.max_output_tokens,
-                output_schema=Answer.model_json_schema(),
+                output_schema=run.context.output_schema,
+                prepared_schema_mode=run.context.schema_mode,
                 categories=run.categories,
                 ollama_options=run.ollama_options,
             )
@@ -535,9 +542,13 @@ class ConversationService:
                 else "CONVERSATION_FAILED"
             )
             causes: list[dict[str, str | None]] = []
+            termination_reason = None
             cause: BaseException | None = exc
             while cause is not None and len(causes) < 8:
                 causes.append({"type": type(cause).__name__, "code": getattr(cause, "code", None)})
+                if isinstance(cause, GenerationIncomplete):
+                    termination_reason = cause.termination_reason
+                    causes[-1]["termination_reason"] = termination_reason
                 cause = cause.__cause__
             logging.getLogger("evidra.conversations").warning(
                 json.dumps(
@@ -554,8 +565,14 @@ class ConversationService:
             with self.scopes.database.transaction() as connection:
                 connection.execute(
                     "UPDATE conversation_runs SET "
-                    "payload=json_set(payload,'$.state',?,'$.error',?) WHERE id=?",
-                    ("CANCELLED" if code == "CANCELLED" else "FAILED", code, run.id),
+                    "payload=json_set(payload,'$.state',?,'$.error',?,'$.termination_reason',?) "
+                    "WHERE id=?",
+                    (
+                        "CANCELLED" if code == "CANCELLED" else "FAILED",
+                        code,
+                        termination_reason,
+                        run.id,
+                    ),
                 )
                 self._event(
                     connection, run.id, "cancelled" if code == "CANCELLED" else "failed", code=code

@@ -236,7 +236,9 @@ export function Conversation({ bridge, notebook_id, snapshot_id, locale, profile
             <p>{c.estimate}: {run.context.estimated_input_tokens} · {c.outputLimit}: {run.context.max_output_tokens} · {c.contextLimit}: {run.context.context_tokens}</p><p className="source-meta">{c.estimateHelp}</p>
             <p>{c.destination}: {run.profile.adapter} / {run.profile.model} / {run.profile.base_url}<br/>{c.categories}: {run.categories.map(category => c.category[category]).join(', ')}</p>
             {run.visual && <p>{c.visualProposal} · {t.evidence.page}: {run.visual.page_index + 1} · {run.visual.region.join(', ')}<br/>{c.imageHash}: <code>{run.visual.sha256}</code><br/>{c.destination}: {run.visual.destination}</p>}
-            <details><summary>{c.exactContext}</summary><p>{run.prompt_version} · {run.id}</p><pre>{run.context.system}</pre>{run.context.history.map((message, i) => <pre key={i}>{message.role}: {message.text}</pre>)}<pre>{run.context.prompt}</pre></details>
+            <p>{c.schemaMode}: {run.context.schema_mode ? c.schemaModes[run.context.schema_mode] : c.historicalPlan}</p>
+            {run.termination_reason && <p>{c.terminationReason}: <code>{run.termination_reason}</code></p>}
+            <details><summary>{c.exactContext}</summary><p>{run.prompt_version} · {run.id}</p><pre>{run.context.system}</pre>{run.context.history.map((message, i) => <pre key={i}>{message.role}: {message.text}</pre>)}<pre>{run.context.prompt}</pre>{run.context.output_schema && <details><summary>{c.outputSchema}</summary><pre>{JSON.stringify(run.context.output_schema, null, 2)}</pre></details>}</details>
             {run.state === 'PREPARED' && run.profile.mode === 'API' && <fieldset disabled={busy}><legend>{c.destination}: {run.profile.base_url}</legend>
                 {settings?.block_paid_apis && <p>{c.apiBlocked}</p>}
                 {consentValid ? <><p>{c.consentSaved}</p><button type="button" onClick={() => void action(() => grant(false))}>{c.revokeConsent}</button></> : <><label className="source-check"><input type="checkbox" checked={consentChecked} onChange={e => { setConsentChecked(e.target.checked); consentKey.current = null; }}/>{c.consent}</label><button type="button" disabled={!consentChecked || !consent} onClick={() => void action(() => grant(true))}>{c.grant}</button></>}
@@ -245,7 +247,7 @@ export function Conversation({ bridge, notebook_id, snapshot_id, locale, profile
                 budgetKey.current ??= newKey(); const result = await bridge.request({ op: 'provider.budget', ...scope, request: { kind: budgetKind, identity: budgetKind === 'session' ? run.conversation_id : run.id, currency, ceiling, expected_revision: budgetRevision, idempotency_key: budgetKey.current } }) as { revision: number };
                 setBudgetRevision(result.revision); budgetKey.current = null;
             })}>{c.saveBudget}</button></fieldset></details>}
-            <div className="actions">{run.state === 'PREPARED' && <button type="button" className="primary" disabled={busy || !consentValid || run.profile.mode === 'API' && !!settings?.block_paid_apis} onClick={() => void action(start)}>{c.send}</button>}
+            <div className="actions">{run.state === 'PREPARED' && <button type="button" className="primary" disabled={busy || !run.context.schema_mode || !run.context.output_schema || !consentValid || run.profile.mode === 'API' && !!settings?.block_paid_apis} onClick={() => void action(start)}>{c.send}</button>}
                 {['PREPARED', 'RUNNING'].includes(run.state) && <button type="button" disabled={cancelling} onClick={() => void stop()}>{c.stop}</button>}
                 {!streaming && <button type="button" disabled={busy} onClick={() => void action(() => readRun(run.id))}>{c.resume}</button>}</div>
             {draft && <section className="draft" aria-label={c.draft}><h3>{c.draft}</h3><pre>{draft}</pre></section>}

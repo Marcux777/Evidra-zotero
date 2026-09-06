@@ -7830,6 +7830,34 @@
             "type": "string",
             "title": "System"
           },
+          "output_schema": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Schema"
+          },
+          "schema_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "native",
+                  "local_validation",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schema Mode"
+          },
           "prompt": {
             "type": "string",
             "title": "Prompt"
@@ -9910,6 +9938,18 @@
             ],
             "title": "Error"
           },
+          "termination_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termination Reason"
+          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -11720,6 +11760,23 @@
             ],
             "default": null,
             "title": "Output Schema"
+          },
+          "prepared_schema_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "native",
+                  "local_validation",
+                  "none"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Prepared Schema Mode"
           },
           "categories": {
             "default": [

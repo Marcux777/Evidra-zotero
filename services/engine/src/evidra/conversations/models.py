@@ -1,12 +1,18 @@
 """Bounded conversation contracts. Models select evidence IDs, never source coordinates."""
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field
 
 from evidra.domain.documents import Rectangle
 from evidra.domain.sources import SourceAccess
-from evidra.providers.models import ContentCategory, OllamaOptions, ProviderProfile, StrictModel
+from evidra.providers.models import (
+    ContentCategory,
+    OllamaOptions,
+    ProviderProfile,
+    SchemaMode,
+    StrictModel,
+)
 
 
 class ConversationCreate(StrictModel):
@@ -93,6 +99,9 @@ class ContextPreview(StrictModel):
     history_evidence_ids: list[str] = Field(default_factory=list)
     history_visual_versions: list[str] = Field(default_factory=list)
     system: str
+    # Missing on historical records: do not invent a plan for an old provider call.
+    output_schema: dict[str, Any] | None = None
+    schema_mode: SchemaMode | None = None
     prompt: str
     coverage: Literal["RETRIEVED_CHUNKS_ONLY"] = "RETRIEVED_CHUNKS_ONLY"
 
@@ -121,6 +130,7 @@ class RunRecord(StrictModel):
     visual: VisualProvenance | None = None
     output: Answer | None = None
     error: str | None = None
+    termination_reason: str | None = Field(default=None, max_length=64)
     created_at: str
     anchor_status: Literal["VERIFIED_EXISTENCE_ONLY"] | None = None
     support_status: Literal["PROPOSED"] = "PROPOSED"

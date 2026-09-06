@@ -9,7 +9,7 @@ import httpx
 
 from evidra.domain.errors import EvidraError
 from evidra.providers.anthropic import AnthropicProvider
-from evidra.providers.base import NativeProvider, fail
+from evidra.providers.base import GenerationIncomplete, NativeProvider, fail
 from evidra.providers.embeddings import LocalEmbeddingProvider
 from evidra.providers.gemini import GeminiProvider
 from evidra.providers.models import (
@@ -228,6 +228,8 @@ class ProviderRegistry:
                 entry = {"type": type(cause).__name__}
                 if isinstance(cause, EvidraError):
                     entry["code"] = cause.code
+                if isinstance(cause, GenerationIncomplete):
+                    entry["termination_reason"] = cause.termination_reason
                 causes.append(entry)
                 if isinstance(cause, BaseExceptionGroup):
                     pending_causes.extend(cause.exceptions)

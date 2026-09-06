@@ -614,6 +614,8 @@ async def test_registry_shutdown_finishes_inflight_accounting_before_database_cl
         ("terminal", False),
         ("terminal", True),
         ("cancel_cleanup", False),
+        ("length", False),
+        ("length", True),
     ],
 )
 async def test_registry_aclosing_owns_response_cleanup_before_accounting(
@@ -627,7 +629,7 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
 
     with TestClient(make_app(tmp_path)) as client:
         services, context = setup(tmp_path, client)
-        kind = "ollama" if stop_after == "draft" else "lm_studio"
+        kind = "ollama" if stop_after in ["draft", "length"] else "lm_studio"
         write_profile(client, kind)
         closed = asyncio.Event()
         cancel, cleanup_started, release_cleanup = (asyncio.Event() for _ in range(3))
@@ -638,6 +640,8 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
             async def __aiter__(self):
                 if stop_after == "draft":
                     yield b'{"message":{"content":"synthetic draft"},"done":false}\n'
+                elif stop_after == "length":
+                    yield stream(kind).replace('"stop"', '"length"').encode()
                 else:
                     # [DONE] ends compatible generation before the HTTP body is exhausted.
                     yield stream(kind).encode()
@@ -698,6 +702,10 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
                 assert failed.value.code == "PROVIDER_CLEANUP_FAILED"
                 assert isinstance(failed.value.__cause__, RuntimeError)
                 assert "sensitive response cleanup detail" not in caplog.text
+            elif stop_after == "length":
+                with pytest.raises(EvidraError) as failed:
+                    await consume_one()
+                assert failed.value.code == "GENERATION_INCOMPLETE"
             else:
                 await consume_one()
             assert closed.is_set() and response.is_closed
@@ -710,10 +718,16 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
                     if cancel_during_cleanup
                     else "PROVIDER_CLEANUP_FAILED"
                     if cleanup_failure
+                    else "GENERATION_INCOMPLETE"
+                    if stop_after == "length"
                     else None
                 )
                 assert row.error == expected
-                assert len(final_events) == (0 if cleanup_failure or cancel_during_cleanup else 1)
+                assert len(final_events) == (
+                    0 if cleanup_failure or cancel_during_cleanup or stop_after == "length" else 1
+                )
+                if stop_after == "length":
+                    assert '"termination_reason": "length"' in caplog.text
             else:
                 assert row.state == "BILLING_UNKNOWN" and not final_events
                 assert row.error == ("PROVIDER_CLEANUP_FAILED" if cleanup_failure else "CANCELLED")

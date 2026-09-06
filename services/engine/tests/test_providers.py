@@ -223,7 +223,13 @@ async def test_images_and_schema_uncertainty_preserve_original_constraints(kind)
     original = {"type": "object", "properties": {"n": {"type": "integer", "minimum": 5}}}
     async with httpx.AsyncClient(transport=httpx.MockTransport(boundary)) as client:
         provider = adapter(Profile(**profile_data(kind)), client, "fixture")
+        from evidra.conversations.models import Answer
         from evidra.domain.errors import EvidraError
+
+        # Actual conversation bounds are native only on the verified Ollama converter.
+        plan = provider.plan_schema(provider.profile, "system", Answer.model_json_schema())
+        assert plan.mode == ("native" if kind == "ollama" else "local_validation")
+        assert plan.output_schema == Answer.model_json_schema()
 
         with pytest.raises(EvidraError) as exc:
             await collect(

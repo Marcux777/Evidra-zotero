@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import re
 from collections.abc import AsyncGenerator, AsyncIterator, Awaitable
 from typing import Any, Protocol
 from urllib.parse import quote
@@ -18,6 +19,7 @@ from evidra.providers.models import (
     ModelPage,
     ProfileSpec,
     SchemaMode,
+    SchemaPlan,
 )
 
 
@@ -67,6 +69,19 @@ async def cancellable[T](work: Awaitable[T], cancel: asyncio.Event) -> T:
 
 def fail(code: str) -> EvidraError:
     return EvidraError(code, f"{code}: provider operation failed.")
+
+
+class GenerationIncomplete(EvidraError):
+    def __init__(self, reason: object):
+        # Keep a bounded protocol identifier, never arbitrary provider text/reasoning.
+        self.termination_reason = (
+            reason
+            if isinstance(reason, str) and re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", reason)
+            else "unrecognized"
+        )
+        super().__init__(
+            "GENERATION_INCOMPLETE", "Generation incomplete: " + self.termination_reason
+        )
 
 
 def reject_nonfinite(value: str) -> None:
@@ -177,9 +192,24 @@ class NativeProvider:
             raise fail("PROVIDER_PROTOCOL_ERROR") from exc
 
     def schema(self, request: GenerationRequest) -> tuple[dict[str, Any] | None, str, SchemaMode]:
-        original = request.output_schema
+        plan = self.plan_schema(self.profile, request.system, request.output_schema)
+        system = plan.system
+        if request.prepared_schema_mode is not None:
+            if request.prepared_schema_mode != plan.mode:
+                raise fail("SCHEMA_PLAN_CHANGED")
+            if plan.mode == "local_validation" and not request.system.endswith(
+                "\nReturn only JSON matching this schema: " + json.dumps(request.output_schema)
+            ):
+                raise fail("SCHEMA_PLAN_CHANGED")
+            system = request.system
+        return plan.output_schema if plan.mode == "native" else None, system, plan.mode
+
+    @staticmethod
+    def plan_schema(
+        profile: ProfileSpec, system: str, original: dict[str, Any] | None
+    ) -> SchemaPlan:
         if original is None:
-            return None, request.system, "none"
+            return SchemaPlan(system=system, output_schema=None, mode="none")
         try:
             Draft202012Validator.check_schema(original)
 
@@ -214,8 +244,12 @@ class NativeProvider:
             "$ref",
         }
 
-        strict = self.profile.adapter in ["openai", "lm_studio", "openai_compatible"]
-        closed_objects = strict or self.profile.adapter == "anthropic"
+        if profile.adapter == "ollama":
+            # Ollama 0.33.3 pins llama.cpp b10760: its schema grammar supports
+            # string and array bounds. Keep other adapters' conservative subset.
+            supported.update({"minLength", "maxLength", "minItems", "maxItems"})
+        strict = profile.adapter in ["openai", "lm_studio", "openai_compatible"]
+        closed_objects = strict or profile.adapter == "anthropic"
 
         def native(value: Any, property_names: bool = False) -> bool:
             if isinstance(value, dict):
@@ -243,10 +277,12 @@ class NativeProvider:
         root_supported = not strict or (
             original.get("type") == "object" and "anyOf" not in original
         )
-        if self.profile.supports("structured_output") and root_supported and native(original):
-            return original, request.system, "native"
+        if profile.supports("structured_output") and root_supported and native(original):
+            return SchemaPlan(system=system, output_schema=original, mode="native")
         instruction = "\nReturn only JSON matching this schema: " + json.dumps(original)
-        return None, request.system + instruction, "local_validation"
+        return SchemaPlan(
+            system=system + instruction, output_schema=original, mode="local_validation"
+        )
 
     async def frames(
         self, response: httpx.Response, cancel: asyncio.Event
@@ -316,6 +352,8 @@ class NativeProvider:
                         if event.kind == "delta":
                             state["text"] += event.text or ""
                         yield event
+                    if state.get("termination_failure") is not None:
+                        break
                 if not state["terminal"]:
                     raise fail("STREAM_INCOMPLETE")
                 if self.profile.adapter in ["lm_studio", "openai_compatible"] and not saw_done:
@@ -326,6 +364,8 @@ class NativeProvider:
                     output_tokens=state["output"],
                     usage_confirmed=True,
                 )
+                if state.get("termination_failure") is not None:
+                    raise GenerationIncomplete(state["termination_failure"])
                 if request.output_schema is not None:
                     try:
                         Draft202012Validator(request.output_schema).validate(

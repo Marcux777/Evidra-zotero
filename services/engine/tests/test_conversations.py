@@ -65,7 +65,18 @@ def profile(client):
     assert response.status_code == 200, response.text
 
 
-@pytest.mark.parametrize("scenario", ["text", "visual", "monetary_cap", "historical_consent"])
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "text",
+        "native_schema",
+        "visual",
+        "monetary_cap",
+        "historical_consent",
+        "length",
+        "length_missing_usage",
+    ],
+)
 def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp_path, scenario):
     from pdf_fixtures import write_pdf
     from test_documents import finished, ingest, register
@@ -75,6 +86,22 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:
         _, _, prefix = indexed(client)
         profile(client)
+        if scenario == "native_schema":
+            spec = client.get("/v1/providers/profiles", headers=HEADERS).json()["items"][0]
+            for field in ["id", "revision", "paused_code"]:
+                spec.pop(field)
+            spec["capabilities"]["structured_output"] = {
+                "supported": True,
+                "provenance": "USER_DECLARED",
+            }
+            assert (
+                client.put(
+                    "/v1/providers/profiles/local",
+                    headers=HEADERS,
+                    json={"spec": spec, "expected_revision": 1, "idempotency_key": "native"},
+                ).status_code
+                == 200
+            )
         preview_id = None
         pixels = None
         if scenario in ["visual", "historical_consent"]:
@@ -149,6 +176,17 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
                     kind="source",
                     evidence=[{"evidence_id": evidence["id"], "excerpt": evidence["excerpt"]}],
                 )
+            if scenario.startswith("length"):
+                terminal = {"done": True, "done_reason": "length"}
+                if scenario == "length":
+                    terminal.update(prompt_eval_count=8, eval_count=512)
+                return httpx.Response(
+                    200,
+                    text=json.dumps({"message": {"content": "unvalidated draft"}})
+                    + "\n"
+                    + json.dumps(terminal)
+                    + "\n",
+                )
             return httpx.Response(200, text=stream("ollama", json.dumps({"claims": [claim]})))
 
         app.state.services.providers.client = httpx.AsyncClient(
@@ -172,7 +210,39 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
         )
         assert prepared.status_code == 201, prepared.text
         run = prepared.json()
+        from evidra.conversations.models import Answer
+
+        preview = run["context"]
+        assert preview["schema_mode"] == (
+            "native" if scenario == "native_schema" else "local_validation"
+        )
+        assert preview["output_schema"] == Answer.model_json_schema()
         path = prefix + "/runs/" + run["id"]
+        if scenario == "text":
+            historical = json.loads(json.dumps(run))
+            del historical["context"]["schema_mode"], historical["context"]["output_schema"]
+            with app.state.services.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE conversation_runs SET payload=? WHERE id=?",
+                    (json.dumps(historical), run["id"]),
+                )
+            assert client.get(path, headers=HEADERS).json()["context"]["schema_mode"] is None
+            rejected = client.post(path + "/start", headers=HEADERS)
+            assert rejected.status_code == 409 and "SCHEMA_PLAN_MISSING" in rejected.text
+            assert not calls
+            with app.state.services.database.transaction() as connection:
+                assert (
+                    json.loads(
+                        connection.execute(
+                            "SELECT payload FROM conversation_runs WHERE id=?", (run["id"],)
+                        ).fetchone()[0]
+                    )
+                    == historical
+                )
+                connection.execute(
+                    "UPDATE conversation_runs SET payload=? WHERE id=?",
+                    (json.dumps(run), run["id"]),
+                )
         if scenario == "monetary_cap":
             assert client.post(
                 "/v1/providers/prices",
@@ -214,8 +284,41 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
         if scenario == "monetary_cap":
             assert result["state"] == "FAILED" and result["error"] == "TOKEN_BOUND_REQUIRED", result
             assert not calls
+        elif scenario.startswith("length"):
+            assert result["state"] == "FAILED" and result["error"] == "GENERATION_INCOMPLETE", (
+                result
+            )
+            assert result["termination_reason"] == "length" and result["output"] is None
+            ledger = client.get(
+                prefix + "/provider-calls?offset=0&limit=50", headers=HEADERS
+            ).json()["items"]
+            assert len(calls) == len(ledger) == 1
+            assert ledger[0]["error"] == "GENERATION_INCOMPLETE"
+            assert (ledger[0]["state"], ledger[0]["input_tokens"], ledger[0]["output_tokens"]) == (
+                ("CONFIRMED", 8, 512) if scenario == "length" else ("BILLING_UNKNOWN", None, None)
+            )
+            assert (
+                '"kind":"complete"'
+                not in client.get(path + "/events?cursor=0", headers=HEADERS).text
+            )
         else:
             assert result["state"] == "COMPLETE", result
+            assert calls[0]["messages"][0]["content"] == preview["system"]
+            assert calls[0]["messages"][-1]["content"] == preview["prompt"]
+            assert calls[0].get("format") == (
+                preview["output_schema"] if scenario == "native_schema" else None
+            )
+            extra_schema = (
+                json.dumps(preview["output_schema"]) if scenario == "native_schema" else ""
+            )
+            assert preview["estimated_input_tokens"] == len(
+                (
+                    preview["system"]
+                    + extra_schema
+                    + json.dumps(preview["history"], ensure_ascii=False)
+                    + preview["prompt"]
+                ).encode()
+            ) + 512 + (4096 if pixels else 0)
             ledger = client.get(
                 prefix + "/provider-calls?offset=0&limit=50", headers=HEADERS
             ).json()["items"]
@@ -547,7 +650,10 @@ def test_exact_vectors_filter_before_topk_and_reject_generation_mismatch(tmp_pat
 
 def test_context_limits_are_explicit_and_complete_history_is_not_truncated(tmp_path):
     from evidra.domain.errors import EvidraError
-    from evidra.retrieval.context import build_context
+    from evidra.providers.models import SchemaPlan
+    from evidra.retrieval.context import SYSTEM, build_context
+
+    plan = SchemaPlan(system=SYSTEM, output_schema={}, mode="native")
 
     app = make_app(tmp_path, [0.0])
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:
@@ -562,15 +668,15 @@ def test_context_limits_are_explicit_and_complete_history_is_not_truncated(tmp_p
             evidence.model_copy(update={"id": str(i), "document_version_id": str(i)})
             for i in range(15)
         ]
-        preview = build_context("question", candidates, [], 20000, 100, "{}")
+        preview = build_context("question", candidates, [], 20000, 100, plan)
         assert len(preview.evidence) == 12 and preview.excluded_limit == 3
         assert preview.documents_used == 12 and preview.documents_retrieved == 15
-        bounded = build_context("question", candidates, [], 2000, 100, "{}")
+        bounded = build_context("question", candidates, [], 2000, 100, plan)
         assert bounded.excluded_budget > 0
         assert bounded.estimated_input_tokens + 100 <= 2000
         with pytest.raises(EvidraError) as error:
             build_context(
-                "question", candidates, [{"role": "user", "text": "x" * 5000}], 2000, 100, "{}"
+                "question", candidates, [{"role": "user", "text": "x" * 5000}], 2000, 100, plan
             )
         assert error.value.code == "CONTEXT_LIMIT"
 
