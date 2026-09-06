@@ -208,16 +208,18 @@ The actual reviewed XPI and frozen engine passed manual native forms/proposals/e
 
 **Requirements:** QUEUED/RUNNING/PAUSED/WAITING_PROVIDER/PARTIAL/SUCCEEDED/FAILED/CANCELLED. One generator worker, parser limit separate. Lease transaction and backpressure; checkpoint each committed unit; restart paid sent units becomes BILLING_UNKNOWN and requires explicit reconciliation, never automatic resend. Search versus full scan coverage distinguishes pages/attachments/failures/missing files. NOT_FOUND_IN_SEARCH versus NOT_REPORTED_CANDIDATE correctly null, never infer zero. Recheck cancellation/scope before each provider call and commit; provider limit pauses without fallback. Cache keys include current access/snapshot/prompt/form/model/evidence/history, and cache reads reauthorize.
 
-- [ ] Write real SQLite concurrent-claim and restart tests plus extraction coverage fixtures. Example:
+- [x] Write real SQLite concurrent-claim and restart tests plus extraction coverage fixtures. Example:
   ```python
   queue.cancel(job_id)
   await worker.step()
   assert ledger.calls_after_cancel(job_id) == 0
   assert queue.get(job_id).state == 'CANCELLED'
   ```
-- [ ] Observe RED, implement queue/worker/runner with deterministic injected clock and explicit resume commands.
-- [ ] Run focused jobs/extraction tests including process interruption; verify no duplicate proposals, no approved-cell replacement and accurate missing/partial studies.
-- [ ] Wire setup/progress/pause/resume/cancel/coverage UI, run UI checks/build and commit; report A16–A19/A22–A24.
+- [x] Observe RED, implement queue/worker/runner with deterministic injected clock and explicit resume commands.
+- [x] Run focused jobs/extraction tests including process interruption; verify no duplicate proposals, no approved-cell replacement and accurate missing/partial studies.
+- [x] Wire setup/progress/pause/resume/cancel/coverage UI, run UI checks/build and commit; report A16–A19/A22–A24.
+
+Task8 source gate passed at50431ef after two reviewed fixes: exact study/target cache binding and normalized numeric equivalence with preserved original provenance. Focused SQLite/HTTP/process/UI checks, strict typing/lint and the unchanged verified XPI support this source increment. The exact reviewed engine has been packaged; native preparation/extraction/cancellation/restart are being verified separately. Paid-provider and target-scale acceptance remain pending. Source completion does not assert full M4 or product acceptance.
 
 ## Task 9: M5 protocol, screening, synthesis, audit and approved-note outbox
 
