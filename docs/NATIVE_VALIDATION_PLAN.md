@@ -44,3 +44,11 @@ Only this test profile may receive startup/test preferences. Proposed settings d
 ## Why an exception is needed
 
 The current local policy at `C:/Users/marcu/.codex/instructions/zotero.md` requires the personal HTTP helper and states: **“Never use Zotero UI automation”**. The authorized helper lacks profile-selecting launch/install arguments. The user's explicit exception covers this direct isolated-profile launch, test-only native APIs/DOM automation and profile preferences. It does not grant operations in the personal profile. The XPI and engine preparation, source inspection and non-native checks remain independently authorized.
+
+## M2 verified state at2026-09-06T07:01Z
+
+The profile is stopped after the normally closed final native run. Product0c1b8cfb/XPI SHA2565b63b6dd061a8f03d89e9b315242b5ed49a5d01383dddaa5f03a348cf3afdabf and the source-identical reviewed4f75da44 M2 engine are installed. Probe0.1.34 has SHA2565c526470f84d6997a49f7449ae37d9a83c2b79e68c0e5b270d48bd5b942e5f1b. Use `task4-replacement-fresh-preparation.json`, its close/engine-absence receipts and `task4-native-controller-summary.json` before any subsequent stage; older “latest state” paragraphs above are historical.
+
+Three completed native checks cover core document/evidence/preview and benign Reader retention, page-only precision and exact annotation text with material-change invalidation, and changed-file/equal-length cached-Reader refusal. Raw receipts retain all23/20/20checkpoints. General smooth scrolling was disabled only during these hidden-host positioning checks and restored; default visible-window animation is still unverified. Native helper failures and their corrected experiments are preserved separately in TEST_REPORT.md.
+
+Synthetic parentCG2AFPZ7/PDFYHD8LJR6/notebook32a01593, parent5W98NZIP/PDF8BV6ZNFY/annotationCHNQSHBM/notebook24fc1731, and parentJYLFFU76/PDF3Z2I77ZC/notebook5ac6645f remain only in this profile. PDFsYHD8LJR6 and3Z2I77ZC contain the intentionally replaced text; immutable original and changed bytes are retained under native-smoke. Future fixtures must verify their current hashes and must not assume those stored PDFs still match the originalb44bbbf8 hash. No production code, global preference or personal-library record changed during these native checks.
