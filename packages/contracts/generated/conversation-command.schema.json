@@ -1,0 +1,551 @@
+{
+  "$defs": {
+    "ConversationCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key"
+      ],
+      "title": "ConversationCreate",
+      "type": "object"
+    },
+    "ConversationCreateCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.create",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ConversationCreate"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ConversationCreateCommand",
+      "type": "object"
+    },
+    "ConversationEventsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.events",
+          "title": "Op",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "cursor": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Cursor",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "run_id",
+        "cursor"
+      ],
+      "title": "ConversationEventsCommand",
+      "type": "object"
+    },
+    "ConversationHistoryCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.history",
+          "title": "Op",
+          "type": "string"
+        },
+        "conversation_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "conversation_id",
+        "offset"
+      ],
+      "title": "ConversationHistoryCommand",
+      "type": "object"
+    },
+    "ConversationListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.list",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "ConversationListCommand",
+      "type": "object"
+    },
+    "ConversationPrepareCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.prepare",
+          "title": "Op",
+          "type": "string"
+        },
+        "conversation_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Conversation Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/RunPrepare"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "conversation_id",
+        "request"
+      ],
+      "title": "ConversationPrepareCommand",
+      "type": "object"
+    },
+    "ConversationReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "conversation_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Conversation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "conversation_id"
+      ],
+      "title": "ConversationReadCommand",
+      "type": "object"
+    },
+    "ConversationRunCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "conversation.run",
+            "conversation.start",
+            "conversation.cancel"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "run_id"
+      ],
+      "title": "ConversationRunCommand",
+      "type": "object"
+    },
+    "OllamaOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "num_ctx": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Ctx"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "think": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Think"
+        }
+      },
+      "title": "OllamaOptions",
+      "type": "object"
+    },
+    "RunPrepare": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "context_tokens": {
+          "maximum": 1000000,
+          "minimum": 1024,
+          "title": "Context Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "ollama_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OllamaOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "embedding_profile_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Embedding Profile Id"
+        },
+        "preview_operation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{32}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Preview Operation Id"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "expected_revision",
+        "profile_id",
+        "question",
+        "context_tokens",
+        "max_output_tokens"
+      ],
+      "title": "RunPrepare",
+      "type": "object"
+    },
+    "VectorBuild": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "profile_id"
+      ],
+      "title": "VectorBuild",
+      "type": "object"
+    },
+    "VectorBuildCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "conversation.vectors.build",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/VectorBuild"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "VectorBuildCommand",
+      "type": "object"
+    },
+    "VectorJobCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "conversation.vectors.read",
+            "conversation.vectors.cancel"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id"
+      ],
+      "title": "VectorJobCommand",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "conversation.cancel": "#/$defs/ConversationRunCommand",
+      "conversation.create": "#/$defs/ConversationCreateCommand",
+      "conversation.events": "#/$defs/ConversationEventsCommand",
+      "conversation.history": "#/$defs/ConversationHistoryCommand",
+      "conversation.list": "#/$defs/ConversationListCommand",
+      "conversation.prepare": "#/$defs/ConversationPrepareCommand",
+      "conversation.read": "#/$defs/ConversationReadCommand",
+      "conversation.run": "#/$defs/ConversationRunCommand",
+      "conversation.start": "#/$defs/ConversationRunCommand",
+      "conversation.vectors.build": "#/$defs/VectorBuildCommand",
+      "conversation.vectors.cancel": "#/$defs/VectorJobCommand",
+      "conversation.vectors.read": "#/$defs/VectorJobCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ConversationListCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationCreateCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationHistoryCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationPrepareCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationRunCommand"
+    },
+    {
+      "$ref": "#/$defs/ConversationEventsCommand"
+    },
+    {
+      "$ref": "#/$defs/VectorBuildCommand"
+    },
+    {
+      "$ref": "#/$defs/VectorJobCommand"
+    }
+  ]
+}

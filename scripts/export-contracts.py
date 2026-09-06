@@ -6,6 +6,8 @@ from evidra.api.app import create_app
 from evidra.distribution import EngineManifest
 from evidra.domain.sources import SelectionSpec
 from evidra.domain.documents import DocumentCommand
+from evidra.conversations.commands import ConversationCommand, ProviderCommand
+from evidra.conversations.models import EventPage
 from evidra.providers.models import EmbeddingBatch, GenerationEvent, GenerationRequest
 from evidra.security.runtime import RuntimeSettings
 from pydantic import SecretStr, TypeAdapter
@@ -19,7 +21,7 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
-for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch):
+for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, EventPage):
     provider_schema = provider_model.model_json_schema()
     schema["components"]["schemas"].update(provider_schema.pop("$defs", {}))
     schema["components"]["schemas"][provider_model.__name__] = provider_schema
@@ -27,6 +29,11 @@ documents = TypeAdapter(DocumentCommand).json_schema()
 (destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
 schema["components"]["schemas"].update(documents.pop("$defs"))
 schema["components"]["schemas"]["DocumentCommand"] = documents
+for name, command in [("conversation", ConversationCommand), ("provider", ProviderCommand)]:
+    commands = TypeAdapter(command).json_schema()
+    (destination / f"{name}-command.schema.json").write_text(json.dumps(commands, indent=2) + "\n", encoding="utf-8")
+    schema["components"]["schemas"].update(commands.pop("$defs"))
+    schema["components"]["schemas"][name.title() + "Command"] = commands
 (destination / "selection.schema.json").write_text(json.dumps(SelectionSpec.model_json_schema(), indent=2) + "\n", encoding="utf-8")
 manifest = EngineManifest.model_json_schema()
 (destination / "engine-manifest.schema.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

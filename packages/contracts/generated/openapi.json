@@ -5087,6 +5087,1615 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/conversations": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Create",
+        "operationId": "create_v1_notebooks__notebook_id__snapshots__snapshot_id__conversations_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConversationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Listing",
+        "operationId": "listing_v1_notebooks__notebook_id__snapshots__snapshot_id__conversations_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/conversations/{conversation_id}": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Conversation",
+        "operationId": "conversation_v1_notebooks__notebook_id__snapshots__snapshot_id__conversations__conversation_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConversationRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/conversations/{conversation_id}/runs": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "History",
+        "operationId": "history_v1_notebooks__notebook_id__snapshots__snapshot_id__conversations__conversation_id__runs_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Prepare",
+        "operationId": "prepare_v1_notebooks__notebook_id__snapshots__snapshot_id__conversations__conversation_id__runs_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Conversation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunPrepare"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Run",
+        "operationId": "run_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/start": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Start",
+        "operationId": "start_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__start_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/cancel": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Cancel",
+        "operationId": "cancel_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRecord"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/events": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Events",
+        "operationId": "events_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__events_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/vectors": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Build",
+        "operationId": "build_v1_notebooks__notebook_id__snapshots__snapshot_id__vectors_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VectorBuild"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VectorJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/vectors/{job_id}": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Vector Job",
+        "operationId": "vector_job_v1_notebooks__notebook_id__snapshots__snapshot_id__vectors__job_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VectorJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/vectors/{job_id}/cancel": {
+      "post": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Cancel Vector",
+        "operationId": "cancel_vector_v1_notebooks__notebook_id__snapshots__snapshot_id__vectors__job_id__cancel_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VectorJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -5384,6 +6993,25 @@
   },
   "components": {
     "schemas": {
+      "Answer": {
+        "properties": {
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/Claim"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "minItems": 1,
+            "title": "Claims"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claims"
+        ],
+        "title": "Answer"
+      },
       "AttachmentRegister": {
         "properties": {
           "source_id": {
@@ -5484,54 +7112,53 @@
         "title": "Budget"
       },
       "BudgetWrite": {
+        "additionalProperties": false,
         "properties": {
           "kind": {
-            "type": "string",
             "enum": [
               "call",
               "job",
               "session"
             ],
-            "title": "Kind"
+            "title": "Kind",
+            "type": "string"
           },
           "identity": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Identity"
+            "title": "Identity",
+            "type": "string"
           },
           "currency": {
-            "type": "string",
             "pattern": "^[A-Z]{3}$",
-            "title": "Currency"
+            "title": "Currency",
+            "type": "string"
           },
           "ceiling": {
             "anyOf": [
               {
-                "type": "number",
-                "minimum": 0.0
+                "minimum": 0.0,
+                "type": "number"
               },
               {
-                "type": "string",
-                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
               }
             ],
             "title": "Ceiling"
           },
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "kind",
           "identity",
@@ -5540,23 +7167,25 @@
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "BudgetWrite"
+        "title": "BudgetWrite",
+        "type": "object"
       },
       "Capability": {
+        "additionalProperties": false,
         "properties": {
           "supported": {
-            "type": "boolean",
-            "title": "Supported"
+            "title": "Supported",
+            "type": "boolean"
           },
           "provenance": {
-            "type": "string",
             "enum": [
               "PROVIDER_REPORTED",
               "PROBED",
               "USER_DECLARED",
               "UNSUPPORTED"
             ],
-            "title": "Provenance"
+            "title": "Provenance",
+            "type": "string"
           },
           "source": {
             "anyOf": [
@@ -5567,16 +7196,74 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Source"
+          }
+        },
+        "required": [
+          "supported",
+          "provenance"
+        ],
+        "title": "Capability",
+        "type": "object"
+      },
+      "Citation": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Evidence Id"
+          },
+          "excerpt": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Excerpt"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "supported",
-          "provenance"
+          "evidence_id",
+          "excerpt"
         ],
-        "title": "Capability"
+        "title": "Citation"
+      },
+      "Claim": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "source",
+              "general",
+              "visual_proposal"
+            ],
+            "title": "Kind"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "maxItems": 12,
+            "title": "Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "kind",
+          "evidence"
+        ],
+        "title": "Claim"
       },
       "Consent": {
         "properties": {
@@ -5633,44 +7320,43 @@
         "title": "Consent"
       },
       "ConsentWrite": {
+        "additionalProperties": false,
         "properties": {
           "categories": {
             "items": {
-              "type": "string",
               "enum": [
                 "excerpts",
                 "metadata",
                 "images",
                 "history"
-              ]
+              ],
+              "type": "string"
             },
+            "title": "Categories",
             "type": "array",
-            "uniqueItems": true,
-            "title": "Categories"
+            "uniqueItems": true
           },
           "granted": {
-            "type": "boolean",
-            "title": "Granted"
+            "title": "Granted",
+            "type": "boolean"
           },
           "profile_revision": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Profile Revision"
+            "minimum": 1,
+            "title": "Profile Revision",
+            "type": "integer"
           },
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "categories",
           "granted",
@@ -5678,7 +7364,8 @@
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "ConsentWrite"
+        "title": "ConsentWrite",
+        "type": "object"
       },
       "ContentIdentity": {
         "properties": {
@@ -5709,6 +7396,232 @@
           "kind"
         ],
         "title": "ContentIdentity"
+      },
+      "ContextEvidence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "excerpt": {
+            "type": "string",
+            "title": "Excerpt"
+          },
+          "document_version_id": {
+            "type": "string",
+            "title": "Document Version Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "excerpt",
+          "document_version_id",
+          "source_id",
+          "content_key",
+          "source_kind",
+          "start",
+          "end"
+        ],
+        "title": "ContextEvidence"
+      },
+      "ContextPreview": {
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ContextEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "documents_retrieved": {
+            "type": "integer",
+            "title": "Documents Retrieved"
+          },
+          "documents_used": {
+            "type": "integer",
+            "title": "Documents Used"
+          },
+          "candidates": {
+            "type": "integer",
+            "title": "Candidates"
+          },
+          "excluded_overlap": {
+            "type": "integer",
+            "title": "Excluded Overlap"
+          },
+          "excluded_budget": {
+            "type": "integer",
+            "title": "Excluded Budget"
+          },
+          "excluded_limit": {
+            "type": "integer",
+            "title": "Excluded Limit"
+          },
+          "estimated_input_tokens": {
+            "type": "integer",
+            "title": "Estimated Input Tokens"
+          },
+          "estimate_method": {
+            "type": "string",
+            "const": "utf8-bytes-plus-overhead-v1",
+            "title": "Estimate Method",
+            "default": "utf8-bytes-plus-overhead-v1"
+          },
+          "context_tokens": {
+            "type": "integer",
+            "title": "Context Tokens"
+          },
+          "max_output_tokens": {
+            "type": "integer",
+            "title": "Max Output Tokens"
+          },
+          "history_messages": {
+            "type": "integer",
+            "title": "History Messages"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "system": {
+            "type": "string",
+            "title": "System"
+          },
+          "prompt": {
+            "type": "string",
+            "title": "Prompt"
+          },
+          "coverage": {
+            "type": "string",
+            "const": "RETRIEVED_CHUNKS_ONLY",
+            "title": "Coverage",
+            "default": "RETRIEVED_CHUNKS_ONLY"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence",
+          "documents_retrieved",
+          "documents_used",
+          "candidates",
+          "excluded_overlap",
+          "excluded_budget",
+          "excluded_limit",
+          "estimated_input_tokens",
+          "context_tokens",
+          "max_output_tokens",
+          "history_messages",
+          "history",
+          "system",
+          "prompt"
+        ],
+        "title": "ContextPreview"
+      },
+      "ConversationCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key"
+        ],
+        "title": "ConversationCreate",
+        "type": "object"
+      },
+      "ConversationPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ConversationRecord"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "ConversationPage"
+      },
+      "ConversationRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "notebook_id",
+          "snapshot_id",
+          "revision"
+        ],
+        "title": "ConversationRecord"
       },
       "DocumentPage": {
         "properties": {
@@ -6396,6 +8309,64 @@
         ],
         "title": "NotebookPage"
       },
+      "OllamaOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "num_ctx": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Num Ctx"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Temperature"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Seed"
+          },
+          "think": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Think"
+          }
+        },
+        "title": "OllamaOptions",
+        "type": "object"
+      },
       "Operation": {
         "properties": {
           "id": {
@@ -6979,9 +8950,9 @@
         "title": "ProfilePage"
       },
       "ProfileSpec": {
+        "additionalProperties": false,
         "properties": {
           "adapter": {
-            "type": "string",
             "enum": [
               "ollama",
               "lm_studio",
@@ -6990,35 +8961,36 @@
               "gemini",
               "openai_compatible"
             ],
-            "title": "Adapter"
+            "title": "Adapter",
+            "type": "string"
           },
           "mode": {
-            "type": "string",
             "enum": [
               "LOCAL",
               "API"
             ],
-            "title": "Mode"
+            "title": "Mode",
+            "type": "string"
           },
           "purpose": {
-            "type": "string",
             "enum": [
               "generation",
               "embedding"
             ],
-            "title": "Purpose"
+            "title": "Purpose",
+            "type": "string"
           },
           "base_url": {
-            "type": "string",
             "maxLength": 2000,
-            "title": "Base Url"
+            "title": "Base Url",
+            "type": "string"
           },
           "model": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
             "pattern": "^[\\w.\\-:/]+$",
-            "title": "Model"
+            "title": "Model",
+            "type": "string"
           },
           "digest": {
             "anyOf": [
@@ -7029,12 +9001,13 @@
                 "type": "null"
               }
             ],
+            "default": null,
             "title": "Digest"
           },
           "cloud": {
-            "type": "boolean",
+            "default": false,
             "title": "Cloud",
-            "default": false
+            "type": "boolean"
           },
           "capabilities": {
             "additionalProperties": {
@@ -7052,12 +9025,10 @@
                 "catalog"
               ]
             },
-            "type": "object",
-            "title": "Capabilities"
+            "title": "Capabilities",
+            "type": "object"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "adapter",
           "mode",
@@ -7066,33 +9037,34 @@
           "model",
           "capabilities"
         ],
-        "title": "ProfileSpec"
+        "title": "ProfileSpec",
+        "type": "object"
       },
       "ProfileWrite": {
+        "additionalProperties": false,
         "properties": {
           "spec": {
             "$ref": "#/components/schemas/ProfileSpec"
           },
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "spec",
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "ProfileWrite"
+        "title": "ProfileWrite",
+        "type": "object"
       },
       "ProviderProfile": {
         "properties": {
@@ -7312,26 +9284,26 @@
         "title": "RemovedSource"
       },
       "ResumeWrite": {
+        "additionalProperties": false,
         "properties": {
           "expected_revision": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Expected Revision"
+            "minimum": 1,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "ResumeWrite"
+        "title": "ResumeWrite",
+        "type": "object"
       },
       "Revocation": {
         "properties": {
@@ -7347,6 +9319,299 @@
           "expected_revision"
         ],
         "title": "Revocation"
+      },
+      "RunPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RunSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "RunPage"
+      },
+      "RunPrepare": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "context_tokens": {
+            "maximum": 1000000,
+            "minimum": 1024,
+            "title": "Context Tokens",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "maximum": 32768,
+            "minimum": 1,
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "ollama_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OllamaOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "embedding_profile_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Embedding Profile Id"
+          },
+          "preview_operation_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{32}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Preview Operation Id"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "expected_revision",
+          "profile_id",
+          "question",
+          "context_tokens",
+          "max_output_tokens"
+        ],
+        "title": "RunPrepare",
+        "type": "object"
+      },
+      "RunRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "conversation_id": {
+            "type": "string",
+            "title": "Conversation Id"
+          },
+          "conversation_revision": {
+            "type": "integer",
+            "title": "Conversation Revision"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PREPARED",
+              "RUNNING",
+              "COMPLETE",
+              "FAILED",
+              "CANCELLED"
+            ],
+            "title": "State"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProviderProfile"
+          },
+          "ollama_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OllamaOptions"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "prompt_version": {
+            "type": "string",
+            "const": "conversation-v1",
+            "title": "Prompt Version",
+            "default": "conversation-v1"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ContextPreview"
+          },
+          "categories": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "excerpts",
+                "metadata",
+                "images",
+                "history"
+              ]
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Categories"
+          },
+          "visual": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VisualProvenance"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Answer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "anchor_status": {
+            "type": "string",
+            "const": "VERIFIED_EXISTENCE_ONLY",
+            "title": "Anchor Status",
+            "default": "VERIFIED_EXISTENCE_ONLY"
+          },
+          "support_status": {
+            "type": "string",
+            "const": "PROPOSED",
+            "title": "Support Status",
+            "default": "PROPOSED"
+          },
+          "human_review": {
+            "type": "string",
+            "const": "NOT_REVIEWED",
+            "title": "Human Review",
+            "default": "NOT_REVIEWED"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "conversation_id",
+          "conversation_revision",
+          "state",
+          "profile",
+          "question",
+          "context",
+          "categories",
+          "created_at"
+        ],
+        "title": "RunRecord"
+      },
+      "RunSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "state",
+          "model",
+          "error"
+        ],
+        "title": "RunSummary"
       },
       "RuntimeStatus": {
         "properties": {
@@ -7526,26 +9791,26 @@
         "type": "object"
       },
       "SecretDelete": {
+        "additionalProperties": false,
         "properties": {
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "SecretDelete"
+        "title": "SecretDelete",
+        "type": "object"
       },
       "SecretReceipt": {
         "properties": {
@@ -7599,38 +9864,38 @@
         "title": "SecretReceipt"
       },
       "SecretWrite": {
+        "additionalProperties": false,
         "properties": {
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           },
           "value": {
-            "type": "string",
             "format": "password",
             "title": "Value",
+            "type": "string",
             "writeOnly": true
           },
           "memory_only": {
-            "type": "boolean",
+            "default": false,
             "title": "Memory Only",
-            "default": false
+            "type": "boolean"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "expected_revision",
           "idempotency_key",
           "value"
         ],
-        "title": "SecretWrite"
+        "title": "SecretWrite",
+        "type": "object"
       },
       "SelectionSpec": {
         "properties": {
@@ -7795,31 +10060,31 @@
         "title": "Settings"
       },
       "SettingsWrite": {
+        "additionalProperties": false,
         "properties": {
           "block_paid_apis": {
-            "type": "boolean",
-            "title": "Block Paid Apis"
+            "title": "Block Paid Apis",
+            "type": "boolean"
           },
           "expected_revision": {
-            "type": "integer",
-            "minimum": 0.0,
-            "title": "Expected Revision"
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
           },
           "idempotency_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Idempotency Key"
+            "title": "Idempotency Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "block_paid_apis",
           "expected_revision",
           "idempotency_key"
         ],
-        "title": "SettingsWrite"
+        "title": "SettingsWrite",
+        "type": "object"
       },
       "Snapshot": {
         "properties": {
@@ -8705,6 +10970,196 @@
         ],
         "title": "UsageRecord"
       },
+      "VectorBuild": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "profile_id"
+        ],
+        "title": "VectorBuild",
+        "type": "object"
+      },
+      "VectorGeneration": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "dimensions": {
+            "type": "integer",
+            "title": "Dimensions"
+          },
+          "normalized": {
+            "type": "boolean",
+            "title": "Normalized"
+          },
+          "chunks": {
+            "type": "integer",
+            "title": "Chunks"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "profile_id",
+          "model",
+          "digest",
+          "dimensions",
+          "normalized",
+          "chunks"
+        ],
+        "title": "VectorGeneration"
+      },
+      "VectorJob": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETE",
+              "FAILED",
+              "CANCELLED"
+            ],
+            "title": "State"
+          },
+          "processed": {
+            "type": "integer",
+            "title": "Processed"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "generation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VectorGeneration"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "processed",
+          "total"
+        ],
+        "title": "VectorJob"
+      },
+      "VisualProvenance": {
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id"
+          },
+          "document_version_id": {
+            "type": "string",
+            "title": "Document Version Id"
+          },
+          "page_index": {
+            "type": "integer",
+            "title": "Page Index"
+          },
+          "region": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Region"
+          },
+          "sha256": {
+            "type": "string",
+            "title": "Sha256"
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination"
+          },
+          "interpretation": {
+            "type": "string",
+            "const": "PROPOSED_REQUIRES_HUMAN_REVIEW",
+            "title": "Interpretation",
+            "default": "PROPOSED_REQUIRES_HUMAN_REVIEW"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operation_id",
+          "document_version_id",
+          "page_index",
+          "region",
+          "sha256",
+          "destination"
+        ],
+        "title": "VisualProvenance"
+      },
       "GenerationEvent": {
         "additionalProperties": false,
         "properties": {
@@ -8847,64 +11302,6 @@
         "title": "Message",
         "type": "object"
       },
-      "OllamaOptions": {
-        "additionalProperties": false,
-        "properties": {
-          "num_ctx": {
-            "anyOf": [
-              {
-                "exclusiveMinimum": 0,
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Num Ctx"
-          },
-          "temperature": {
-            "anyOf": [
-              {
-                "maximum": 2,
-                "minimum": 0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Temperature"
-          },
-          "seed": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Seed"
-          },
-          "think": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "title": "Think"
-          }
-        },
-        "title": "OllamaOptions",
-        "type": "object"
-      },
       "GenerationRequest": {
         "additionalProperties": false,
         "properties": {
@@ -9023,6 +11420,82 @@
           "vectors"
         ],
         "title": "EmbeddingBatch",
+        "type": "object"
+      },
+      "RunEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "title": "Cursor",
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "draft",
+              "complete",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Text"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Code"
+          }
+        },
+        "required": [
+          "cursor",
+          "kind"
+        ],
+        "title": "RunEvent",
+        "type": "object"
+      },
+      "EventPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RunEvent"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "cursor": {
+            "title": "Cursor",
+            "type": "integer"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "cursor",
+          "state"
+        ],
+        "title": "EventPage",
         "type": "object"
       },
       "DocumentEvidenceCommand": {
@@ -9278,6 +11751,878 @@
           },
           {
             "$ref": "#/components/schemas/DocumentPreviewCommand"
+          }
+        ]
+      },
+      "ConversationCreateCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.create",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ConversationCreate"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "ConversationCreateCommand",
+        "type": "object"
+      },
+      "ConversationEventsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.events",
+            "title": "Op",
+            "type": "string"
+          },
+          "run_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "cursor": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Cursor",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "run_id",
+          "cursor"
+        ],
+        "title": "ConversationEventsCommand",
+        "type": "object"
+      },
+      "ConversationHistoryCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.history",
+            "title": "Op",
+            "type": "string"
+          },
+          "conversation_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "conversation_id",
+          "offset"
+        ],
+        "title": "ConversationHistoryCommand",
+        "type": "object"
+      },
+      "ConversationListCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.list",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "offset"
+        ],
+        "title": "ConversationListCommand",
+        "type": "object"
+      },
+      "ConversationPrepareCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.prepare",
+            "title": "Op",
+            "type": "string"
+          },
+          "conversation_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Conversation Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/RunPrepare"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "conversation_id",
+          "request"
+        ],
+        "title": "ConversationPrepareCommand",
+        "type": "object"
+      },
+      "ConversationReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.read",
+            "title": "Op",
+            "type": "string"
+          },
+          "conversation_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Conversation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "conversation_id"
+        ],
+        "title": "ConversationReadCommand",
+        "type": "object"
+      },
+      "ConversationRunCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "conversation.run",
+              "conversation.start",
+              "conversation.cancel"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "run_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "run_id"
+        ],
+        "title": "ConversationRunCommand",
+        "type": "object"
+      },
+      "VectorBuildCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "conversation.vectors.build",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/VectorBuild"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "VectorBuildCommand",
+        "type": "object"
+      },
+      "VectorJobCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "enum": [
+              "conversation.vectors.read",
+              "conversation.vectors.cancel"
+            ],
+            "title": "Op",
+            "type": "string"
+          },
+          "job_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Job Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "job_id"
+        ],
+        "title": "VectorJobCommand",
+        "type": "object"
+      },
+      "ConversationCommand": {
+        "discriminator": {
+          "mapping": {
+            "conversation.cancel": "#/components/schemas/ConversationRunCommand",
+            "conversation.create": "#/components/schemas/ConversationCreateCommand",
+            "conversation.events": "#/components/schemas/ConversationEventsCommand",
+            "conversation.history": "#/components/schemas/ConversationHistoryCommand",
+            "conversation.list": "#/components/schemas/ConversationListCommand",
+            "conversation.prepare": "#/components/schemas/ConversationPrepareCommand",
+            "conversation.read": "#/components/schemas/ConversationReadCommand",
+            "conversation.run": "#/components/schemas/ConversationRunCommand",
+            "conversation.start": "#/components/schemas/ConversationRunCommand",
+            "conversation.vectors.build": "#/components/schemas/VectorBuildCommand",
+            "conversation.vectors.cancel": "#/components/schemas/VectorJobCommand",
+            "conversation.vectors.read": "#/components/schemas/VectorJobCommand"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ConversationListCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationCreateCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationHistoryCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationPrepareCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationRunCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ConversationEventsCommand"
+          },
+          {
+            "$ref": "#/components/schemas/VectorBuildCommand"
+          },
+          {
+            "$ref": "#/components/schemas/VectorJobCommand"
+          }
+        ]
+      },
+      "PriceConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          },
+          "adapter": {
+            "enum": [
+              "ollama",
+              "lm_studio",
+              "openai",
+              "anthropic",
+              "gemini",
+              "openai_compatible"
+            ],
+            "title": "Adapter",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "effective_date": {
+            "format": "date",
+            "title": "Effective Date",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          },
+          "input_per_million": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Input Per Million"
+          },
+          "output_per_million": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+                "type": "string"
+              }
+            ],
+            "title": "Output Per Million"
+          }
+        },
+        "required": [
+          "version",
+          "adapter",
+          "model",
+          "currency",
+          "effective_date",
+          "source",
+          "input_per_million",
+          "output_per_million"
+        ],
+        "title": "PriceConfig",
+        "type": "object"
+      },
+      "ProviderBudgetCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "provider.budget",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/BudgetWrite"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "ProviderBudgetCommand",
+        "type": "object"
+      },
+      "ProviderCallsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "provider.calls",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "offset"
+        ],
+        "title": "ProviderCallsCommand",
+        "type": "object"
+      },
+      "ProviderConsentReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "provider.consent",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "profile_id"
+        ],
+        "title": "ProviderConsentReadCommand",
+        "type": "object"
+      },
+      "ProviderConsentWriteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "provider.consent.write",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ConsentWrite"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "profile_id",
+          "request"
+        ],
+        "title": "ProviderConsentWriteCommand",
+        "type": "object"
+      },
+      "ProviderListCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.list",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "op",
+          "offset"
+        ],
+        "title": "ProviderListCommand",
+        "type": "object"
+      },
+      "ProviderModelsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.models",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id",
+          "offset"
+        ],
+        "title": "ProviderModelsCommand",
+        "type": "object"
+      },
+      "ProviderPriceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.price",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/PriceConfig"
+          }
+        },
+        "required": [
+          "op",
+          "request"
+        ],
+        "title": "ProviderPriceCommand",
+        "type": "object"
+      },
+      "ProviderResumeCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.resume",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ResumeWrite"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id",
+          "request"
+        ],
+        "title": "ProviderResumeCommand",
+        "type": "object"
+      },
+      "ProviderSecretDeleteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.secret.delete",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SecretDelete"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id",
+          "request"
+        ],
+        "title": "ProviderSecretDeleteCommand",
+        "type": "object"
+      },
+      "ProviderSecretReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.secret",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id"
+        ],
+        "title": "ProviderSecretReadCommand",
+        "type": "object"
+      },
+      "ProviderSecretWriteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.secret.write",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SecretWrite"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id",
+          "request"
+        ],
+        "title": "ProviderSecretWriteCommand",
+        "type": "object"
+      },
+      "ProviderSettingsReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.settings",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "op"
+        ],
+        "title": "ProviderSettingsReadCommand",
+        "type": "object"
+      },
+      "ProviderSettingsWriteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.settings.write",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/SettingsWrite"
+          }
+        },
+        "required": [
+          "op",
+          "request"
+        ],
+        "title": "ProviderSettingsWriteCommand",
+        "type": "object"
+      },
+      "ProviderWriteCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "op": {
+            "const": "provider.write",
+            "title": "Op",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ProfileWrite"
+          }
+        },
+        "required": [
+          "op",
+          "profile_id",
+          "request"
+        ],
+        "title": "ProviderWriteCommand",
+        "type": "object"
+      },
+      "ProviderCommand": {
+        "discriminator": {
+          "mapping": {
+            "provider.budget": "#/components/schemas/ProviderBudgetCommand",
+            "provider.calls": "#/components/schemas/ProviderCallsCommand",
+            "provider.consent": "#/components/schemas/ProviderConsentReadCommand",
+            "provider.consent.write": "#/components/schemas/ProviderConsentWriteCommand",
+            "provider.list": "#/components/schemas/ProviderListCommand",
+            "provider.models": "#/components/schemas/ProviderModelsCommand",
+            "provider.price": "#/components/schemas/ProviderPriceCommand",
+            "provider.resume": "#/components/schemas/ProviderResumeCommand",
+            "provider.secret": "#/components/schemas/ProviderSecretReadCommand",
+            "provider.secret.delete": "#/components/schemas/ProviderSecretDeleteCommand",
+            "provider.secret.write": "#/components/schemas/ProviderSecretWriteCommand",
+            "provider.settings": "#/components/schemas/ProviderSettingsReadCommand",
+            "provider.settings.write": "#/components/schemas/ProviderSettingsWriteCommand",
+            "provider.write": "#/components/schemas/ProviderWriteCommand"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ProviderListCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderWriteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderModelsCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderResumeCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderSettingsReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderSettingsWriteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderSecretReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderSecretWriteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderSecretDeleteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderConsentReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderConsentWriteCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderBudgetCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderPriceCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderCallsCommand"
           }
         ]
       },

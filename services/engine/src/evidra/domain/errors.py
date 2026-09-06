@@ -35,6 +35,14 @@ def public_error(error: EvidraError) -> ErrorResponse:
 
 
 STATUS_CODES = {
+    "CONTEXT_LIMIT": 413,
+    "OUTPUT_LIMIT": 413,
+    "VECTOR_LIMIT": 413,
+    "VECTOR_MISMATCH": 409,
+    "VECTOR_INDEX_REQUIRED": 409,
+    "NO_EVIDENCE": 422,
+    "RUN_BUSY": 409,
+    "INVALID_MODEL_OUTPUT": 422,
     "LOCAL_CLOUD_MODEL": 403,
     "VISION_UNSUPPORTED": 422,
     "INVALID_SCHEMA": 422,

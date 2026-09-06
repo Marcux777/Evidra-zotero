@@ -1,0 +1,873 @@
+{
+  "$defs": {
+    "BudgetWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "call",
+            "job",
+            "session"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "identity": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Identity",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "ceiling": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Ceiling"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "identity",
+        "currency",
+        "ceiling",
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "BudgetWrite",
+      "type": "object"
+    },
+    "Capability": {
+      "additionalProperties": false,
+      "properties": {
+        "supported": {
+          "title": "Supported",
+          "type": "boolean"
+        },
+        "provenance": {
+          "enum": [
+            "PROVIDER_REPORTED",
+            "PROBED",
+            "USER_DECLARED",
+            "UNSUPPORTED"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "supported",
+        "provenance"
+      ],
+      "title": "Capability",
+      "type": "object"
+    },
+    "ConsentWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "categories": {
+          "items": {
+            "enum": [
+              "excerpts",
+              "metadata",
+              "images",
+              "history"
+            ],
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "granted": {
+          "title": "Granted",
+          "type": "boolean"
+        },
+        "profile_revision": {
+          "minimum": 1,
+          "title": "Profile Revision",
+          "type": "integer"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "categories",
+        "granted",
+        "profile_revision",
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "ConsentWrite",
+      "type": "object"
+    },
+    "PriceConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        },
+        "adapter": {
+          "enum": [
+            "ollama",
+            "lm_studio",
+            "openai",
+            "anthropic",
+            "gemini",
+            "openai_compatible"
+          ],
+          "title": "Adapter",
+          "type": "string"
+        },
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "effective_date": {
+          "format": "date",
+          "title": "Effective Date",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "input_per_million": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Input Per Million"
+        },
+        "output_per_million": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Output Per Million"
+        }
+      },
+      "required": [
+        "version",
+        "adapter",
+        "model",
+        "currency",
+        "effective_date",
+        "source",
+        "input_per_million",
+        "output_per_million"
+      ],
+      "title": "PriceConfig",
+      "type": "object"
+    },
+    "ProfileSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "enum": [
+            "ollama",
+            "lm_studio",
+            "openai",
+            "anthropic",
+            "gemini",
+            "openai_compatible"
+          ],
+          "title": "Adapter",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "LOCAL",
+            "API"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "purpose": {
+          "enum": [
+            "generation",
+            "embedding"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "base_url": {
+          "maxLength": 2000,
+          "title": "Base Url",
+          "type": "string"
+        },
+        "model": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[\\w.\\-:/]+$",
+          "title": "Model",
+          "type": "string"
+        },
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Digest"
+        },
+        "cloud": {
+          "default": false,
+          "title": "Cloud",
+          "type": "boolean"
+        },
+        "capabilities": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Capability"
+          },
+          "propertyNames": {
+            "enum": [
+              "generation",
+              "streaming",
+              "images",
+              "structured_output",
+              "embeddings",
+              "token_counting",
+              "cancellation",
+              "catalog"
+            ]
+          },
+          "title": "Capabilities",
+          "type": "object"
+        }
+      },
+      "required": [
+        "adapter",
+        "mode",
+        "purpose",
+        "base_url",
+        "model",
+        "capabilities"
+      ],
+      "title": "ProfileSpec",
+      "type": "object"
+    },
+    "ProfileWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "spec": {
+          "$ref": "#/$defs/ProfileSpec"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spec",
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "ProfileWrite",
+      "type": "object"
+    },
+    "ProviderBudgetCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "provider.budget",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/BudgetWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ProviderBudgetCommand",
+      "type": "object"
+    },
+    "ProviderCallsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "provider.calls",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "ProviderCallsCommand",
+      "type": "object"
+    },
+    "ProviderConsentReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "provider.consent",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "profile_id"
+      ],
+      "title": "ProviderConsentReadCommand",
+      "type": "object"
+    },
+    "ProviderConsentWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "provider.consent.write",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ConsentWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "profile_id",
+        "request"
+      ],
+      "title": "ProviderConsentWriteCommand",
+      "type": "object"
+    },
+    "ProviderListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.list",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "offset"
+      ],
+      "title": "ProviderListCommand",
+      "type": "object"
+    },
+    "ProviderModelsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.models",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id",
+        "offset"
+      ],
+      "title": "ProviderModelsCommand",
+      "type": "object"
+    },
+    "ProviderPriceCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.price",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/PriceConfig"
+        }
+      },
+      "required": [
+        "op",
+        "request"
+      ],
+      "title": "ProviderPriceCommand",
+      "type": "object"
+    },
+    "ProviderResumeCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.resume",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ResumeWrite"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id",
+        "request"
+      ],
+      "title": "ProviderResumeCommand",
+      "type": "object"
+    },
+    "ProviderSecretDeleteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.secret.delete",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/SecretDelete"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id",
+        "request"
+      ],
+      "title": "ProviderSecretDeleteCommand",
+      "type": "object"
+    },
+    "ProviderSecretReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.secret",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id"
+      ],
+      "title": "ProviderSecretReadCommand",
+      "type": "object"
+    },
+    "ProviderSecretWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.secret.write",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/SecretWrite"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id",
+        "request"
+      ],
+      "title": "ProviderSecretWriteCommand",
+      "type": "object"
+    },
+    "ProviderSettingsReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.settings",
+          "title": "Op",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op"
+      ],
+      "title": "ProviderSettingsReadCommand",
+      "type": "object"
+    },
+    "ProviderSettingsWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.settings.write",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/SettingsWrite"
+        }
+      },
+      "required": [
+        "op",
+        "request"
+      ],
+      "title": "ProviderSettingsWriteCommand",
+      "type": "object"
+    },
+    "ProviderWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "const": "provider.write",
+          "title": "Op",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ProfileWrite"
+        }
+      },
+      "required": [
+        "op",
+        "profile_id",
+        "request"
+      ],
+      "title": "ProviderWriteCommand",
+      "type": "object"
+    },
+    "ResumeWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "ResumeWrite",
+      "type": "object"
+    },
+    "SecretDelete": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "SecretDelete",
+      "type": "object"
+    },
+    "SecretWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "value": {
+          "format": "password",
+          "title": "Value",
+          "type": "string",
+          "writeOnly": true
+        },
+        "memory_only": {
+          "default": false,
+          "title": "Memory Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "expected_revision",
+        "idempotency_key",
+        "value"
+      ],
+      "title": "SecretWrite",
+      "type": "object"
+    },
+    "SettingsWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "block_paid_apis": {
+          "title": "Block Paid Apis",
+          "type": "boolean"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "block_paid_apis",
+        "expected_revision",
+        "idempotency_key"
+      ],
+      "title": "SettingsWrite",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "provider.budget": "#/$defs/ProviderBudgetCommand",
+      "provider.calls": "#/$defs/ProviderCallsCommand",
+      "provider.consent": "#/$defs/ProviderConsentReadCommand",
+      "provider.consent.write": "#/$defs/ProviderConsentWriteCommand",
+      "provider.list": "#/$defs/ProviderListCommand",
+      "provider.models": "#/$defs/ProviderModelsCommand",
+      "provider.price": "#/$defs/ProviderPriceCommand",
+      "provider.resume": "#/$defs/ProviderResumeCommand",
+      "provider.secret": "#/$defs/ProviderSecretReadCommand",
+      "provider.secret.delete": "#/$defs/ProviderSecretDeleteCommand",
+      "provider.secret.write": "#/$defs/ProviderSecretWriteCommand",
+      "provider.settings": "#/$defs/ProviderSettingsReadCommand",
+      "provider.settings.write": "#/$defs/ProviderSettingsWriteCommand",
+      "provider.write": "#/$defs/ProviderWriteCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ProviderListCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderModelsCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderResumeCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderSettingsReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderSettingsWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderSecretReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderSecretWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderSecretDeleteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderConsentReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderConsentWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderBudgetCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderPriceCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderCallsCommand"
+    }
+  ]
+}

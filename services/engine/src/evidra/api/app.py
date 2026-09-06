@@ -7,10 +7,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException
 
+from evidra.api.conversations import router as conversations_router
 from evidra.api.documents import router as documents_router
 from evidra.api.notebooks import router
 from evidra.api.providers import router as providers_router
 from evidra.api.sources import router as sources_router
+from evidra.conversations.service import ConversationService
 from evidra.documents.ingestion import IngestionService
 from evidra.documents.registry import DocumentRegistry
 from evidra.documents.text import TextIngestion
@@ -21,6 +23,7 @@ from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
 from evidra.retrieval.lexical import LexicalSearch
+from evidra.retrieval.vectors import VectorSearch
 from evidra.scope.service import ScopeService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
 from evidra.storage.database import Database
@@ -39,6 +42,8 @@ class Services:
     lexical: LexicalSearch
     text: TextIngestion
     providers: ProviderRegistry
+    vectors: VectorSearch
+    conversations: ConversationService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -47,6 +52,8 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
         database = Database(settings.data_dir / "evidra.sqlite3")
         ingestion = None
         providers = None
+        conversations = None
+        vectors = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
@@ -54,6 +61,9 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             ingestion = IngestionService(registry)
             evidence = EvidenceService(registry)
             providers = ProviderRegistry(scopes)
+            lexical = LexicalSearch(evidence)
+            vectors = VectorSearch(evidence, providers)
+            conversations = ConversationService(lexical, vectors, providers, ingestion)
             app.state.services = Services(
                 database,
                 session,
@@ -63,12 +73,18 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 registry,
                 ingestion,
                 evidence,
-                LexicalSearch(evidence),
+                lexical,
                 TextIngestion(registry),
                 providers,
+                vectors,
+                conversations,
             )
             yield
         finally:
+            if conversations is not None:
+                await conversations.close()
+            if vectors is not None:
+                await vectors.close()
             try:
                 if ingestion is not None:
                     ingestion.close()
@@ -94,6 +110,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(sources_router)
     app.include_router(documents_router)
     app.include_router(providers_router)
+    app.include_router(conversations_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:

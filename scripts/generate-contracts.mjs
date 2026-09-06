@@ -23,4 +23,14 @@ documentAjv.addKeyword('discriminator');
 const documentCompiled=await build({stdin:{contents:standaloneCode(documentAjv,documentAjv.compile(documents)),resolveDir:process.cwd(),sourcefile:'validate-document-command.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
 await writeFile('packages/contracts/generated/validate-document-command.js',documentCompiled.outputFiles[0].text);
 await writeFile('packages/contracts/generated/validate-document-command.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['DocumentCommand'];\n`);
+for (const name of ['conversation', 'provider']) {
+    const commands = JSON.parse(await readFile(`packages/contracts/generated/${name}-command.schema.json`, 'utf8'));
+    const validator = new Ajv2020({code:{source:true,esm:true},allErrors:false});
+    validator.addKeyword('discriminator');
+    validator.addFormat('date', /^\d{4}-\d{2}-\d{2}$/);
+    validator.addFormat('password', true); // OpenAPI annotation; SecretWrite bounds validate the value.
+    const compiled = await build({stdin:{contents:standaloneCode(validator,validator.compile(commands)),resolveDir:process.cwd(),sourcefile:`validate-${name}-command.generated.js`},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+    await writeFile(`packages/contracts/generated/validate-${name}-command.js`,compiled.outputFiles[0].text);
+    await writeFile(`packages/contracts/generated/validate-${name}-command.d.ts`,`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['${name[0].toUpperCase()+name.slice(1)}Command'];\n`);
+}
 console.log('Generated OpenAPI and TypeScript from Pydantic (no service startup).');

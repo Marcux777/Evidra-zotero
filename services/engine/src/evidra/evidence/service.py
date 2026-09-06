@@ -23,7 +23,7 @@ class EvidenceService:
         self.registry, self.scopes = registry, registry.scopes
 
     def read(self, context: ScopeContext, evidence_id: str) -> Evidence:
-        with self.scopes.guarded(context) as connection:
+        with self.scopes.guarded(context, capability=context.capability) as connection:
             return self.from_connection(connection, context, evidence_id)
 
     def from_connection(

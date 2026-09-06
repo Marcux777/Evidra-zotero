@@ -17,7 +17,7 @@ class LexicalSearch:
         # All query syntax is data. Unicode word tokens are individually quoted, never SQL.
         terms = re.findall(r"[^\W_]+", normalize(body.query)[0], flags=re.UNICODE)
         query = " AND ".join('"' + term.replace('"', '""') + '"' for term in terms)
-        with self.scopes.guarded(context) as connection:
+        with self.scopes.guarded(context, capability=context.capability) as connection:
             connection.execute(
                 "CREATE TEMP TABLE IF NOT EXISTS lexical_allowed (version_id TEXT PRIMARY KEY)"
             )
