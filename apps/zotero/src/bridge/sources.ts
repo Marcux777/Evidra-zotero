@@ -1,8 +1,8 @@
-import { captureSelectors, identityKey, resolveSelection } from '../sources/resolver';
+import { captureSelectors, identityKey, resolveSelection, revalidateSelection } from '../sources/resolver';
 import { serializeUiResponse } from '../security/messages';
 import type { NativeSelection, UnavailableSource } from '../sources/resolver';
 import type { NativeSourcePane, NativeZotero } from './native-types';
-import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
+import type { IdentityPage, PreviewPage, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, SourceAccess, SourceIdentity, SourceInput, SourcePage, SourceSync } from './types';
 
 interface SourceTransport {
     request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown>;
@@ -25,7 +25,7 @@ export class SourceBridge {
     #operations: Promise<unknown> = Promise.resolve();
     #known = new Map<string, SourceIdentity>();
     #observed = new Map<number, SourceIdentity>();
-    #previews = new Map<string, { notebook: string; stageId: string; spec: SelectionSpec; native: string; unavailable: UnavailableSource[]; epoch: number }>();
+    #previews = new Map<string, { notebook: string; stageId: string; access: SourceAccess[]; native: string; unavailable: UnavailableSource[]; epoch: number }>();
     #selection = new Map<string, SelectionSpec>();
     #active = true;
 
@@ -86,7 +86,7 @@ export class SourceBridge {
         for (const source of native.unavailable) this.#known.set(identityKey(source.identity), source.identity);
     }
     async #sync(notebook: string, native: NativeSelection, epoch: number,
-        purpose: SourceSync['purpose'], stageId: string | null): Promise<string | null> {
+        purpose: SourceSync['purpose'], stageId: string | null, snapshotId: string | null = null): Promise<string | null> {
         this.#assertEpoch(epoch); this.#remember(native);
         if (native.items.length > 10000) throw new Error('SELECTION_TOO_LARGE');
         for (const reason of ['missing', 'library_missing', 'deleted', 'archived', 'content_excluded'] as const) {
@@ -99,7 +99,7 @@ export class SourceBridge {
         const batches: SourceInput[][] = [];
         let batch: SourceInput[] = [];
         // Reserve the schema's maximum opaque-stage length before any batch write.
-        const bytes = (items: SourceInput[]) => new TextEncoder().encode(JSON.stringify({ items, purpose, stage_id: '0'.repeat(200), final: false })).length;
+        const bytes = (items: SourceInput[]) => new TextEncoder().encode(JSON.stringify({ items, purpose, stage_id: '0'.repeat(200), snapshot_id: '0'.repeat(200), final: false })).length;
         for (const source of native.items) {
             if (bytes([source]) > 65536) throw new Error('SOURCE_METADATA_TOO_LARGE');
             if (batch.length === 100 || bytes([...batch, source]) > 65536) { batches.push(batch); batch = []; }
@@ -109,6 +109,7 @@ export class SourceBridge {
         for (let index = 0; index < batches.length; ++index) {
             this.#assertEpoch(epoch);
             const request: SourceSync = { items: batches[index]!, purpose, stage_id: stageId,
+                snapshot_id: snapshotId,
                 final: purpose === 'revalidation' || index === batches.length - 1 };
             const page = await this.#engine.request('POST', `/v1/notebooks/${notebook}/sources/sync`, request) as SourcePage;
             this.#assertEpoch(epoch);
@@ -147,7 +148,8 @@ export class SourceBridge {
             if (preview.stage_id !== stageId) throw new Error('INVALID_SELECTION_STAGE_RECEIPT');
             this.#selection.set(notebook, spec);
             this.#previews.clear();
-            this.#previews.set(preview.id, { notebook, stageId, spec, native: JSON.stringify({ items: native.items, unavailable: native.unavailable }), unavailable: native.unavailable, epoch });
+            const access: SourceAccess[] = [...native.items.map(s => ({ identity: s.identity, contents: (s.contents ?? []).map(c => ({ key: c.key, kind: c.kind })) })), ...native.unavailable.map(s => ({ identity: s.identity, contents: [] }))];
+            this.#previews.set(preview.id, { notebook, stageId, access, native: JSON.stringify({ items: native.items, unavailable: native.unavailable }), unavailable: native.unavailable, epoch });
             return this.#previewResult(preview, native.unavailable, 0);
         });
     }
@@ -174,7 +176,7 @@ export class SourceBridge {
         return this.#run(async epoch => {
             const preview = this.#previews.get(request.preview_id);
             if (!preview || preview.notebook !== notebook || preview.epoch !== epoch) throw new Error('SCOPE_STALE');
-            const native = await resolveSelection(this.#api, this.#profile, preview.spec);
+            const native = await revalidateSelection(this.#api, this.#profile, preview.access);
             await this.#sync(notebook, native, epoch, 'revalidation', preview.stageId);
             if (JSON.stringify({ items: native.items, unavailable: native.unavailable }) !== preview.native) throw new Error('SCOPE_STALE');
             this.#assertEpoch(epoch);
@@ -183,20 +185,15 @@ export class SourceBridge {
     }
     async read(notebook: string, snapshot: string, offset: number): Promise<SnapshotSourcePage> {
         return this.#run(async epoch => {
-            const selection = await this.#latestSelection(notebook);
-            const identities: SourceIdentity[] = [];
+            const access: SourceAccess[] = [];
             for (let start = 0; ; start += 100) {
                 const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/identities?offset=${start}&limit=100`) as IdentityPage;
-                identities.push(...page.items);
+                access.push(...page.items);
                 if (start + page.items.length >= page.total) break;
                 if (!page.items.length) throw new Error('INVALID_SOURCE_PAGE');
             }
-            const native = await resolveSelection(this.#api, this.#profile, { ...selection,
-                selectors: identities.map(id => {
-                    if (id.profile_instance_id !== this.#profile) throw new Error('INVALID_SOURCE_PROFILE');
-                    return { kind: 'item', library_id: id.library_id, key: id.item_key };
-                }) });
-            await this.#sync(notebook, native, epoch, 'revalidation', null);
+            const native = await revalidateSelection(this.#api, this.#profile, access);
+            await this.#sync(notebook, native, epoch, 'revalidation', null, snapshot);
             this.#assertEpoch(epoch);
             const page = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/sources?offset=${offset}&limit=50`) as SnapshotSourcePage;
             serializeUiResponse('0'.repeat(80), page, null);

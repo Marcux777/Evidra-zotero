@@ -154,49 +154,128 @@ def test_storage_failure_has_sanitized_error_contract(tmp_path: Path) -> None:
             assert connection.execute("SELECT count(*) FROM notebooks").fetchone()[0] == 0
 
 
-def test_database_backup_rollback_future_schema_and_close(tmp_path: Path, monkeypatch: Any) -> None:
+@pytest.mark.parametrize("legacy_version", [1, 2])
+def test_database_backup_rollback_future_schema_and_close(
+    tmp_path: Path, monkeypatch: Any, legacy_version: int
+) -> None:
     from evidra.domain.errors import EvidraError
     from evidra.storage import database as storage
 
     path = tmp_path / "db.sqlite3"
     # Start from the previously shipped v1 schema, with durable user notebook identity.
     with sqlite3.connect(path) as legacy:
-        legacy.executescript(storage.files("evidra.storage.migrations")
-                             .joinpath("001_initial.sql").read_text())
-        legacy.execute("INSERT INTO notebooks VALUES "
-                       "('legacy','p','Review','key','now','now',1,'old')")
+        legacy.executescript(
+            storage.files("evidra.storage.migrations").joinpath("001_initial.sql").read_text()
+        )
+        legacy.execute(
+            "INSERT INTO notebooks VALUES ('legacy','p','Review','key','now','now',1,'old')"
+        )
         legacy.execute("INSERT INTO snapshots VALUES ('old','p','legacy','now',1)")
         legacy.execute("PRAGMA user_version=1")
+        if legacy_version == 2:
+            from evidra.domain.sources import Source, SourceContent, SourceIdentity
+
+            legacy.executescript(
+                storage.files("evidra.storage.migrations").joinpath("002_initial.sql").read_text()
+            )
+            source = Source(
+                identity=SourceIdentity(profile_instance_id="p", library_id=1, item_key="LEGACY"),
+                version="1",
+                title="Historical title",
+                item_type="journalArticle",
+                id="legacy-source",
+                version_id="legacy-view",
+                year_state="missing",
+                contents=[SourceContent(key="P", kind="pdf")],
+            )
+            legacy.execute("INSERT INTO source_libraries VALUES ('p',1,1)")
+            legacy.execute(
+                "INSERT INTO sources VALUES ('legacy-source','p',1,'LEGACY','legacy-view',1,1,NULL)"
+            )
+            legacy.execute(
+                "INSERT INTO source_versions VALUES ('legacy-source','legacy-view',?)",
+                (source.model_dump_json(),),
+            )
+            legacy.execute(
+                "INSERT INTO snapshot_members VALUES ('old','legacy-source','legacy-view',?)",
+                (source.model_dump_json(),),
+            )
+            legacy.execute(
+                "INSERT INTO notebook_grants VALUES ('legacy','legacy-source',?)",
+                (json.dumps([["P", "pdf"]]),),
+            )
+            legacy.execute(
+                "INSERT INTO snapshot_selections VALUES ('old','{}','capture','legacy','{}')"
+            )
+            legacy.execute("PRAGMA user_version=2")
+        preserved = {
+            table: legacy.execute(f"SELECT * FROM {table}").fetchall()
+            for table in (
+                "notebooks",
+                "snapshots",
+                *(
+                    (
+                        "source_versions",
+                        "snapshot_members",
+                        "notebook_grants",
+                        "snapshot_selections",
+                    )
+                    if legacy_version == 2
+                    else ()
+                ),
+            )
+        }
     database = storage.Database(path)
     with database.transaction() as connection:
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         initial = connection.execute("SELECT initial_snapshot_id FROM notebooks WHERE id='legacy'")
         assert initial.fetchone()[0] == "old"
-    with sqlite3.connect(tmp_path / "db.before-v2.sqlite3") as before:
-        assert before.execute("PRAGMA user_version").fetchone()[0] == 1
+        for table, expected in preserved.items():
+            assert [tuple(row) for row in connection.execute(f"SELECT * FROM {table}")] == expected
+        assert connection.execute("SELECT COUNT(*) FROM source_contents").fetchone()[0] == 0
+    from evidra.scope.service import ScopeService
+    from evidra.security.runtime import BridgeSession, RuntimeSettings
+
+    ScopeService(
+        database,
+        BridgeSession(
+            RuntimeSettings(
+                data_dir=tmp_path,
+                profile_instance_id="p",
+                session_token=SecretStr(TOKEN),
+                port=49200,
+            )
+        ),
+    )
+    with database.transaction() as connection:
+        assert (
+            connection.execute("SELECT COUNT(*) FROM sources WHERE available=1").fetchone()[0] == 0
+        )
+    with sqlite3.connect(tmp_path / "db.before-v3.sqlite3") as before:
+        assert before.execute("PRAGMA user_version").fetchone()[0] == legacy_version
         assert before.execute("SELECT COUNT(*) FROM notebooks").fetchone()[0] == 1
     with pytest.raises(sqlite3.IntegrityError), database.transaction() as connection:
         connection.execute("INSERT INTO snapshots VALUES ('s','p','missing','now',1)")
     database.backup(tmp_path / "copy.sqlite3")
     with sqlite3.connect(tmp_path / "copy.sqlite3") as backup:
-        assert backup.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == 3
     database.close()
     with pytest.raises(EvidraError, match="closed"), database.transaction():
         pass
     migration_dir = tmp_path / "migrations"
     migration_dir.mkdir()
-    (migration_dir / "003_initial.sql").write_text(
+    (migration_dir / "004_initial.sql").write_text(
         "CREATE TABLE should_rollback (id TEXT);\nINVALID SQL;\n", encoding="utf-8"
     )
     with monkeypatch.context() as patch:
-        patch.setattr(storage, "SCHEMA_VERSION", 3)
+        patch.setattr(storage, "SCHEMA_VERSION", 4)
         patch.setattr(storage, "files", lambda package: migration_dir)
         with pytest.raises(sqlite3.OperationalError):
             storage.Database(path)
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         assert (
             connection.execute(
                 "SELECT name FROM sqlite_master WHERE name='should_rollback'"
@@ -204,7 +283,7 @@ def test_database_backup_rollback_future_schema_and_close(tmp_path: Path, monkey
             is None
         )
         connection.execute("PRAGMA user_version=999")
-    assert (tmp_path / "db.before-v3.sqlite3").exists()
+    assert (tmp_path / "db.before-v4.sqlite3").exists()
     with pytest.raises(EvidraError, match="newer engine"):
         storage.Database(path)
 

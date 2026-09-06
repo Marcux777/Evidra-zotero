@@ -1,5 +1,5 @@
 import type { NativeSourceAPI, NativeSourceItem, NativeSourcePane } from '../bridge/native-types';
-import type { SelectionSpec, Selector, SourceContent, SourceIdentity, SourceInput } from '../bridge/types';
+import type { SelectionSpec, Selector, SourceAccess, SourceContent, SourceIdentity, SourceInput } from '../bridge/types';
 
 export interface UnavailableSource { identity: SourceIdentity; reason: 'archived' | 'missing' | 'library_missing' | 'deleted' | 'content_excluded' }
 export interface NativeSelection { items: SourceInput[]; unavailable: UnavailableSource[]; observed: Map<number, SourceIdentity> }
@@ -28,8 +28,17 @@ export function libraryAvailability(api: NativeSourceAPI, library: number): 'lib
     return null;
 }
 
-export async function resolveSelection(api: NativeSourceAPI, profile: string, spec: SelectionSpec): Promise<NativeSelection> {
-    const resolved = new Map<string, { parent: NativeSourceItem; all: boolean; selected: Map<string, NativeSourceItem> }>();
+export function resolveSelection(api: NativeSourceAPI, profile: string, spec: SelectionSpec): Promise<NativeSelection> {
+    return resolve(api, profile, spec);
+}
+
+export function revalidateSelection(api: NativeSourceAPI, profile: string, access: SourceAccess[]): Promise<NativeSelection> {
+    return resolve(api, profile, { selectors: [], include_selected_containers: false, include_descendants: false,
+        tag_mode: 'AND', pdf_only: false, include_notes: true, include_annotations: true }, access);
+}
+
+async function resolve(api: NativeSourceAPI, profile: string, spec: SelectionSpec, access?: SourceAccess[]): Promise<NativeSelection> {
+    const resolved = new Map<string, { parent: NativeSourceItem; all: boolean; selected: Map<string, NativeSourceItem>; allowed?: SourceAccess['contents'] }>();
     const unavailable = new Map<string, UnavailableSource>();
     const observed = new Map<number, SourceIdentity>();
     const identity = (i: NativeSourceItem): SourceIdentity => ({ profile_instance_id: profile, library_id: i.libraryID, item_key: i.key });
@@ -56,6 +65,37 @@ export async function resolveSelection(api: NativeSourceAPI, profile: string, sp
         entry.all ||= item.isRegularItem();
         if (!item.isRegularItem()) entry.selected.set(item.key, item);
         resolved.set(key, entry);
+    }
+    for (const authorized of access ?? []) {
+        const id = authorized.identity;
+        if (id.profile_instance_id !== profile) throw new Error('INVALID_SOURCE_PROFILE');
+        const reason = libraryAvailability(api, id.library_id);
+        if (reason) { reject(id, reason); continue; }
+        const parent = await api.Items.getByLibraryAndKeyAsync(id.library_id, id.item_key);
+        if (!parent || parent.deleted) { reject(id, parent ? 'deleted' : 'missing'); continue; }
+        if (parent.parentID || parent.isAnnotation()) throw new Error('INVALID_SOURCE_PARENT');
+        const selected = new Map<string, NativeSourceItem>();
+        observed.set(parent.id, id);
+        for (const content of authorized.contents) {
+            if (content.kind === 'abstract') continue;
+            const item = content.key === parent.key ? parent : await api.Items.getByLibraryAndKeyAsync(id.library_id, content.key);
+            if (!item || item.deleted) continue;
+            let ancestor = item;
+            const visited = new Set<number>();
+            while (ancestor.parentID && ancestor.id !== parent.id) {
+                if (visited.has(ancestor.id)) throw new Error('INVALID_SOURCE_PARENT');
+                visited.add(ancestor.id);
+                const next = ancestor.parentID === parent.id ? parent : await api.Items.getAsync(ancestor.parentID);
+                if (!next || next.deleted) break;
+                if (next.libraryID !== id.library_id) throw new Error('INVALID_SOURCE_PARENT');
+                observed.set(next.id, id);
+                ancestor = next;
+            }
+            if (ancestor.id !== parent.id) continue;
+            observed.set(item.id, id);
+            selected.set(content.key, item);
+        }
+        resolved.set(identityKey(id), { parent, all: false, selected, allowed: authorized.contents });
     }
     for (const selector of spec.selectors ?? []) {
         const reason = libraryAvailability(api, selector.library_id);
@@ -121,11 +161,14 @@ export async function resolveSelection(api: NativeSourceAPI, profile: string, sp
             else if (item.isPDFAttachment()) kind = 'pdf';
             else if (item.isFileAttachment() && /^(text\/|application\/(epub\+zip|xhtml\+xml))/.test(item.attachmentContentType)) kind = 'text_attachment';
             else return;
+            if (entry.allowed && !entry.allowed.some(c => c.key === item.key && c.kind === kind)) return;
             contents.set(item.key, { key: item.key, kind, role: 'unassigned', title: String(item.getField('title')), version: `${item.version}:${item.getField('dateModified')}` });
             if (entry.all && spec.include_annotations && item.isFileAttachment()) {
                 for (const annotation of item.getAnnotations(false)) await addContent(annotation);
             }
         };
+        if (entry.allowed?.some(c => c.key === parent.key && c.kind === 'abstract') && parent.getField('abstractNote'))
+            contents.set(parent.key, { key: parent.key, kind: 'abstract', role: 'unassigned', title: '', version: `${parent.version}:${parent.getField('dateModified')}` });
         if (entry.all) {
             if (parent.getField('abstractNote')) contents.set(parent.key, { key: parent.key, kind: 'abstract', role: 'unassigned', title: '', version: `${parent.version}:${parent.getField('dateModified')}` });
             const ids = [...parent.getAttachments(false), ...(spec.include_notes ? parent.getNotes(false) : [])];

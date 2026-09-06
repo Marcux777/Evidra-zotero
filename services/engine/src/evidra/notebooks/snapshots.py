@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 from evidra.domain.errors import EvidraError
 from evidra.domain.sources import (
+    ContentIdentity,
     IdentityPage,
     Invalidation,
     InvalidationResult,
@@ -24,7 +25,9 @@ from evidra.domain.sources import (
     Source,
     SourcePage,
     SourceSync,
+    content_version,
     filtered,
+    metadata_version,
 )
 from evidra.scope.service import Principal, ScopeService
 
@@ -42,6 +45,7 @@ class SnapshotService:
             self.scopes.notebook(connection, principal, notebook_id)
             stage_id = request.stage_id
             versions: dict[str, str] = {}
+            access: dict[str, list[ContentIdentity]] = {}
             if request.purpose == "selection":
                 if stage_id is None:
                     stage_id = secrets.token_hex(16)
@@ -64,19 +68,25 @@ class SnapshotService:
             elif stage_id is not None:
                 stage = self.scopes.selection_stage(connection, notebook_id, stage_id)
                 versions = json.loads(stage["versions"])
+                access = self.scopes.stage_access(connection, stage)
+            elif request.snapshot_id is not None:
+                access = {
+                    s.identity.source_id: s.contents
+                    for s in self.scopes.snapshot_access(
+                        connection, notebook_id, request.snapshot_id
+                    )
+                }
             result: dict[str, Source] = {}
             for item in request.items:
                 if item.identity.profile_instance_id != principal.profile_instance_id:
                     raise EvidraError("FORBIDDEN", "Source belongs to another profile.")
                 source_id = item.identity.source_id
                 if request.purpose == "revalidation":
-                    grant = connection.execute(
-                        "SELECT 1 FROM notebook_grants WHERE notebook_id=? AND source_id=?",
-                        (notebook_id, source_id),
-                    ).fetchone()
-                    if grant is None and source_id not in versions:
+                    if source_id not in access or not {(c.key, c.kind) for c in item.contents} <= {
+                        (c.key, c.kind) for c in access[source_id]
+                    }:
                         raise EvidraError(
-                            "FORBIDDEN", "Revalidation requires existing source authority."
+                            "FORBIDDEN", "Revalidation requires exact existing content authority."
                         )
                 version_id = hashlib.sha256(item.model_dump_json().encode()).hexdigest()
                 value = Source(
@@ -92,23 +102,58 @@ class SnapshotService:
                     "ON CONFLICT(profile_instance_id,library_id) DO UPDATE SET available=1",
                     (principal.profile_instance_id, item.identity.library_id),
                 )
+                metadata = metadata_version(item)
+                previous = connection.execute(
+                    "SELECT metadata_version FROM sources WHERE id=?", (source_id,)
+                ).fetchone()
+                if previous is not None and previous[0] != metadata:
+                    connection.execute(
+                        "UPDATE source_contents SET available=0,access_revision=access_revision+1"
+                        " WHERE source_id=?",
+                        (source_id,),
+                    )
                 connection.execute(
-                    "INSERT INTO sources VALUES (?,?,?,?,?,1,1,NULL) "
+                    "INSERT INTO sources "
+                    "(id,profile_instance_id,library_id,item_key,version_id,available,access_revision,reason,metadata_version)"
+                    " VALUES (?,?,?,?,?,1,1,NULL,?) "
                     "ON CONFLICT(id) DO UPDATE SET version_id=excluded.version_id,available=1, "
                     "access_revision=sources.access_revision + CASE WHEN sources.available=0 "
-                    "OR sources.version_id!=excluded.version_id THEN 1 ELSE 0 END,reason=NULL",
+                    "OR sources.metadata_version!=excluded.metadata_version THEN 1 ELSE 0 "
+                    "END,reason=NULL,metadata_version=excluded.metadata_version",
                     (
                         source_id,
                         principal.profile_instance_id,
                         item.identity.library_id,
                         item.identity.item_key,
                         version_id,
+                        metadata,
                     ),
                 )
                 connection.execute(
                     "INSERT OR IGNORE INTO source_versions VALUES (?,?,?)",
                     (source_id, version_id, value.model_dump_json()),
                 )
+                for content in item.contents:
+                    connection.execute(
+                        "INSERT INTO source_contents VALUES (?,?,?,?,1,1) ON "
+                        "CONFLICT(source_id,key) DO UPDATE SET "
+                        "kind=excluded.kind,version_id=excluded.version_id,available=1,access_revision=source_contents.access_revision"
+                        " + "
+                        "CASE WHEN source_contents.available=0 OR "
+                        "source_contents.kind!=excluded.kind OR "
+                        "source_contents.version_id!=excluded.version_id THEN 1 ELSE 0 END",
+                        (source_id, content.key, content.kind, content_version(content)),
+                    )
+                if request.purpose == "revalidation":
+                    present = {(c.key, c.kind) for c in item.contents}
+                    for expected_content in access[source_id]:
+                        if (expected_content.key, expected_content.kind) not in present:
+                            connection.execute(
+                                "UPDATE source_contents SET "
+                                "available=0,access_revision=access_revision+1 WHERE source_id=? "
+                                "AND key=? AND kind=? AND available=1",
+                                (source_id, expected_content.key, expected_content.kind),
+                            )
                 result[source_id] = value
                 if request.purpose == "selection":
                     versions[source_id] = version_id
@@ -158,6 +203,12 @@ class SnapshotService:
                     ).rowcount
                     if changed:
                         affected.add(identity.source_id)
+            for source_id in affected:
+                connection.execute(
+                    "UPDATE source_contents SET available=0,access_revision=access_revision+1 "
+                    "WHERE source_id=?",
+                    (source_id,),
+                )
             self.scopes.invalidate_staging(connection, source_ids=affected)
             return InvalidationResult(invalidated_count=len(affected))
 
@@ -173,18 +224,22 @@ class SnapshotService:
             items, removed = [], []
             for source_id in versions:
                 row = connection.execute(
-                    "SELECT v.payload,s.available,s.version_id,l.available AS library_access "
+                    "SELECT v.payload,s.available,l.available AS library_access "
                     "FROM sources s JOIN source_versions v ON v.source_id=s.id "
-                    "AND v.version_id=s.version_id JOIN source_libraries l "
+                    "AND v.version_id=? JOIN source_libraries l "
                     "ON l.profile_instance_id=s.profile_instance_id AND l.library_id=s.library_id "
                     "WHERE s.id=? AND s.profile_instance_id=?",
-                    (source_id, principal.profile_instance_id),
+                    (versions[source_id], source_id, principal.profile_instance_id),
                 ).fetchone()
                 if row is None:
                     raise EvidraError("NOT_FOUND", "Selected source not found.")
-                if row["version_id"] != versions[source_id]:
-                    raise EvidraError("SCOPE_STALE", "The staged source version has changed.")
                 source = Source.model_validate_json(row["payload"])
+                if (
+                    row["available"]
+                    and row["library_access"]
+                    and not self.scopes.source_current(connection, source)
+                ):
+                    raise EvidraError("SCOPE_STALE", "The staged source version has changed.")
                 value, reason = filtered(source, request.selection)
                 if not row["available"] or not row["library_access"]:
                     value, reason = None, "unavailable"
@@ -238,7 +293,9 @@ class SnapshotService:
                     preview.id,
                     notebook_id,
                     preview.model_dump_json(),
-                    self.scopes.fingerprint(connection, list(candidates)),
+                    self.scopes.fingerprint(
+                        connection, list(candidates), self.scopes.stage_access(connection, stage)
+                    ),
                     request.stage_id,
                     json.dumps(sorted(candidates)),
                 ),
@@ -302,10 +359,14 @@ class SnapshotService:
             if row is None:
                 raise EvidraError("NOT_FOUND", "Preview not found.")
             preview = SelectionPreview.model_validate_json(row["payload"])
-            self.scopes.selection_stage(connection, notebook_id, row["stage_id"])
+            stage = self.scopes.selection_stage(connection, notebook_id, row["stage_id"])
             if preview.expected_revision != notebook["revision"] or row[
                 "fingerprint"
-            ] != self.scopes.fingerprint(connection, json.loads(row["candidate_ids"])):
+            ] != self.scopes.fingerprint(
+                connection,
+                json.loads(row["candidate_ids"]),
+                self.scopes.stage_access(connection, stage),
+            ):
                 raise EvidraError("SCOPE_STALE", "Selection changed; request a new preview.")
             return self._preview_page(preview, offset, limit)
 
@@ -353,12 +414,15 @@ class SnapshotService:
             if row is None:
                 raise EvidraError("NOT_FOUND", "Preview not found.")
             preview = SelectionPreview.model_validate_json(row["payload"])
-            self.scopes.selection_stage(connection, notebook_id, row["stage_id"])
+            stage = self.scopes.selection_stage(connection, notebook_id, row["stage_id"])
             ids = json.loads(row["candidate_ids"])
             if (
                 request.expected_revision != notebook["revision"]
                 or preview.expected_revision != notebook["revision"]
-                or row["fingerprint"] != self.scopes.fingerprint(connection, ids)
+                or row["fingerprint"]
+                != self.scopes.fingerprint(
+                    connection, ids, self.scopes.stage_access(connection, stage)
+                )
             ):
                 raise EvidraError("SCOPE_STALE", "Selection changed; request a new preview.")
             snapshot_id, now = secrets.token_hex(16), datetime.now(UTC).isoformat()
@@ -452,8 +516,10 @@ class SnapshotService:
             )
             for row in rows[offset : offset + limit]:
                 source = SnapshotSource(
-                    source=self.scopes.content(row),
-                    state="current" if row["version_id"] == row["current_version"] else "stale",
+                    source=self.scopes.content(connection, row),
+                    state="current"
+                    if self.scopes.source_current(connection, self.scopes.frozen_content(row))
+                    else "stale",
                 )
                 candidate = page.model_copy(
                     update={"items": [*page.items, source], "limit": page.limit + 1}
@@ -473,26 +539,12 @@ class SnapshotService:
         with self.database.transaction() as connection:
             self.scopes.authorize(principal, "manage")
             self.scopes.notebook(connection, principal, notebook_id)
-            if (
-                connection.execute(
-                    "SELECT 1 FROM snapshots WHERE notebook_id=? AND id=?",
-                    (notebook_id, snapshot_id),
-                ).fetchone()
-                is None
-            ):
-                raise EvidraError("NOT_FOUND", "Snapshot not found.")
-            rows = connection.execute(
-                "SELECT s.profile_instance_id,s.library_id,s.item_key "
-                "FROM snapshot_members m JOIN notebook_grants g ON g.source_id=m.source_id "
-                "AND g.notebook_id=? JOIN sources s ON s.id=m.source_id "
-                "WHERE m.snapshot_id=? ORDER BY s.id",
-                (notebook_id, snapshot_id),
-            ).fetchall()
+            rows = self.scopes.snapshot_access(connection, notebook_id, snapshot_id)
             # Deliberately no title/content and no availability filter: temporary revocation
             # must be recheckable, whereas removed notebook grants never appear here.
             return IdentityPage.model_validate(
                 dict(
-                    items=[dict(r) for r in rows[offset : offset + limit]],
+                    items=rows[offset : offset + limit],
                     offset=offset,
                     limit=limit,
                     total=len(rows),

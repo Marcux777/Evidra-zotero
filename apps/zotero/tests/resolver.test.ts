@@ -165,6 +165,40 @@ test('saved-search child normalization preserves only selected content and enfor
     expect(result.unavailable[0].reason).toBe('deleted');
 });
 
+test('reading a child-only snapshot revalidates that content without consulting its sibling', async () => {
+    const { SourceBridge } = await import('../src/bridge/sources');
+    const { resolveSelection } = await production();
+    const f = fixture();
+    const selection = { selectors: [{ kind: 'item', library_id: 1, key: 'PDFSUPP1' }] };
+    const captured = await resolveSelection(f.api, 'p1', selection);
+    expect(captured.items[0].contents.map((content: any) => content.key)).toEqual(['PDFSUPP1']);
+    const revalidated: any[] = [];
+    const engine = { request: async (_: string, path: string, body?: any) => {
+        if (path.includes('/snapshots?')) return { items: [{ selection }], total: 1, offset: 0, limit: 1 };
+        if (path.includes('/identities')) return { items: [{ identity: { profile_instance_id: 'p1', library_id: 1, item_key: 'SAMEKEY1' }, contents: [{ key: 'PDFSUPP1', kind: 'pdf' }] }], total: 1, offset: 0, limit: 100 };
+        if (path.endsWith('/sources/sync')) { revalidated.push(...body.items); return { items: [], offset: 0, limit: 0, total: 0, stage_id: null }; }
+        if (path.includes('/sources?')) return { items: [], offset: 0, limit: 0, total: 0, unavailable_count: 0 };
+        throw new Error(`Unexpected source path ${path}`);
+    }, stop: async () => {} };
+    const api = { ...f.api, Notifier: { registerObserver: () => 'observer', unregisterObserver() {} } };
+    const bridge = new SourceBridge(api as any, engine, 'p1', () => {});
+    f.fetched.length = 0;
+    try {
+        await bridge.read('notebook', 'snapshot', 0);
+        expect(f.fetched).not.toContain(11);
+        expect(revalidated[0].contents.map((content: any) => content.key)).toEqual(['PDFSUPP1']);
+        f.items.get(10).getAttachments = () => { throw new Error('UNSELECTED_SIBLING_ENUMERATION'); };
+        f.items.get(12).getTags = () => [{ tag: 'evidra:ai' }];
+        await bridge.read('notebook', 'snapshot', 0);
+        expect(revalidated[1].contents).toEqual([]);
+        f.items.get(12).getTags = () => [];
+        f.items.get(12).deleted = true;
+        await bridge.read('notebook', 'snapshot', 0);
+        expect(revalidated[2].contents).toEqual([]);
+        expect(f.fetched).not.toContain(11);
+    } finally { bridge.shutdown(); }
+});
+
 test.each([
     { kind: 'attachment', includeNotes: false, ai: false, expected: 'pdf' },
     { kind: 'note', includeNotes: false, ai: false, expected: null },
@@ -197,7 +231,7 @@ test.each(['notification', 'preflight'])('privileged source preflight precedes c
     const api = { ...f.api, Notifier: { registerObserver: (value: any) => { observer = value; return 'observer'; }, unregisterObserver: () => { removed = true; } } };
     const transport = { request: async (_method: string, path: string, body?: any) => {
         calls.push(path);
-        if (path.includes('/identities')) return { items: [readIdentity], total: 1, offset: 0, limit: 100 };
+        if (path.includes('/identities')) return { items: [{ identity: readIdentity, contents: [{ key: readIdentity.item_key === 'DIRECT01' ? 'DIRECT01' : 'GROUPPDF', kind: readIdentity.item_key === 'DIRECT01' ? 'human_note' : 'pdf' }] }], total: 1, offset: 0, limit: 100 };
         if (path.endsWith('/sources/sync')) { synced.push(body); return { items: body.items.map((s: any) => ({ ...s, id: 'a'.repeat(64), version_id: 'v', year_state: 'known' })), total: 1, offset: 0, limit: 1, stage_id: body.stage_id }; }
         if (path === '/v1/sources/invalidate') { if (deny) throw new Error('INVALIDATION_FAILURE'); invalidated.push(body); return { revision: 0 }; }
         if (path.includes('/snapshots?')) return { items: [{ id: 'snapshot', selection: { include_notes: true } }], total: 1, offset: 0, limit: 1 };
@@ -294,7 +328,7 @@ test('selection batches bind one completed server stage; empty selection, revali
         await expect(bridge.create('notebook', request)).rejects.toThrow('SCOPE_STALE');
         expect(commits).toHaveLength(1);
         const empty = await bridge.preview('notebook', options, { ...pane, getSelectedItems: () => [] });
-        expect(synced.at(-1)).toEqual({ items: [], purpose: 'selection', stage_id: null, final: true });
+        expect(synced.at(-1)).toEqual({ items: [], purpose: 'selection', stage_id: null, snapshot_id: null, final: true });
         expect(previews.at(-1).selection.selectors).toEqual([]);
         const containers = await bridge.preview('notebook', { ...options, include_selected_containers: true }, f.pane);
         expect(previews.at(-1).selection.selectors?.map((s: any) => s.kind)).toEqual(['collection', 'collection', 'item', 'item']);

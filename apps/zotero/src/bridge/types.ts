@@ -9,6 +9,7 @@ export type SourceInput = components['schemas']['SourceInput'];
 export type SourceSync = components['schemas']['SourceSync'];
 export type Source = components['schemas']['Source'];
 export type SourceIdentity = components['schemas']['SourceIdentity'];
+export type SourceAccess = components['schemas']['SourceAccess'];
 export type SourceContent = components['schemas']['SourceContent'];
 export type SourcePage = components['schemas']['SourcePage'];
 export type SelectionSpec = components['schemas']['SelectionSpec'];

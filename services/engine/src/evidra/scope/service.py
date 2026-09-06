@@ -16,7 +16,13 @@ from dataclasses import dataclass, field, replace
 from typing import Literal
 
 from evidra.domain.errors import EvidraError
-from evidra.domain.sources import Source
+from evidra.domain.sources import (
+    ContentIdentity,
+    Source,
+    SourceAccess,
+    content_version,
+    metadata_version,
+)
 from evidra.security.runtime import BridgeSession
 from evidra.storage.database import Database
 
@@ -53,6 +59,11 @@ class ScopeService:
             connection.execute(
                 "UPDATE sources SET available=0,access_revision=access_revision+1, "
                 "reason='revalidation_required' WHERE profile_instance_id=?",
+                (self.principal.profile_instance_id,),
+            )
+            connection.execute(
+                "UPDATE source_contents SET available=0,access_revision=access_revision+1 "
+                "WHERE source_id IN (SELECT id FROM sources WHERE profile_instance_id=?)",
                 (self.principal.profile_instance_id,),
             )
             for table in ("selection_previews", "selection_stages"):
@@ -122,37 +133,128 @@ class ScopeService:
         self, connection: sqlite3.Connection, notebook_id: str, snapshot_id: str
     ) -> list[sqlite3.Row]:
         return connection.execute(
-            "SELECT m.*, s.version_id AS current_version, s.access_revision, "
-            "v.payload AS current_payload, g.contents AS granted_contents FROM snapshot_members m "
+            "SELECT m.*, s.metadata_version, s.access_revision, "
+            "g.contents AS granted_contents FROM snapshot_members m "
             "JOIN notebook_grants g ON g.source_id=m.source_id AND g.notebook_id=? "
             "JOIN sources s ON s.id=m.source_id JOIN source_libraries l "
             "ON l.profile_instance_id=s.profile_instance_id AND l.library_id=s.library_id "
-            "JOIN source_versions v ON v.source_id=s.id AND v.version_id=s.version_id "
             "WHERE m.snapshot_id=? AND s.available=1 AND l.available=1 ORDER BY m.source_id",
             (notebook_id, snapshot_id),
         ).fetchall()
 
     @staticmethod
-    def content(row: sqlite3.Row) -> Source:
+    def frozen_content(row: sqlite3.Row) -> Source:
         frozen = Source.model_validate_json(row["payload"])
-        current = Source.model_validate_json(row["current_payload"])
         granted = {tuple(c) for c in json.loads(row["granted_contents"])}
-        allowed = {(c.key, c.kind) for c in current.contents} & granted
+        return frozen.model_copy(
+            update={"contents": [c for c in frozen.contents if (c.key, c.kind) in granted]}
+        )
+
+    def content(self, connection: sqlite3.Connection, row: sqlite3.Row) -> Source:
+        frozen = self.frozen_content(row)
+        current = connection.execute(
+            "SELECT key,kind FROM source_contents WHERE source_id=? AND available=1", (frozen.id,)
+        ).fetchall()
+        allowed = {(c["key"], c["kind"]) for c in current}
         return frozen.model_copy(
             update={"contents": [c for c in frozen.contents if (c.key, c.kind) in allowed]}
         )
 
-    def fingerprint(self, connection: sqlite3.Connection, source_ids: list[str]) -> str:
+    @staticmethod
+    def source_current(connection: sqlite3.Connection, source: Source) -> bool:
+        row = connection.execute(
+            "SELECT metadata_version FROM sources WHERE id=?", (source.id,)
+        ).fetchone()
+        if row is None or row[0] != metadata_version(source):
+            return False
+        for content in source.contents:
+            current = connection.execute(
+                "SELECT kind,version_id,available FROM source_contents WHERE source_id=? AND key=?",
+                (source.id, content.key),
+            ).fetchone()
+            if (
+                current is None
+                or not current["available"]
+                or current["kind"] != content.kind
+                or current["version_id"] != content_version(content)
+            ):
+                return False
+        return True
+
+    def member_access(self, rows: list[sqlite3.Row]) -> dict[str, list[ContentIdentity]]:
+        access = {}
+        for row in rows:
+            source = self.frozen_content(row)
+            access[source.id] = [ContentIdentity(key=c.key, kind=c.kind) for c in source.contents]
+        return access
+
+    def snapshot_access(
+        self, connection: sqlite3.Connection, notebook_id: str, snapshot_id: str
+    ) -> list[SourceAccess]:
+        if (
+            connection.execute(
+                "SELECT 1 FROM snapshots WHERE notebook_id=? AND id=?", (notebook_id, snapshot_id)
+            ).fetchone()
+            is None
+        ):
+            raise EvidraError("NOT_FOUND", "Snapshot not found.")
+        rows = connection.execute(
+            "SELECT m.*,g.contents AS granted_contents FROM snapshot_members m JOIN "
+            "notebook_grants g "
+            "ON g.source_id=m.source_id AND g.notebook_id=? WHERE m.snapshot_id=? ORDER BY "
+            "m.source_id",
+            (notebook_id, snapshot_id),
+        ).fetchall()
+        access = self.member_access(rows)
+        return [
+            SourceAccess(
+                identity=Source.model_validate_json(row["payload"]).identity,
+                contents=access[row["source_id"]],
+            )
+            for row in rows
+        ]
+
+    def stage_access(
+        self, connection: sqlite3.Connection, stage: sqlite3.Row
+    ) -> dict[str, list[ContentIdentity]]:
+        access = {}
+        for source_id, version in json.loads(stage["versions"]).items():
+            row = connection.execute(
+                "SELECT payload FROM source_versions WHERE source_id=? AND version_id=?",
+                (source_id, version),
+            ).fetchone()
+            source = Source.model_validate_json(row[0])
+            access[source_id] = [ContentIdentity(key=c.key, kind=c.kind) for c in source.contents]
+        return access
+
+    def fingerprint(
+        self,
+        connection: sqlite3.Connection,
+        source_ids: list[str],
+        content_access: dict[str, list[ContentIdentity]],
+    ) -> str:
         state = []
         for source_id in sorted(set(source_ids)):
             row = connection.execute(
-                "SELECT s.id,s.version_id,s.access_revision,s.available,"
+                "SELECT s.id,s.metadata_version,s.access_revision,s.available,"
                 "l.available AS library_access FROM sources s JOIN source_libraries l "
                 "ON l.profile_instance_id=s.profile_instance_id "
                 "AND l.library_id=s.library_id WHERE s.id=?",
                 (source_id,),
             ).fetchone()
-            state.append(dict(row) if row else {"id": source_id})
+            value = dict(row) if row else {"id": source_id}
+            content_state = []
+            for content in sorted(content_access[source_id], key=lambda c: (c.key, c.kind)):
+                current = connection.execute(
+                    "SELECT kind,version_id,available,access_revision FROM source_contents WHERE "
+                    "source_id=? AND key=?",
+                    (source_id, content.key),
+                ).fetchone()
+                content_state.append(
+                    [content.key, content.kind, dict(current) if current else None]
+                )
+            value["contents"] = content_state
+            state.append(value)
         return hmac.new(
             self._key, json.dumps(state, sort_keys=True).encode(), hashlib.sha256
         ).hexdigest()
@@ -187,9 +289,8 @@ class ScopeService:
                 is None
             ):
                 raise EvidraError("NOT_FOUND", "Snapshot not found.")
-            ids = frozenset(
-                row["source_id"] for row in self.members(connection, notebook_id, snapshot_id)
-            )
+            rows = self.members(connection, notebook_id, snapshot_id)
+            ids = frozenset(row["source_id"] for row in rows)
             context = ScopeContext(
                 principal,
                 notebook_id,
@@ -197,7 +298,7 @@ class ScopeService:
                 capability,
                 notebook["revision"],
                 ids,
-                self.fingerprint(connection, list(ids)),
+                self.fingerprint(connection, list(ids), self.member_access(rows)),
                 "",
             )
             return replace(context, signature=self._signature(context))
@@ -211,14 +312,13 @@ class ScopeService:
         ):
             raise EvidraError("FORBIDDEN", "Invalid server scope.")
         notebook = self.notebook(connection, context.principal, context.notebook_id)
-        ids = frozenset(
-            row["source_id"]
-            for row in self.members(connection, context.notebook_id, context.snapshot_id)
-        )
+        rows = self.members(connection, context.notebook_id, context.snapshot_id)
+        ids = frozenset(row["source_id"] for row in rows)
         if (
             notebook["revision"] != context.notebook_revision
             or ids != context.source_ids
-            or self.fingerprint(connection, list(ids)) != context.fingerprint
+            or self.fingerprint(connection, list(ids), self.member_access(rows))
+            != context.fingerprint
         ):
             raise EvidraError("SCOPE_STALE", "SCOPE_STALE: resolve the current scope again.")
 
@@ -246,7 +346,9 @@ class ScopeService:
                     ),
                     None,
                 )
-                if row is None or content_key not in {c.key for c in self.content(row).contents}:
+                if row is None or content_key not in {
+                    c.key for c in self.content(connection, row).contents
+                }:
                     raise EvidraError("SOURCE_REVOKED", "Content is outside current scope.")
             yield connection
             self._assert(connection, context, capability)
@@ -289,6 +391,11 @@ class ScopeService:
                 "UPDATE sources SET available=0,access_revision=access_revision+1, "
                 "reason=? WHERE id=?",
                 (reason, source_id),
+            )
+            connection.execute(
+                "UPDATE source_contents SET available=0,access_revision=access_revision+1 WHERE "
+                "source_id=?",
+                (source_id,),
             )
             self.invalidate_staging(connection, source_ids={source_id})
             return 0

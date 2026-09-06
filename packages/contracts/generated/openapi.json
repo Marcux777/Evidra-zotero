@@ -1852,6 +1852,36 @@
         ],
         "title": "AttachmentRole"
       },
+      "ContentIdentity": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Key"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "key",
+          "kind"
+        ],
+        "title": "ContentIdentity"
+      },
       "ErrorResponse": {
         "properties": {
           "code": {
@@ -1927,7 +1957,7 @@
         "properties": {
           "items": {
             "items": {
-              "$ref": "#/components/schemas/SourceIdentity"
+              "$ref": "#/components/schemas/SourceAccess"
             },
             "type": "array",
             "title": "Items"
@@ -2715,6 +2745,27 @@
         ],
         "title": "Source"
       },
+      "SourceAccess": {
+        "properties": {
+          "identity": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "contents": {
+            "items": {
+              "$ref": "#/components/schemas/ContentIdentity"
+            },
+            "type": "array",
+            "title": "Contents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "identity",
+          "contents"
+        ],
+        "title": "SourceAccess"
+      },
       "SourceChange": {
         "properties": {
           "revision": {
@@ -2982,6 +3033,18 @@
             ],
             "title": "Stage Id"
           },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
           "final": {
             "type": "boolean",
             "title": "Final"
@@ -2993,6 +3056,7 @@
           "items",
           "purpose",
           "stage_id",
+          "snapshot_id",
           "final"
         ],
         "title": "SourceSync"

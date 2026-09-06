@@ -31,11 +31,19 @@ def setup(client):
     return notebook["id"]
 
 
-def sync(client, notebook, sources, *, purpose="selection", stage_id=None, final=True):
+def sync(
+    client, notebook, sources, *, purpose="selection", stage_id=None, snapshot_id=None, final=True
+):
     return client.post(
         f"/v1/notebooks/{notebook}/sources/sync",
         headers=HEADERS,
-        json={"items": sources, "purpose": purpose, "stage_id": stage_id, "final": final},
+        json={
+            "items": sources,
+            "purpose": purpose,
+            "stage_id": stage_id,
+            "snapshot_id": snapshot_id,
+            "final": final,
+        },
     )
 
 
@@ -110,7 +118,13 @@ def test_snapshot_intersection_forgery_and_guarded_commit(tmp_path: Path):
         assert [s["source"]["id"] for s in page["items"]] == [ids[1]]
         assert page["unavailable_count"] == 1
         # Revalidation restores availability, never a removed notebook grant.
-        denied = sync(client, notebook, [source(), source(library=2)], purpose="revalidation")
+        denied = sync(
+            client,
+            notebook,
+            [source(), source(library=2)],
+            purpose="revalidation",
+            snapshot_id=snap["id"],
+        )
         assert denied.status_code == 403
         assert scopes.resolve(scopes.principal, notebook, snap["id"]).source_ids == {ids[1]}
         with scopes.database.transaction() as connection:
@@ -221,11 +235,88 @@ def test_content_opt_in_and_current_content_authorization(tmp_path: Path):
             notebook,
             [original | {"contents": [original["contents"][0]]}],
             purpose="revalidation",
+            snapshot_id=next_snap["id"],
         )
         page = client.get(
             f"/v1/notebooks/{notebook}/snapshots/{next_snap['id']}/sources", headers=HEADERS
         ).json()
         assert [c["key"] for c in page["items"][0]["source"]["contents"]] == ["P"]
+        # A second notebook observes a different authorized view of the same item.
+        first_view = client.post(
+            "/v1/notebooks", headers=HEADERS, json=dict(name="PDF P", idempotency_key="view-p")
+        ).json()["id"]
+        second_view = client.post(
+            "/v1/notebooks", headers=HEADERS, json=dict(name="PDF S", idempotency_key="view-s")
+        ).json()["id"]
+        base = source("VIEW0001")
+        p = base | {"contents": [dict(key="PDFP", kind="pdf", version="1")]}
+        s = base | {"contents": [dict(key="PDFS", kind="pdf", version="1")]}
+        first_snapshot, _, _ = capture(client, first_view, [p])
+        scopes = app.state.services.scopes
+        before_other_view = scopes.resolve(scopes.principal, first_view, first_snapshot["id"])
+        second_snapshot, _, _ = capture(client, second_view, [s])
+        scopes.assert_current(before_other_view)
+        page = client.get(
+            f"/v1/notebooks/{first_view}/snapshots/{first_snapshot['id']}/sources", headers=HEADERS
+        ).json()
+        assert page["items"][0]["state"] == "current"
+        assert [c["key"] for c in page["items"][0]["source"]["contents"]] == ["PDFP"]
+        from evidra.domain.errors import EvidraError
+
+        second_context = scopes.resolve(scopes.principal, second_view, second_snapshot["id"])
+        first_path = f"/v1/notebooks/{first_view}/snapshots/{first_snapshot['id']}"
+        access = client.get(first_path + "/identities", headers=HEADERS).json()["items"]
+        assert access == [dict(identity=p["identity"], contents=[dict(key="PDFP", kind="pdf")])]
+        broadened = sync(
+            client, first_view, [s], purpose="revalidation", snapshot_id=first_snapshot["id"]
+        )
+        assert broadened.status_code == 403
+        missing_authority = sync(client, first_view, [p], purpose="revalidation")
+        assert missing_authority.status_code == 422
+        disappeared = sync(
+            client,
+            first_view,
+            [p | {"contents": []}],
+            purpose="revalidation",
+            snapshot_id=first_snapshot["id"],
+        )
+        assert disappeared.status_code == 200
+        with pytest.raises(EvidraError, match="SCOPE_STALE"):
+            scopes.assert_current(before_other_view)
+        scopes.assert_current(second_context)
+        assert (
+            client.get(first_path + "/sources", headers=HEADERS).json()["items"][0]["source"][
+                "contents"
+            ]
+            == []
+        )
+        restored = sync(
+            client, first_view, [p], purpose="revalidation", snapshot_id=first_snapshot["id"]
+        )
+        assert restored.status_code == 200
+        with pytest.raises(EvidraError, match="SCOPE_STALE"):
+            scopes.assert_current(before_other_view)
+        scopes.assert_current(second_context)
+        source_id = restored.json()["items"][0]["id"]
+        scopes.revoke_access(source_id)
+        assert (
+            sync(
+                client, first_view, [p], purpose="revalidation", snapshot_id=first_snapshot["id"]
+            ).status_code
+            == 200
+        )
+        fresh_second = scopes.resolve(scopes.principal, second_view, second_snapshot["id"])
+        with pytest.raises(EvidraError, match="outside current scope"):
+            with scopes.guarded(fresh_second, source_id=source_id, content_key="PDFS"):
+                pytest.fail("An unchecked sibling was restored by another notebook's preflight")
+        assert (
+            sync(
+                client, second_view, [s], purpose="revalidation", snapshot_id=second_snapshot["id"]
+            ).status_code
+            == 200
+        )
+        with pytest.raises(EvidraError, match="SCOPE_STALE"):
+            scopes.assert_current(second_context)
 
 
 def test_restart_requires_native_preflight_without_resurrecting_grants(tmp_path: Path):
@@ -241,9 +332,12 @@ def test_restart_requires_native_preflight_without_resurrecting_grants(tmp_path:
         identities = client.get(path + "/identities", headers=HEADERS)
         assert identities.status_code == 200
         assert identities.json()["items"] == [
-            dict(profile_instance_id="profile-a", library_id=2, item_key="SAMEKEY1")
+            dict(
+                identity=dict(profile_instance_id="profile-a", library_id=2, item_key="SAMEKEY1"),
+                contents=[dict(key="SAMEKEY1PDF", kind="pdf")],
+            )
         ]
-        sync(client, notebook, [source(library=2)], purpose="revalidation")
+        sync(client, notebook, [source(library=2)], purpose="revalidation", snapshot_id=snap["id"])
         page = client.get(path + "/sources", headers=HEADERS).json()
         assert [s["source"]["identity"]["library_id"] for s in page["items"]] == [2]
         assert (
@@ -319,7 +413,7 @@ def test_library_revocation_never_restores_unvalidated_sources_or_aba_contexts(t
         second = client.post(
             "/v1/notebooks", headers=HEADERS, json=dict(name="Second", idempotency_key="second")
         ).json()["id"]
-        capture(client, first, [source("FIRST001")])
+        first_snap, _, _ = capture(client, first, [source("FIRST001")])
         snap, _, _ = capture(client, second, [source("SECOND01")])
         scopes = app.state.services.scopes
         context = scopes.resolve(scopes.principal, second, snap["id"], capability="commit")
@@ -328,9 +422,15 @@ def test_library_revocation_never_restores_unvalidated_sources_or_aba_contexts(t
             headers=HEADERS,
             json={"identities": [source("FIRST001")["identity"]], "reason": "archived"},
         )
-        sync(client, first, [source("FIRST001")], purpose="revalidation")
+        sync(
+            client,
+            first,
+            [source("FIRST001")],
+            purpose="revalidation",
+            snapshot_id=first_snap["id"],
+        )
         assert scopes.resolve(scopes.principal, second, snap["id"]).source_ids == set()
-        sync(client, second, [source("SECOND01")], purpose="revalidation")
+        sync(client, second, [source("SECOND01")], purpose="revalidation", snapshot_id=snap["id"])
         with pytest.raises(EvidraError) as error:
             with scopes.guarded(context, capability="commit"):
                 pytest.fail("pre-revocation computation was permitted to commit after restoration")
@@ -348,7 +448,13 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
         result = client.post(
             f"/v1/notebooks/{notebook}/sources/sync",
             headers=HEADERS,
-            json={"items": [first], "purpose": "selection", "stage_id": None, "final": False},
+            json={
+                "items": [first],
+                "purpose": "selection",
+                "stage_id": None,
+                "snapshot_id": None,
+                "final": False,
+            },
         )
         assert result.status_code == 200, "explicit selection staging is missing"
         staged = result.json()
@@ -365,6 +471,7 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
                 "items": [source("SECOND01")],
                 "purpose": "selection",
                 "stage_id": staged["stage_id"],
+                "snapshot_id": None,
                 "final": True,
             },
         )
@@ -390,7 +497,13 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
         own_empty = client.post(
             f"/v1/notebooks/{other}/sources/sync",
             headers=HEADERS,
-            json={"items": [], "purpose": "selection", "stage_id": None, "final": True},
+            json={
+                "items": [],
+                "purpose": "selection",
+                "stage_id": None,
+                "snapshot_id": None,
+                "final": True,
+            },
         ).json()
         forged = client.post(
             f"/v1/notebooks/{other}/sources/preview",
@@ -406,7 +519,15 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
         preflight = client.post(
             f"/v1/notebooks/{other}/sources/sync",
             headers=HEADERS,
-            json={"items": [first], "purpose": "revalidation", "stage_id": None, "final": True},
+            json={
+                "items": [first],
+                "purpose": "revalidation",
+                "stage_id": None,
+                "snapshot_id": client.get(f"/v1/notebooks/{other}", headers=HEADERS).json()[
+                    "initial_snapshot_id"
+                ],
+                "final": True,
+            },
         )
         assert preflight.status_code == 403
         # A legitimate broader native selection elsewhere cannot widen the child-only stage.
@@ -416,13 +537,27 @@ def test_selection_staging_is_session_notebook_version_and_batch_bound(tmp_path:
         client.post(
             f"/v1/notebooks/{other}/sources/sync",
             headers=HEADERS,
-            json={"items": [broader], "purpose": "selection", "stage_id": None, "final": True},
+            json={
+                "items": [broader],
+                "purpose": "selection",
+                "stage_id": None,
+                "snapshot_id": None,
+                "final": True,
+            },
         )
-        assert client.post(path, headers=HEADERS, json=request).status_code == 409
+        bounded = client.post(path, headers=HEADERS, json=request)
+        assert bounded.status_code == 200
+        assert [c["key"] for c in bounded.json()["items"][0]["contents"]] == ["ONLYPDF2"]
         empty = client.post(
             f"/v1/notebooks/{notebook}/sources/sync",
             headers=HEADERS,
-            json={"items": [], "purpose": "selection", "stage_id": None, "final": True},
+            json={
+                "items": [],
+                "purpose": "selection",
+                "stage_id": None,
+                "snapshot_id": None,
+                "final": True,
+            },
         ).json()
         latest_request = {"selection": {}, "stage_id": empty["stage_id"]}
         empty_preview = client.post(path, headers=HEADERS, json=latest_request).json()

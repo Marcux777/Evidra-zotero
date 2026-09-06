@@ -237,6 +237,16 @@ export interface components {
              */
             role: "unassigned" | "principal" | "supplement";
         };
+        /** ContentIdentity */
+        ContentIdentity: {
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pdf" | "abstract" | "human_note" | "human_annotation" | "ai_artifact" | "approved_data" | "text_attachment";
+        };
         /** ErrorResponse */
         ErrorResponse: {
             /** Code */
@@ -271,7 +281,7 @@ export interface components {
         /** IdentityPage */
         IdentityPage: {
             /** Items */
-            items: components["schemas"]["SourceIdentity"][];
+            items: components["schemas"]["SourceAccess"][];
             /** Offset */
             offset: number;
             /** Limit */
@@ -565,6 +575,12 @@ export interface components {
              */
             year_state: "known" | "missing";
         };
+        /** SourceAccess */
+        SourceAccess: {
+            identity: components["schemas"]["SourceIdentity"];
+            /** Contents */
+            contents: components["schemas"]["ContentIdentity"][];
+        };
         /** SourceChange */
         SourceChange: {
             /** Revision */
@@ -654,6 +670,8 @@ export interface components {
             purpose: "selection" | "revalidation";
             /** Stage Id */
             stage_id: string | null;
+            /** Snapshot Id */
+            snapshot_id: string | null;
             /** Final */
             final: boolean;
         };

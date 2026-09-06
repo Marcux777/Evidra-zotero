@@ -28,7 +28,7 @@ class SourceIdentity(StrictModel):
         ).hexdigest()
 
 
-class SourceContent(StrictModel):
+class ContentIdentity(StrictModel):
     key: str = Field(min_length=1, max_length=200)
     kind: Literal[
         "pdf",
@@ -39,6 +39,14 @@ class SourceContent(StrictModel):
         "approved_data",
         "text_attachment",
     ]
+
+
+class SourceAccess(StrictModel):
+    identity: SourceIdentity
+    contents: list[ContentIdentity]
+
+
+class SourceContent(ContentIdentity):
     role: Literal["unassigned", "principal", "supplement"] = "unassigned"
     title: str = Field(default="", max_length=2000)
     version: str = Field(default="", max_length=200)
@@ -75,7 +83,17 @@ class SourceSync(StrictModel):
     items: list[SourceInput] = Field(max_length=100)
     purpose: Literal["selection", "revalidation"]
     stage_id: str | None = Field(max_length=200)
+    snapshot_id: str | None = Field(max_length=200)
     final: bool
+
+    @model_validator(mode="after")
+    def authority(self) -> Self:
+        if self.purpose == "selection":
+            if self.snapshot_id is not None:
+                raise ValueError("Selection cannot use snapshot authority")
+        elif (self.stage_id is None) == (self.snapshot_id is None):
+            raise ValueError("Revalidation requires exactly one stage or snapshot")
+        return self
 
 
 class SourcePage(StrictModel):
@@ -220,10 +238,21 @@ class SourceChange(StrictModel):
 
 
 class IdentityPage(StrictModel):
-    items: list[SourceIdentity]
+    items: list[SourceAccess]
     offset: int
     limit: int
     total: int
+
+
+def metadata_version(source: SourceInput) -> str:
+    header = {key: getattr(source, key) for key in SourceInput.model_fields if key != "contents"}
+    return hashlib.sha256(
+        SourceInput(**header).model_dump_json(exclude={"contents"}).encode()
+    ).hexdigest()
+
+
+def content_version(content: SourceContent) -> str:
+    return hashlib.sha256(content.model_dump_json(exclude={"role"}).encode()).hexdigest()
 
 
 def filtered(source: Source, spec: SelectionSpec) -> tuple[Source | None, str | None]:
