@@ -132,6 +132,8 @@ def setup(client):
 def test_schema_states_and_context(tmp_path, state):
     with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
         prefix, form, proposal = setup(client)
+        untouched = client.get(prefix + "/matrix/" + form["id"], headers=HEADERS).json()["items"][0]
+        assert untouched["value"] is None and untouched["value_state"] is None
         proposal.update(value_state=state, value=proposal["value"] if state == "FOUND" else None)
         response = client.post(prefix + "/matrix/proposals", headers=HEADERS, json=proposal)
         assert response.status_code == 201, response.text
@@ -215,26 +217,71 @@ def test_concurrent_decisions_competing_proposals_bulk_and_revocation(tmp_path):
         winner = next(r for r in responses if r.status_code == 201).json()
         assert winner["author"] == "bridge:profile-a"
         assert winner["old"]["value"] is None and winner["new"]["value"]["normalized"] == 42
+        original_form = form
+        form = client.post(
+            prefix + "/forms",
+            headers=HEADERS,
+            json={
+                "name": "Updated form",
+                "fields": original_form["fields"],
+                "expected_revision": 1,
+                "idempotency_key": "unchanged-fields",
+            },
+        ).json()
+        inherited = client.get(prefix + "/matrix/" + form["id"], headers=HEADERS).json()["items"][0]
+        assert inherited["value"]["normalized"] == 42 and inherited["revision"] == 1
+        assert inherited["decision_form_version_id"] == original_form["id"]
+        assert inherited["field_origin_form_version_id"] == original_form["id"]
+        body["form_version_id"] = form["id"]
         competing = client.post(
             prefix + "/matrix/proposals",
             headers=HEADERS,
             json=dict(body, value={"original": "43", "normalized": 43}, idempotency_key="b"),
         ).json()
+        rejected = client.post(
+            prefix + "/matrix/decisions",
+            headers=HEADERS,
+            json=dict(
+                decision,
+                proposal_id=competing["id"],
+                expected_revision=1,
+                action="REJECTED",
+                idempotency_key="reject-competing",
+            ),
+        )
+        assert rejected.status_code == 201, rejected.text
+        assert rejected.json()["new"]["value"]["normalized"] == 42
+        assert rejected.json()["new"]["review_state"] == "APPROVED"
+        assert rejected.json()["proposal_id"] == competing["id"]
+        listed = client.post(
+            prefix + "/matrix/proposals/query",
+            headers=HEADERS,
+            json={
+                "form_version_id": form["id"],
+                "source_id": body["source_id"],
+                "field_key": "result",
+                "offset": 0,
+            },
+        ).json()
+        assert {p["id"]: p["review_state"] for p in listed["items"]} == {
+            proposal["id"]: "APPROVED",
+            competing["id"]: "REJECTED",
+        }
         cell_path = prefix + "/matrix/" + form["id"]
         cell = client.get(cell_path, headers=HEADERS).json()["items"][0]
-        assert cell["value"]["normalized"] == 42 and cell["revision"] == 1
+        assert cell["value"]["normalized"] == 42 and cell["revision"] == 2
         preview = client.post(
             prefix + "/matrix/bulk-preview",
             headers=HEADERS,
             json={
-                "items": [{"proposal_id": competing["id"], "expected_revision": 1}],
+                "items": [{"proposal_id": competing["id"], "expected_revision": 2}],
                 "idempotency_key": "preview",
             },
         ).json()
         correction = dict(
             decision,
             action="CORRECTED",
-            expected_revision=1,
+            expected_revision=2,
             value={"original": "44", "normalized": 44},
             value_state="FOUND",
             rationale="Corrected reading",
@@ -259,7 +306,7 @@ def test_concurrent_decisions_competing_proposals_bulk_and_revocation(tmp_path):
             prefix + "/matrix/bulk-preview",
             headers=HEADERS,
             json={
-                "items": [{"proposal_id": competing["id"], "expected_revision": 2}],
+                "items": [{"proposal_id": competing["id"], "expected_revision": 3}],
                 "idempotency_key": "fresh",
             },
         ).json()
@@ -284,7 +331,7 @@ def test_concurrent_decisions_competing_proposals_bulk_and_revocation(tmp_path):
 
         reopened = Database(tmp_path / "evidra.sqlite3")
         with reopened.transaction() as conn:
-            assert conn.execute("SELECT count(*) FROM cell_decisions").fetchone()[0] == 3
+            assert conn.execute("SELECT count(*) FROM cell_decisions").fetchone()[0] == 4
             assert conn.execute("SELECT count(*) FROM extraction_proposals").fetchone()[0] == 2
         reopened.close()
         with app.state.services.database.transaction() as conn:
@@ -298,3 +345,36 @@ def test_concurrent_decisions_competing_proposals_bulk_and_revocation(tmp_path):
             ).status_code
             == 403
         )
+    # A real application restart invalidates availability, then scoped native revalidation
+    # restores access without reconstructing decisions or losing their original form lineage.
+    from test_scopes import source, sync
+
+    with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
+        assert client.get(cell_path, headers=HEADERS).json()["items"] == []
+        item = source()
+        item["contents"] = [{"key": "SAMEKEY1", "kind": "abstract", "version": "1"}]
+        assert (
+            sync(
+                client,
+                prefix.split("/")[3],
+                [item],
+                purpose="revalidation",
+                snapshot_id=prefix.split("/")[5],
+            ).status_code
+            == 200
+        )
+        restarted = client.get(cell_path, headers=HEADERS)
+        assert restarted.status_code == 200, restarted.text
+        assert restarted.json()["items"][0]["value"]["normalized"] == 43
+        history = client.post(
+            prefix + "/matrix/decisions/query",
+            headers=HEADERS,
+            json={
+                "form_version_id": form["id"],
+                "source_id": body["source_id"],
+                "field_key": "result",
+                "offset": 0,
+            },
+        ).json()
+        assert history["total"] == 4
+        assert history["items"][-1] == winner

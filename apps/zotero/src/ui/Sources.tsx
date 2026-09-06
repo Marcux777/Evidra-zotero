@@ -4,6 +4,7 @@ import type { SourcePreviewResult, SourceState } from '../bridge/sources';
 import { catalog } from './i18n';
 import { Documents } from './Documents';
 import { Conversation } from './Conversation';
+import { Matrix } from './Matrix';
 import type { QuestionTarget, VisualSelection } from './Conversation';
 
 const sameIdentity = (a: SourceIdentity, b: SourceIdentity) => a.profile_instance_id === b.profile_instance_id && a.library_id === b.library_id && a.item_key === b.item_key;
@@ -181,6 +182,7 @@ export function Sources({ bridge, notebook, locale, onRevision, profilesEpoch = 
             <button type="button" disabled={busy} onClick={() => read(snapshot, sources?.offset ?? 0)}>{s.readAgain}</button></div>}
         <p className="source-meta">{s.external}</p>
         {snapshot && <div hidden={!sources}><Documents key={`${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} onAsk={setQuestionTarget} onPreview={setVisualSelection}/>
-            <Conversation key={`conversation:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch} target={questionTarget} preview={visualSelection}/></div>}
+            <Conversation key={`conversation:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch} target={questionTarget} preview={visualSelection}/>
+            <Matrix key={`matrix:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
     </section>;
 }

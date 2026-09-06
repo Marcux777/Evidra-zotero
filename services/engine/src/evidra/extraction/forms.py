@@ -72,6 +72,16 @@ class FormService:
         with self.scopes.guarded(context) as conn:
             return self.from_connection(conn, context, identity)
 
+    def origin(self, conn: sqlite3.Connection, form_id: str, field_key: str) -> str:
+        row = conn.execute(
+            "SELECT origin_form_version_id FROM form_field_lineage "
+            "WHERE form_version_id=? AND field_key=?",
+            (form_id, field_key),
+        ).fetchone()
+        if row is None:
+            raise EvidraError("NOT_FOUND", "Field lineage not found.")
+        return str(row[0])
+
     def list(self, context: ScopeContext, offset: int, limit: int) -> FormPage:
         with self.scopes.guarded(context) as conn:
             total = conn.execute(
@@ -105,12 +115,27 @@ class FormService:
             ).fetchone()[0]
             if revision != body.expected_revision:
                 raise EvidraError("REVISION_CONFLICT", "Active form changed.")
+            identity = secrets.token_hex(16)
+            latest = conn.execute(
+                "SELECT payload FROM form_versions WHERE notebook_id=? "
+                "ORDER BY revision DESC LIMIT 1",
+                (context.notebook_id,),
+            ).fetchone()
+            prior = FormVersion.model_validate_json(latest[0]) if latest else None
+            prior_fields = {f.key: f for f in prior.fields} if prior else {}
+            origins = {
+                f.key: prior.field_origins[f.key]
+                if prior and prior_fields.get(f.key) == f
+                else identity
+                for f in body.fields
+            }
             form = FormVersion(
-                id=secrets.token_hex(16),
+                id=identity,
                 notebook_id=context.notebook_id,
                 revision=revision + 1,
                 name=body.name,
                 fields=body.fields,
+                field_origins=origins,
                 author=author(context),
                 created_at=now(),
             )
@@ -124,5 +149,9 @@ class FormService:
                     fingerprint(body),
                     form.model_dump_json(),
                 ),
+            )
+            conn.executemany(
+                "INSERT INTO form_field_lineage VALUES(?,?,?)",
+                [(identity, key, origin) for key, origin in origins.items()],
             )
             return form

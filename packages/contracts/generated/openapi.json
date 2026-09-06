@@ -9242,6 +9242,10 @@
             "type": "string",
             "title": "Id"
           },
+          "proposal_id": {
+            "type": "string",
+            "title": "Proposal Id"
+          },
           "author": {
             "type": "string",
             "title": "Author"
@@ -9281,6 +9285,7 @@
         "type": "object",
         "required": [
           "id",
+          "proposal_id",
           "author",
           "created_at",
           "action",
@@ -10487,6 +10492,10 @@
             "type": "string",
             "title": "Form Version Id"
           },
+          "field_origin_form_version_id": {
+            "type": "string",
+            "title": "Field Origin Form Version Id"
+          },
           "source_id": {
             "type": "string",
             "title": "Source Id"
@@ -10565,7 +10574,12 @@
           },
           "review_state": {
             "type": "string",
-            "const": "UNREVIEWED",
+            "enum": [
+              "UNREVIEWED",
+              "APPROVED",
+              "CORRECTED",
+              "REJECTED"
+            ],
             "title": "Review State",
             "default": "UNREVIEWED"
           }
@@ -10577,6 +10591,7 @@
           "value_state",
           "id",
           "form_version_id",
+          "field_origin_form_version_id",
           "source_id",
           "field_key",
           "evidence_ids",
@@ -10743,6 +10758,13 @@
             "type": "array",
             "title": "Fields"
           },
+          "field_origins": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Field Origins"
+          },
           "author": {
             "type": "string",
             "title": "Author"
@@ -10760,6 +10782,7 @@
           "revision",
           "name",
           "fields",
+          "field_origins",
           "author",
           "created_at"
         ],
@@ -10964,20 +10987,42 @@
             "title": "Value"
           },
           "value_state": {
-            "type": "string",
-            "enum": [
-              "FOUND",
-              "NOT_FOUND_IN_SEARCH",
-              "NOT_REPORTED_CANDIDATE",
-              "NOT_APPLICABLE",
-              "UNREADABLE",
-              "CONFLICTING"
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "FOUND",
+                  "NOT_FOUND_IN_SEARCH",
+                  "NOT_REPORTED_CANDIDATE",
+                  "NOT_APPLICABLE",
+                  "UNREADABLE",
+                  "CONFLICTING"
+                ]
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Value State"
           },
           "form_version_id": {
             "type": "string",
             "title": "Form Version Id"
+          },
+          "field_origin_form_version_id": {
+            "type": "string",
+            "title": "Field Origin Form Version Id"
+          },
+          "decision_form_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Form Version Id"
           },
           "source_id": {
             "type": "string",
@@ -11025,6 +11070,7 @@
           "value",
           "value_state",
           "form_version_id",
+          "field_origin_form_version_id",
           "source_id",
           "source_title",
           "field_key"

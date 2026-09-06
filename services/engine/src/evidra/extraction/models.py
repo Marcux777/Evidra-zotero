@@ -91,6 +91,7 @@ class FormVersion(StrictModel):
     revision: int
     name: str
     fields: list[FieldDefinition]
+    field_origins: dict[str, str]
     author: str
     created_at: str
 
@@ -127,6 +128,7 @@ class ProposalWrite(CellValue, Write):
 class ExtractionProposal(CellValue):
     id: str
     form_version_id: str
+    field_origin_form_version_id: str
     source_id: str
     field_key: str
     evidence_ids: list[str]
@@ -139,17 +141,35 @@ class ExtractionProposal(CellValue):
     source_kinds: list[str]
     visual: VisualProvenance | None
     created_at: str
-    review_state: Literal["UNREVIEWED"] = "UNREVIEWED"
+    review_state: ReviewState = "UNREVIEWED"
 
 
-class MatrixCell(CellValue):
+class MatrixCell(StrictModel):
+    value: Value
+    value_state: ValueState | None
     form_version_id: str
+    field_origin_form_version_id: str
+    decision_form_version_id: str | None = None
     source_id: str
     source_title: str
     field_key: str
     revision: int = 0
     review_state: ReviewState = "UNREVIEWED"
     proposal_id: str | None = None
+
+    @model_validator(mode="after")
+    def result_or_unprocessed(self) -> Self:
+        if self.value_state is None:
+            if (
+                self.value is not None
+                or self.revision != 0
+                or self.review_state != "UNREVIEWED"
+                or self.proposal_id is not None
+            ):
+                raise ValueError("Only an unprocessed cell has no value state")
+        else:
+            CellValue(value=self.value, value_state=self.value_state)
+        return self
 
 
 class MatrixPage(StrictModel):
@@ -202,6 +222,7 @@ class DecisionWrite(Write):
 
 class CellDecision(StrictModel):
     id: str
+    proposal_id: str
     author: str
     created_at: str
     action: Literal["APPROVED", "CORRECTED", "REJECTED"]

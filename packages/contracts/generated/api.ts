@@ -1157,6 +1157,8 @@ export interface components {
         CellDecision: {
             /** Id */
             id: string;
+            /** Proposal Id */
+            proposal_id: string;
             /** Author */
             author: string;
             /** Created At */
@@ -1549,6 +1551,8 @@ export interface components {
             id: string;
             /** Form Version Id */
             form_version_id: string;
+            /** Field Origin Form Version Id */
+            field_origin_form_version_id: string;
             /** Source Id */
             source_id: string;
             /** Field Key */
@@ -1581,9 +1585,9 @@ export interface components {
             /**
              * Review State
              * @default UNREVIEWED
-             * @constant
+             * @enum {string}
              */
-            review_state: "UNREVIEWED";
+            review_state: "UNREVIEWED" | "APPROVED" | "CORRECTED" | "REJECTED";
         };
         /** FieldDefinition */
         FieldDefinition: {
@@ -1638,6 +1642,10 @@ export interface components {
             name: string;
             /** Fields */
             fields: components["schemas"]["FieldDefinition"][];
+            /** Field Origins */
+            field_origins: {
+                [key: string]: string;
+            };
             /** Author */
             author: string;
             /** Created At */
@@ -1705,13 +1713,14 @@ export interface components {
         MatrixCell: {
             /** Value */
             value: string | boolean | components["schemas"]["NumericValue"] | string[] | components["schemas"]["ExperimentalResult"][] | null;
-            /**
-             * Value State
-             * @enum {string}
-             */
-            value_state: "FOUND" | "NOT_FOUND_IN_SEARCH" | "NOT_REPORTED_CANDIDATE" | "NOT_APPLICABLE" | "UNREADABLE" | "CONFLICTING";
+            /** Value State */
+            value_state: ("FOUND" | "NOT_FOUND_IN_SEARCH" | "NOT_REPORTED_CANDIDATE" | "NOT_APPLICABLE" | "UNREADABLE" | "CONFLICTING") | null;
             /** Form Version Id */
             form_version_id: string;
+            /** Field Origin Form Version Id */
+            field_origin_form_version_id: string;
+            /** Decision Form Version Id */
+            decision_form_version_id?: string | null;
             /** Source Id */
             source_id: string;
             /** Source Title */

@@ -341,6 +341,66 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
                 assert "images" in result["categories"]
                 if scenario != "historical_consent":
                     assert result["anchor_status"] is None
+            if scenario == "visual":
+                # Task7 consumes this actual server-owned rendered image/run, while the
+                # value entered by the human client remains human-authored and unreviewed.
+                field = client.get(prefix + "/forms/template", headers=HEADERS).json()[0]
+                form = client.post(
+                    prefix + "/forms",
+                    headers=HEADERS,
+                    json={
+                        "name": "Visual review",
+                        "fields": [field],
+                        "expected_revision": 0,
+                        "idempotency_key": "visual-form",
+                    },
+                ).json()
+                body = {
+                    "form_version_id": form["id"],
+                    "source_id": sources["items"][0]["id"],
+                    "field_key": field["key"],
+                    "value": "Human interpretation differs from model output",
+                    "value_state": "FOUND",
+                    "evidence_ids": [],
+                    "run_id": run["id"],
+                    "rationale": "Review this image interpretation",
+                    "idempotency_key": "visual-proposal",
+                }
+                proposed = client.post(prefix + "/matrix/proposals", headers=HEADERS, json=body)
+                assert proposed.status_code == 201, proposed.text
+                proposal = proposed.json()
+                assert proposal["visual"] == result["visual"]
+                assert (
+                    proposal["origin"] == "HUMAN_CLIENT"
+                    and proposal["review_state"] == "UNREVIEWED"
+                )
+                assert (
+                    proposal["coverage"] == "CITED_EVIDENCE_ONLY" and proposal["evidence_ids"] == []
+                )
+                assert (
+                    client.post(
+                        prefix + "/matrix/proposals",
+                        headers=HEADERS,
+                        json=dict(body, run_id=None, idempotency_key="no-visual"),
+                    ).status_code
+                    == 422
+                )
+                with app.state.services.database.transaction() as connection:
+                    connection.execute(
+                        "UPDATE source_contents SET available=0 WHERE source_id=?",
+                        (body["source_id"],),
+                    )
+                denied = client.post(
+                    prefix + "/matrix/decisions",
+                    headers=HEADERS,
+                    json={
+                        "proposal_id": proposal["id"],
+                        "expected_revision": 0,
+                        "action": "APPROVED",
+                        "idempotency_key": "revoked-visual",
+                    },
+                )
+                assert denied.status_code == 403, denied.text
             if scenario == "historical_consent":
                 response = client.put(
                     "/v1/providers/profiles/cloud",

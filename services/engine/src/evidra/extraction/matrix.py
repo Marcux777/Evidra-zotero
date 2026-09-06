@@ -159,6 +159,9 @@ class MatrixService:
             proposal = ExtractionProposal(
                 **body.model_dump(exclude={"idempotency_key"}),
                 id=secrets.token_hex(16),
+                field_origin_form_version_id=self.forms.origin(
+                    conn, body.form_version_id, body.field_key
+                ),
                 # A cited conversation proves support, not authorship of caller-entered values.
                 origin="HUMAN_CLIENT",
                 principal=author(context),
@@ -169,11 +172,12 @@ class MatrixService:
                 created_at=now(),
             )
             conn.execute(
-                "INSERT INTO extraction_proposals VALUES(?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO extraction_proposals VALUES(?,?,?,?,?,?,?,?,?,?)",
                 (
                     proposal.id,
                     *self.scope(context),
                     body.form_version_id,
+                    proposal.field_origin_form_version_id,
                     body.source_id,
                     body.field_key,
                     body.idempotency_key,
@@ -192,23 +196,26 @@ class MatrixService:
         field_key: str,
     ) -> MatrixCell:
         _, source = self.target(conn, context, form_id, source_id, field_key)
+        origin = self.forms.origin(conn, form_id, field_key)
         row = conn.execute(
             "SELECT payload FROM cell_decisions WHERE notebook_id=? AND snapshot_id=? "
-            "AND form_version_id=? AND source_id=? AND field_key=? ORDER BY revision DESC LIMIT 1",
-            (*self.scope(context), form_id, source_id, field_key),
+            "AND field_origin_form_version_id=? AND source_id=? AND field_key=? "
+            "ORDER BY revision DESC LIMIT 1",
+            (*self.scope(context), origin, source_id, field_key),
         ).fetchone()
         if row:
             cell = CellDecision.model_validate_json(row[0]).new
             if cell.proposal_id:
                 self.proposal(conn, context, cell.proposal_id)
-            return cell
+            return cell.model_copy(update={"form_version_id": form_id})
         return MatrixCell(
             form_version_id=form_id,
+            field_origin_form_version_id=origin,
             source_id=source_id,
             source_title=source.title or source_id,
             field_key=field_key,
             value=None,
-            value_state="NOT_FOUND_IN_SEARCH",
+            value_state=None,
         )
 
     def get_matrix(self, context: ScopeContext, query: MatrixQuery, limit: int = 50) -> MatrixPage:
@@ -223,17 +230,20 @@ class MatrixService:
             joins = (
                 " FROM json_each(?) s CROSS JOIN json_each(?) f LEFT JOIN cell_decisions d "
                 "ON d.rowid=(SELECT rowid FROM cell_decisions x WHERE x.notebook_id=? "
-                "AND x.snapshot_id=? AND x.form_version_id=? AND x.source_id=s.value "
-                "AND x.field_key=f.value ORDER BY x.revision DESC LIMIT 1) "
+                "AND x.snapshot_id=? "
+                "AND x.field_origin_form_version_id=json_extract(f.value,'$.origin') "
+                "AND x.source_id=s.value AND x.field_key=json_extract(f.value,'$.key') "
+                "ORDER BY x.revision DESC LIMIT 1) "
                 "WHERE (? IS NULL OR coalesce(json_extract(d.payload,'$.new.review_state'),"
-                "'UNREVIEWED')=?) AND (? IS NULL OR coalesce("
-                "json_extract(d.payload,'$.new.value_state'),'NOT_FOUND_IN_SEARCH')=?)"
+                "'UNREVIEWED')=?) AND (? IS NULL OR "
+                "json_extract(d.payload,'$.new.value_state')=?)"
             )
             args = (
                 json.dumps(source_ids),
-                json.dumps([f.key for f in form.fields]),
+                json.dumps(
+                    [{"key": f.key, "origin": form.field_origins[f.key]} for f in form.fields]
+                ),
                 *self.scope(context),
-                form.id,
                 query.review_state,
                 query.review_state,
                 query.value_state,
@@ -241,7 +251,7 @@ class MatrixService:
             )
             total = conn.execute("SELECT count(*)" + joins, args).fetchone()[0]
             rows = conn.execute(
-                "SELECT s.value AS source_id,f.value AS field_key"
+                "SELECT s.value AS source_id,json_extract(f.value,'$.key') AS field_key"
                 + joins
                 + " ORDER BY s.key,f.key LIMIT ? OFFSET ?",
                 (*args, limit, query.offset),
@@ -268,10 +278,15 @@ class MatrixService:
             self.target(conn, context, query.form_version_id, query.source_id, query.field_key)
             table = "cell_decisions" if decisions else "extraction_proposals"
             where = (
-                " WHERE notebook_id=? AND snapshot_id=? AND form_version_id=? "
+                " WHERE notebook_id=? AND snapshot_id=? AND field_origin_form_version_id=? "
                 "AND source_id=? AND field_key=?"
             )
-            args = (*self.scope(context), query.form_version_id, query.source_id, query.field_key)
+            args = (
+                *self.scope(context),
+                self.forms.origin(conn, query.form_version_id, query.field_key),
+                query.source_id,
+                query.field_key,
+            )
             total = conn.execute("SELECT count(*) FROM " + table + where, args).fetchone()[0]
             rows = conn.execute(
                 "SELECT id,payload FROM "
@@ -285,12 +300,25 @@ class MatrixService:
             for row in rows:
                 if decisions:
                     value = CellDecision.model_validate_json(row["payload"])
+                    self.proposal(conn, context, value.proposal_id)
                     for cell in (value.old, value.new):
                         if cell.proposal_id:
                             self.proposal(conn, context, cell.proposal_id)
                     decision_items.append(value)
                 else:
-                    proposal_items.append(self.proposal(conn, context, row["id"]))
+                    proposed = self.proposal(conn, context, row["id"])
+                    latest = conn.execute(
+                        "SELECT payload FROM cell_decisions WHERE notebook_id=? "
+                        "AND snapshot_id=? AND proposal_id=? ORDER BY rowid DESC LIMIT 1",
+                        (*self.scope(context), proposed.id),
+                    ).fetchone()
+                    if latest:
+                        proposed = proposed.model_copy(
+                            update={
+                                "review_state": CellDecision.model_validate_json(latest[0]).action
+                            }
+                        )
+                    proposal_items.append(proposed)
             if decisions:
                 return DecisionPage(
                     items=decision_items, offset=query.offset, limit=20, total=total
@@ -324,19 +352,9 @@ class MatrixService:
         )
         if old.revision != body.expected_revision:
             raise EvidraError("REVISION_CONFLICT", "Cell changed after review.")
-        value = (
-            proposal.value
-            if body.action == "APPROVED"
-            else body.value
-            if body.action == "CORRECTED"
-            else None
-        )
+        value = body.value if body.action == "CORRECTED" else proposal.value
         state: ValueState | None = (
-            proposal.value_state
-            if body.action == "APPROVED"
-            else body.value_state
-            if body.action == "CORRECTED"
-            else "NOT_FOUND_IN_SEARCH"
+            body.value_state if body.action == "CORRECTED" else proposal.value_state
         )
         field, _ = self.target(
             conn, context, proposal.form_version_id, proposal.source_id, proposal.field_key
@@ -346,16 +364,32 @@ class MatrixService:
             raise EvidraError("INVALID_REQUEST", "Correction requires a value state.")
         new = MatrixCell(
             **old.model_dump(
-                exclude={"value", "value_state", "revision", "review_state", "proposal_id"}
+                exclude={
+                    "value",
+                    "value_state",
+                    "revision",
+                    "review_state",
+                    "proposal_id",
+                    "decision_form_version_id",
+                }
             ),
             value=value,
             value_state=state,
             revision=old.revision + 1,
             review_state=body.action,
             proposal_id=proposal.id,
+            decision_form_version_id=proposal.form_version_id,
         )
+        if (
+            body.action == "REJECTED"
+            and old.review_state in {"APPROVED", "CORRECTED"}
+            and old.proposal_id != proposal.id
+        ):
+            # Reject the competitor, preserving the accepted human value and its provenance.
+            new = old.model_copy(update={"revision": old.revision + 1})
         decision = CellDecision(
             id=secrets.token_hex(16),
+            proposal_id=proposal.id,
             author=author(context),
             created_at=now(),
             action=body.action,
@@ -368,7 +402,7 @@ class MatrixService:
             (
                 decision.id,
                 *self.scope(context),
-                new.form_version_id,
+                new.field_origin_form_version_id,
                 new.source_id,
                 new.field_key,
                 new.revision,
@@ -395,7 +429,7 @@ class MatrixService:
                 cell = self.cell(
                     conn, context, proposal.form_version_id, proposal.source_id, proposal.field_key
                 )
-                identity = (cell.form_version_id, cell.source_id, cell.field_key)
+                identity = (cell.field_origin_form_version_id, cell.source_id, cell.field_key)
                 if identity in seen:
                     raise EvidraError("INVALID_REQUEST", "Select only one proposal per cell.")
                 seen.add(identity)
