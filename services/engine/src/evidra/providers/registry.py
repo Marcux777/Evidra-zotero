@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
+from contextlib import contextmanager
 from typing import Any
 
 import httpx
@@ -54,59 +55,89 @@ class ProviderRegistry:
             ),
         )
         self._active: dict[str, asyncio.Event] = {}
-        self._tasks: dict[str, asyncio.Task[Any]] = {}
+        self._tasks: set[asyncio.Task[Any]] = set()
         self._closed = False
+        self._close_lock = asyncio.Lock()
+
+    @contextmanager
+    def _operation(self) -> Iterator[None]:
+        if self._closed:
+            raise fail("ENGINE_STOPPING")
+        task = asyncio.current_task()
+        assert task is not None
+        self._tasks.add(task)
+        try:
+            yield
+        finally:
+            self._tasks.discard(task)
 
     async def close(self) -> None:
         self._closed = True
-        for cancel in self._active.values():
-            cancel.set()
-        tasks = list(self._tasks.values())
-        for task in tasks:
-            task.cancel()
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        for result in results:
-            if isinstance(result, BaseException) and not isinstance(result, asyncio.CancelledError):
-                if not isinstance(result, EvidraError) or result.code != "CANCELLED":
-                    raise fail("PROVIDER_SHUTDOWN_FAILED") from result
-        await self.client.aclose()
-        self.secrets.clear()
+        async with self._close_lock:
+            for cancel in self._active.values():
+                cancel.set()
+            tasks = list(self._tasks)
+            for task in tasks:
+                task.cancel()
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            errors = [
+                result
+                for result in results
+                if isinstance(result, BaseException)
+                and not isinstance(result, asyncio.CancelledError)
+                and (not isinstance(result, EvidraError) or result.code != "CANCELLED")
+            ]
+            try:
+                await self.client.aclose()
+            except Exception as exc:
+                errors.append(exc)
+            finally:
+                self.secrets.clear()
+            if errors:
+                cause = (
+                    errors[0]
+                    if len(errors) == 1
+                    else BaseExceptionGroup("Provider shutdown failures", errors)
+                )
+                raise fail("PROVIDER_SHUTDOWN_FAILED") from cause
 
     async def catalog(self, profile_id: str, offset: int, limit: int) -> ModelPage:
-        profile = self.profiles.get(profile_id)
-        secret = self.secrets.get(profile_id)
-        if profile.mode == "API" and not secret:
-            raise fail("PROVIDER_SECRET_REQUIRED")
-        result = await adapter(profile, self.client, secret).catalog(0, 10_000)
-        if self.profiles.get(profile_id).revision != profile.revision:
-            raise fail("REVISION_CONFLICT")
-        with self.scopes.database.transaction() as connection:
-            for model in result.items:
-                connection.execute(
-                    "INSERT INTO provider_model_observations VALUES(?,?,?,?,?) "
-                    "ON CONFLICT(profile_id,base_url,model) DO UPDATE SET cloud=excluded.cloud,"
-                    "digest=excluded.digest",
-                    (profile_id, profile.base_url, model.model, int(model.cloud), model.digest),
-                )
-        return ModelPage(
-            items=result.items[offset : offset + limit],
-            offset=offset,
-            limit=limit,
-            total=result.total,
-        )
+        with self._operation():
+            profile = self.profiles.get(profile_id)
+            secret = self.secrets.get(profile_id)
+            if profile.mode == "API" and not secret:
+                raise fail("PROVIDER_SECRET_REQUIRED")
+            result = await adapter(profile, self.client, secret).catalog(0, 10_000)
+            if self.profiles.get(profile_id).revision != profile.revision:
+                raise fail("REVISION_CONFLICT")
+            with self.scopes.database.transaction() as connection:
+                for model in result.items:
+                    connection.execute(
+                        "INSERT INTO provider_model_observations VALUES(?,?,?,?,?) "
+                        "ON CONFLICT(profile_id,base_url,model) DO UPDATE SET cloud=excluded.cloud,"
+                        "digest=excluded.digest",
+                        (profile_id, profile.base_url, model.model, int(model.cloud), model.digest),
+                    )
+            return ModelPage(
+                items=result.items[offset : offset + limit],
+                offset=offset,
+                limit=limit,
+                total=result.total,
+            )
 
     async def embed(
         self, context: ScopeContext, profile_id: str, texts: list[str]
     ) -> EmbeddingBatch:
-        profile = self.profiles.authorize(context, profile_id, frozenset({"excerpts"}))
-        provider = LocalEmbeddingProvider(
-            adapter(profile, self.client, self.secrets.get(profile_id))
-        )
-        result = await provider.embed(texts, profile.model)
-        current = self.profiles.authorize(context, profile_id, frozenset({"excerpts"}))
-        if current.revision != profile.revision:
-            raise fail("REVISION_CONFLICT")
-        return result
+        with self._operation():
+            profile = self.profiles.authorize(context, profile_id, frozenset({"excerpts"}))
+            provider = LocalEmbeddingProvider(
+                adapter(profile, self.client, self.secrets.get(profile_id))
+            )
+            result = await provider.embed(texts, profile.model)
+            current = self.profiles.authorize(context, profile_id, frozenset({"excerpts"}))
+            if current.revision != profile.revision:
+                raise fail("REVISION_CONFLICT")
+            return result
 
     async def generate(
         self,
@@ -145,7 +176,7 @@ class ProviderRegistry:
         self._active[identity.call_id] = cancel_event
         task = asyncio.current_task()
         if task is not None:
-            self._tasks[identity.call_id] = task
+            self._tasks.add(task)
         inputs = outputs = None
         confirmed = False
         error = None
@@ -202,7 +233,8 @@ class ProviderRegistry:
             raise
         finally:
             self._active.pop(identity.call_id, None)
-            self._tasks.pop(identity.call_id, None)
+            if task is not None:
+                self._tasks.discard(task)
             if not reconciled:
                 self.usage.finish(
                     identity.call_id,

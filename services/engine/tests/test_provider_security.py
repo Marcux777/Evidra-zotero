@@ -564,6 +564,99 @@ async def test_registry_shutdown_finishes_inflight_accounting_before_database_cl
                 await pending
 
 
+@pytest.mark.parametrize("operation", ["catalog", "embed"])
+@pytest.mark.parametrize("cleanup_failure", [False, True])
+async def test_registry_shutdown_drains_non_generation_before_teardown(
+    tmp_path, operation, cleanup_failure
+):
+    from evidra.domain.errors import EvidraError
+
+    with TestClient(make_app(tmp_path)) as client:
+        services, context = setup(tmp_path, client)
+        spec = profile_data("ollama")
+        if operation == "embed":
+            spec["purpose"] = "embedding"
+            spec["capabilities"]["embeddings"] = {"supported": True, "provenance": "USER_DECLARED"}
+        write_profile(client, **spec)
+        registry = services.providers
+        registry.secrets.set("fixture-profile", "synthetic-memory-key", memory_only=True)
+        entered, cleanup_started, release_cleanup = (asyncio.Event() for _ in range(3))
+        requests, completed_cleanup = [], []
+
+        async def boundary(request):
+            requests.append(request)
+            entered.set()
+            try:
+                await asyncio.Event().wait()
+            finally:
+                cleanup_started.set()
+                await release_cleanup.wait()
+                # Cancellation cleanup must finish while the actual SQLite DB is still open.
+                with services.database.transaction() as db:
+                    completed_cleanup.append(
+                        db.execute("SELECT COUNT(*) FROM notebooks").fetchone()[0]
+                    )
+                if cleanup_failure:
+                    raise RuntimeError("synthetic cancellation cleanup failure")
+
+        async def invoke():
+            if operation == "catalog":
+                return await registry.catalog("fixture-profile", 0, 50)
+            return await registry.embed(context, "fixture-profile", ["synthetic"])
+
+        await registry.client.aclose()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(boundary)) as http:
+            registry.client = http
+            pending = asyncio.create_task(invoke())
+            closing = None
+            observed_cleanup = asyncio.create_task(cleanup_started.wait())
+            try:
+                await asyncio.wait_for(entered.wait(), 2)
+                closing = asyncio.create_task(registry.close())
+                await asyncio.wait(
+                    [closing, observed_cleanup], timeout=2, return_when=asyncio.FIRST_COMPLETED
+                )
+                assert cleanup_started.is_set(), "close returned without cancelling the operation"
+                assert not closing.done(), "close did not await operation cleanup"
+                assert not http.is_closed
+                assert registry.secrets.get("fixture-profile") == "synthetic-memory-key"
+                with pytest.raises(EvidraError) as stopped:
+                    await invoke()
+                assert stopped.value.code == "ENGINE_STOPPING" and len(requests) == 1
+                release_cleanup.set()
+                if cleanup_failure:
+                    with pytest.raises(EvidraError) as failed:
+                        await asyncio.wait_for(closing, 2)
+                    assert failed.value.code == "PROVIDER_SHUTDOWN_FAILED"
+                    assert isinstance(failed.value.__cause__, RuntimeError)
+                    assert str(failed.value.__cause__) == "synthetic cancellation cleanup failure"
+                    with pytest.raises(RuntimeError):
+                        await pending
+                else:
+                    await asyncio.wait_for(closing, 2)
+                    with pytest.raises(asyncio.CancelledError):
+                        await pending
+                assert completed_cleanup == [1] and http.is_closed
+                assert registry.secrets.get("fixture-profile") is None
+                services.database.close()
+                # A closed DB turns any attempted authorization/persistence into DATABASE_CLOSED.
+                # The required ENGINE_STOPPING proves entry is refused before those reads/writes.
+                with pytest.raises(EvidraError) as stopped:
+                    await invoke()
+                assert stopped.value.code == "ENGINE_STOPPING"
+                assert pending.done() and len(requests) == 1
+            finally:
+                release_cleanup.set()
+                if not pending.done():
+                    pending.cancel()
+                await asyncio.gather(
+                    pending,
+                    observed_cleanup,
+                    *([closing] if closing else []),
+                    return_exceptions=True,
+                )
+
+
 def test_secret_write_revisions_idempotency_and_keyring_to_memory_deletion(tmp_path):
     from evidra.security.secrets import SecretStore
 
