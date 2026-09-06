@@ -16,7 +16,7 @@ export function ProposalReview({cell,field,locale,busy,readOnly,proposals,histor
     const [selected,setSelected]=useState<ExtractionProposal|null>(null),[correction,setCorrection]=useState<MatrixCell['value']>(null),[correctionState,setCorrectionState]=useState<State>('FOUND'),[correctionReason,setCorrectionReason]=useState('');
     const [draft,setDraft]=useState<MatrixCell['value']>(null),[state,setState]=useState<State>('FOUND'),[reason,setReason]=useState(''),[query,setQuery]=useState(''),[evidence,setEvidence]=useState<string[]>([]);
     const locked=busy||readOnly;
-    function select(proposal:ExtractionProposal){setSelected(proposal);setCorrection(proposal.value);setCorrectionState(proposal.value_state);setCorrectionReason('');}
+    function select(proposal:ExtractionProposal){if(selected?.id===proposal.id)return;setSelected(proposal);setCorrection(proposal.value);setCorrectionState(proposal.value_state);setCorrectionReason('');}
     const canCorrect=selected&&correctionReason.trim()&&(correctionState!=='FOUND'||correction!==null);
     return <section className="proposal-review" aria-label={t.proposals}>
         <h3>{cell.source_title} · {field.label}</h3><p>{field.question}</p><p>{field.definition}</p>
@@ -68,7 +68,7 @@ export function ProposalReview({cell,field,locale,busy,readOnly,proposals,histor
         </details>}
         <button type="button" disabled={busy} onClick={()=>onHistory(0)}>{t.history}</button>
         {history&&<><h4>{t.history}</h4>{history.items.length===0&&<p>{t.noHistory}</p>}<ol className="decision-history">{history.items.map(event=><li key={event.id}><p>{t.reviews[event.action]} · {event.author} · {new Date(event.created_at).toLocaleString(locale)}</p>
-            <p>{t.before} ({event.old.revision})</p><ValueDisplay value={event.old.value} locale={locale}/><p>{t.after} ({event.new.revision})</p><ValueDisplay value={event.new.value} locale={locale}/><p>{event.rationale}</p></li>)}</ol>
+            <p>{t.before} ({event.old.revision})</p><ValueDisplay value={event.old.value} locale={locale} unit={field.unit}/><p>{t.after} ({event.new.revision})</p><ValueDisplay value={event.new.value} locale={locale} unit={field.unit}/><p>{event.rationale}</p></li>)}</ol>
             <nav className="actions" aria-label={t.history}><button type="button" disabled={busy||history.offset===0} onClick={()=>onHistory(Math.max(0,history.offset-history.limit))}>{t.previous}</button><button type="button" disabled={busy||history.offset+history.limit>=history.total} onClick={()=>onHistory(history.offset+history.limit)}>{t.next}</button></nav>
         </>}
     </section>;

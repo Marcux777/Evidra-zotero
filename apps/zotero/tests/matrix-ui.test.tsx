@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { existsSync } from 'node:fs';
 import { URL as NodeURL } from 'node:url';
 import { expect, test } from 'vitest';
-import type { UiMessage } from '../src/bridge/types';
+import type { DecisionWrite, ExtractionProposal, FieldDefinition, MatrixCell, UiMessage } from '../src/bridge/types';
 import { parseUiMessage } from '../src/security/messages';
 
 test('matrix review uses explicit actions, preserves uncertain decision keys and previews actual bulk changes', async () => {
@@ -104,6 +104,37 @@ test('form and human proposal controls work without submit and preserve multiple
         expect(saved.value).toHaveLength(2);expect(saved.value[0]).toMatchObject({number:{original:'4.2e1',normalized:42},dataset:'Dataset A',unit:'%'});
         expect(saved.value[1]).toMatchObject({number:{original:'43,5',normalized:43.5},dataset:'Dataset B',condition:'held-out',unit:null});
         expect(saved.evidence_ids).toEqual([evidence]);expect(messages.filter(m=>m.op==='matrix.decide')).toHaveLength(0);
+    }finally{await act(async()=>root.unmount());host.remove();}
+});
+
+test('reselecting a proposal saves the displayed numeric correction and switching proposals initializes its own value', async()=>{
+    const {ProposalReview}=await import('../src/ui/ProposalReview');
+    (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+    const field:FieldDefinition={key:'accuracy',label:'Accuracy',kind:'number',question:'Accuracy?',definition:'Reported accuracy',unit:'%',required:false};
+    const cell:MatrixCell={form_version_id:'b'.repeat(32),field_origin_form_version_id:'b'.repeat(32),source_id:'c'.repeat(64),source_title:'Study',field_key:field.key,value:null,value_state:null,review_state:'UNREVIEWED',revision:0};
+    const first:ExtractionProposal={...cell,id:'d'.repeat(32),value:{original:'42%',normalized:42},value_state:'FOUND',evidence_ids:['e'.repeat(64)],run_id:null,rationale:'Reported accuracy',origin:'HUMAN_CLIENT',principal:'bridge:profile-a',model:null,coverage:'CITED_EVIDENCE_ONLY',source_kinds:['abstract'],visual:null,created_at:'2026-09-06T10:00:00Z'};
+    const second:ExtractionProposal={...first,id:'f'.repeat(32),value:{original:'44%',normalized:44}};
+    const decisions:Omit<DecisionWrite,'idempotency_key'>[]=[];
+    const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
+    const input=(name:string)=>host.querySelector(`.selected-proposal [name="${name}"]`) as HTMLInputElement|HTMLTextAreaElement;
+    const fill=async(name:string,value:string)=>{const element=input(name);await act(async()=>{Object.getOwnPropertyDescriptor(element instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype,'value')!.set!.call(element,value);element.dispatchEvent(new Event('input',{bubbles:true}));});};
+    const review=async(index:number)=>{await act(async()=>(host.querySelectorAll('.proposal-list button')[index] as HTMLButtonElement).click());};
+    const save=async()=>{const button=[...host.querySelectorAll('button')].find(b=>b.textContent==='Save correction')!;expect(button.disabled).toBe(false);await act(async()=>button.click());};
+    try{
+        await act(async()=>root.render(<ProposalReview cell={cell} field={field} locale="en-US" busy={false} readOnly={false}
+            proposals={{items:[first,second],offset:0,limit:20,total:2}} history={null} hits={null}
+            onSearch={()=>{}} onInspect={()=>{}} onVisual={()=>{}} onPropose={()=>{}} onDecide={request=>decisions.push(structuredClone(request))} onPage={()=>{}} onHistory={()=>{}} onBulk={()=>{}}/>));
+        await review(0);
+        await fill('matrix_original','43%');await fill('matrix_normalized','43');
+        await review(0);
+        expect(input('matrix_original').value).toBe('43%');expect(input('matrix_normalized').value).toBe('43');
+        await fill('matrix_correction_reason','Corrected literal result');await save();
+        expect(decisions[0]).toMatchObject({proposal_id:first.id,action:'CORRECTED',value_state:'FOUND',value:{original:'43%',normalized:43}});
+        await review(1);
+        expect(input('matrix_original').value).toBe('44%');expect(input('matrix_normalized').value).toBe('44');
+        expect(input('matrix_correction_reason').value).toBe('');
+        await fill('matrix_correction_reason','Reviewed second result');await save();
+        expect(decisions[1]).toMatchObject({proposal_id:second.id,action:'CORRECTED',value_state:'FOUND',value:{original:'44%',normalized:44}});
     }finally{await act(async()=>root.unmount());host.remove();}
 });
 
