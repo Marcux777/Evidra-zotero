@@ -213,6 +213,15 @@ def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp
         from evidra.conversations.models import Answer
 
         preview = run["context"]
+        assert run["prompt_version"] == "conversation-v2" and all(
+            rule in preview["system"]
+            for rule in [
+                'Use kind="source" for claims drawn from supplied excerpts',
+                "at least one supplied evidence ID with a literal excerpt",
+                'Use kind="general" only for knowledge beyond those excerpts and set evidence=[]',
+                'Use kind="visual_proposal" only when an image is supplied',
+            ]
+        )
         assert preview["schema_mode"] == (
             "native" if scenario == "native_schema" else "local_validation"
         )

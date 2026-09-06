@@ -1793,9 +1793,9 @@ export interface components {
             /**
              * Prompt Version
              * @default conversation-v1
-             * @constant
+             * @enum {string}
              */
-            prompt_version: "conversation-v1";
+            prompt_version: "conversation-v1" | "conversation-v2";
             context: components["schemas"]["ContextPreview"];
             /** Categories */
             categories: ("excerpts" | "metadata" | "images" | "history")[];

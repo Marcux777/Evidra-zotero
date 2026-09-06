@@ -9886,7 +9886,10 @@
           },
           "prompt_version": {
             "type": "string",
-            "const": "conversation-v1",
+            "enum": [
+              "conversation-v1",
+              "conversation-v2"
+            ],
             "title": "Prompt Version",
             "default": "conversation-v1"
           },

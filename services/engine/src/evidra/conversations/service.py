@@ -354,6 +354,7 @@ class ConversationService:
             profile=profile,
             ollama_options=options,
             question=body.question,
+            prompt_version="conversation-v2",
             context=built,
             categories=frozenset(categories),
             visual=visual,

@@ -124,7 +124,7 @@ class RunRecord(StrictModel):
     profile: ProviderProfile
     ollama_options: OllamaOptions | None = None
     question: str
-    prompt_version: Literal["conversation-v1"] = "conversation-v1"
+    prompt_version: Literal["conversation-v1", "conversation-v2"] = "conversation-v1"
     context: ContextPreview
     categories: frozenset[ContentCategory]
     visual: VisualProvenance | None = None
