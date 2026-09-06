@@ -13,6 +13,7 @@ from evidra.api.extraction import router as extraction_router
 from evidra.api.jobs import router as jobs_router
 from evidra.api.notebooks import router
 from evidra.api.providers import router as providers_router
+from evidra.api.research import router as research_router
 from evidra.api.sources import router as sources_router
 from evidra.conversations.service import ConversationService
 from evidra.documents.ingestion import IngestionService
@@ -26,12 +27,14 @@ from evidra.extraction.matrix import MatrixService
 from evidra.extraction.runner import ExtractionRunner
 from evidra.jobs.queue import JobQueue
 from evidra.jobs.worker import JobWorker
+from evidra.notebooks.protocol import ProtocolService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
 from evidra.retrieval.lexical import LexicalSearch
 from evidra.retrieval.vectors import VectorSearch
 from evidra.scope.service import ScopeService
+from evidra.screening.service import ScreeningService
 from evidra.security.runtime import BridgeSession, RuntimeSettings, SessionGuard
 from evidra.storage.database import Database
 
@@ -55,6 +58,8 @@ class Services:
     matrix: MatrixService
     jobs: JobQueue
     job_worker: JobWorker
+    protocols: ProtocolService
+    screening: ScreeningService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -80,6 +85,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             matrix = MatrixService(forms, evidence, conversations)
             jobs = JobQueue(ExtractionRunner(matrix, lexical), providers)
             job_worker = JobWorker(jobs)
+            protocols = ProtocolService(forms)
             app.state.services = Services(
                 database,
                 session,
@@ -98,6 +104,8 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 matrix,
                 jobs,
                 job_worker,
+                protocols,
+                ScreeningService(protocols),
             )
             yield
         finally:
@@ -135,6 +143,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(conversations_router)
     app.include_router(extraction_router)
     app.include_router(jobs_router)
+    app.include_router(research_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:
