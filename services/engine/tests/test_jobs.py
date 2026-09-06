@@ -283,6 +283,82 @@ def test_absence_requires_measured_scan_and_preserves_batches(
             assert response.json()["code"] == "SOURCE_REVOKED", response.text
 
 
+@pytest.mark.parametrize("conflict", [False, True])
+def test_experimental_results_keep_distinct_batch_contexts(tmp_path, conflict):
+    from test_conversations import indexed
+
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        _, _, prefix = indexed(client, text="reported result observation. " * 700)
+        fields = client.get(prefix + "/forms/template", headers=HEADERS).json()
+        form = client.post(
+            prefix + "/forms",
+            headers=HEADERS,
+            json={
+                "name": "Results",
+                "fields": [dict(fields[0], key="result", kind="experimental_result")],
+                "expected_revision": 0,
+                "idempotency_key": "form",
+            },
+        ).json()
+        profile(client)
+        results = []
+
+        def boundary(request):
+            prompt = json.loads(json.loads(request.content)["messages"][-1]["content"])
+            result = {
+                "metric": "accuracy",
+                "number": {
+                    "original": str(42 + len(results)) + "%",
+                    "normalized": 42 + len(results),
+                },
+                "dataset": "Same dataset" if conflict else "Dataset " + str(len(results)),
+                "condition": "test",
+                "unit": "%",
+                "baseline": "control",
+                "direction": "HIGHER_BETTER",
+            }
+            results.append(result)
+            return httpx.Response(
+                200,
+                text=stream(
+                    "ollama",
+                    json.dumps(
+                        {
+                            "value": [result],
+                            "value_state": "FOUND",
+                            "evidence_ids": [prompt["evidence"][0]["id"]],
+                            "rationale": "Explicit experimental context",
+                        }
+                    ),
+                ),
+            )
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(boundary)
+        )
+        job = finish(client, prefix, prepare(client, prefix, form))
+        assert job["state"] == "SUCCEEDED", job
+        unit = client.get(prefix + "/jobs/" + job["id"] + "/units", headers=HEADERS).json()[
+            "items"
+        ][0]
+        proposal = client.post(
+            prefix + "/matrix/proposals/query",
+            headers=HEADERS,
+            json={
+                "form_version_id": form["id"],
+                "source_id": unit["source_id"],
+                "field_key": "result",
+                "offset": 0,
+            },
+        ).json()["items"][0]
+        assert len(results) > 1
+        if conflict:
+            assert proposal["value_state"] == "CONFLICTING" and proposal["value"] is None
+        else:
+            assert proposal["value_state"] == "FOUND" and proposal["value"] == results
+
+
 def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkeypatch):
     import sqlite3
     from unittest.mock import Mock

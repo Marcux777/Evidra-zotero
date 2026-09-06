@@ -44,6 +44,7 @@
   "cached": "Em cache",
   "batches": "Lotes confirmados",
   "coverage": "Cobertura medida",
+  "pendingCoverage": "Cobertura pendente; nenhum lote confirmado",
   "content": "Anexo / texto autorizado",
   "pages": "Páginas lidas / total",
   "chunks": "Trechos lidos / total",

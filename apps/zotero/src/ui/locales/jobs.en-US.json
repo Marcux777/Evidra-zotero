@@ -44,6 +44,7 @@
   "cached": "Cached",
   "batches": "Committed batches",
   "coverage": "Measured coverage",
+  "pendingCoverage": "Coverage pending; no committed batches",
   "content": "Authorized attachment / text",
   "pages": "Pages read / total",
   "chunks": "Chunks read / total",

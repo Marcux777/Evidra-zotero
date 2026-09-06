@@ -361,9 +361,40 @@ class ExtractionRunner:
         found = [o for o in outputs if o.value_state == "FOUND"]
         if found:
             output = found[0]
-            if any(o.value != output.value for o in found[1:]) or any(
-                o.value_state == "CONFLICTING" for o in outputs
-            ):
+            conflicting = any(o.value_state == "CONFLICTING" for o in outputs)
+            if isinstance(output.value, list) and not conflicting:
+                values = []
+                contexts: dict[str, object] = {}
+                for batch_output in found:
+                    for value in batch_output.model_dump(mode="json")["value"]:
+                        if value not in values:
+                            values.append(value)
+                        if isinstance(value, dict):
+                            key = json.dumps(
+                                {k: v for k, v in value.items() if k != "number"}, sort_keys=True
+                            )
+                            if key in contexts and contexts[key] != value["number"]:
+                                conflicting = True
+                            contexts[key] = value["number"]
+                if not conflicting:
+                    try:
+                        output = BatchOutput.model_validate(
+                            {
+                                "value": values,
+                                "value_state": "FOUND",
+                                "evidence_ids": list(
+                                    dict.fromkeys(e for o in found for e in o.evidence_ids)
+                                ),
+                                "rationale": "Distinct validated results retain their original experimental contexts.",
+                            }
+                        )
+                    except ValidationError as exc:
+                        raise EvidraError(
+                            "OUTPUT_LIMIT", "Combined results exceed the bounded proposal size."
+                        ) from exc
+            elif any(o.value != output.value for o in found[1:]):
+                conflicting = True
+            if conflicting:
                 output = BatchOutput(
                     value=None,
                     value_state="CONFLICTING",

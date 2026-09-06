@@ -204,7 +204,7 @@ export function Jobs({ bridge, notebook_id, snapshot_id, locale, profilesEpoch }
                     </nav>}
                 </>}
                 {unit && <section aria-label={t.coverage} className="job-coverage">
-                    <h4>{unit.field_key} · {t.coverage}</h4><p>{t[unit.coverage_state]} · {status(unit.state)} {reason(unit.reason)}</p>
+                    <h4>{unit.field_key} · {t.coverage}</h4><p>{unit.state === 'QUEUED' && unit.batches_processed === 0 ? t.pendingCoverage : t[unit.coverage_state]} · {status(unit.state)} {reason(unit.reason)}</p>
                     <p>{t.batches}: {unit.batches_processed}/{unit.batches_total}</p>
                     {unit.proposal_id && <p>{t.proposal}: <code>{unit.proposal_id}</code></p>}
                     <ul>{unit.coverage.slice(coverageOffset, coverageOffset + 10).map(content => <li key={content.content_key}>

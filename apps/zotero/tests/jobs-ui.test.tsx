@@ -53,6 +53,8 @@ test('jobs prepare exact inputs before start, preserve uncertain keys and expose
         expect(host.textContent).toContain('EXACT extraction rules');
         expect(host.textContent).toContain('MISSING');
         expect(host.textContent).toContain('Missing file');
+        expect(host.querySelector('.job-coverage')!.textContent).toContain('Coverage pending; no committed batches');
+        expect(host.querySelector('.job-coverage')!.textContent).not.toContain('All authorized content scanned');
         await click('Start / resume extraction');
         expect(messages.filter(m=>m.op==='jobs.control')[0]!.request).toMatchObject({action:'resume',expected_revision:0});
         delayPreview=true;
