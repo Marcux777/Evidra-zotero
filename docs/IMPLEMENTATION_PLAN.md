@@ -184,7 +184,7 @@ Task6 source and bounded native conversation acceptance completed at `9bd75f45a9
 
 **Requirements:** Text/number/boolean/enum/list/experimental-result fields, definitions/question/unit/rules/required. Initial computing template as SPEC §12. Multiple results preserve dataset/condition/unit/baseline/direction/original numeric representation. Absent value null plus six value states; independent four review states. Model output cannot set APPROVED. Reextraction never overwrites human-approved/corrected values; compare competing proposals and revision CAS. Human corrections/events include author/time/old/new. Windowed matrix, filters/source/status, cell selection, evidence side panel and concrete bulk review preview.
 
-- [ ] Write parametrized schema/nullability/result-context tests and real SQLite concurrency test. Example:
+- [x] Write parametrized schema/nullability/result-context tests and real SQLite concurrency test. Example:
   ```python
   matrix.approve(scope, proposal_a, expected_revision=0, author='Pesquisador')
   matrix.propose(scope, proposal_b)
@@ -192,9 +192,13 @@ Task6 source and bounded native conversation acceptance completed at `9bd75f45a9
   with pytest.raises(EvidraError):
       matrix.correct(scope, study, field, 43, expected_revision=0, author='Pesquisador')
   ```
-- [ ] Observe RED then implement forms/proposals/decisions and matrix UI using generated contracts.
-- [ ] Run focused Python/TS tests, type checks and migration compatibility on existing synthetic notebooks; verify restart persistence.
-- [ ] Commit and report A17–A19/A34 with invariant mapping.
+- [x] Observe RED then implement forms/proposals/decisions and matrix UI using generated contracts.
+- [x] Run focused Python/TS tests, type checks and migration compatibility on existing synthetic notebooks; verify restart persistence.
+- [x] Commit and report A17–A19/A34 with invariant mapping.
+
+Task7 source through `eed17a602607145edd59c105a8fb67e6645f18ac` passed independent review after correcting proposal reselection state and unit presentation. Retained checks cover field/null/result contexts, real SQLite competing proposals/CAS/lineage/restart, migration, controlled visual provenance and native command UI. These support the Task7 portions of A17–A19/A34; systematic extraction and full release acceptance remain open.
+
+The actual reviewed XPI and frozen engine passed manual native forms/proposals/evidence/approval/rejection/two-cell bulk/version/filter/keyboard checks and a separate read-only restart in the existing isolated profile. No model was called. Controller summary `.local/native-smoke/task7-native-controller-summary.json` SHA2560529c81c966057d8c964c1d0240644d4d0ef3eea2042c946fcb9ffced04cfd0c binds32artifacts. Narrow row-label truncation and the displayed0-based page range remain minor final-UI items; the complete extraction/export/A36 gates remain later work.
 
 ## Task 8: M4 persistent jobs, extraction coverage and resume/cancel
 
