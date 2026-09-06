@@ -4,7 +4,7 @@ Statuses require executed evidence. PARTIAL means only the named sub-boundary ha
 
 | ID | Requirement | Files | Check / receipt | Result |
 |---|---|---|---|---|
-| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Reviewedb132506 passed real native admission/menu/opaque UI/consent/engine/notebook create-close-reopen, host-restart readback and two-main-window synchronization. Normal final-window close removed its exact owned engine. Receipt task2-native-multiwindow-receipt.json adds theme/zoom and second-window cleanup evidence; reader and disable/uninstall remain unverified. | PARTIAL |
+| A01 | XPI carrega no Zotero-alvo, exibe telas/menus e é removido sem listeners/processos órfãos. | `apps/zotero/src/bootstrap`, bridge, UI, XPI | Reviewedb132506 passed native admission/menu/opaque UI/consent/engine/notebook create-close-reopen, host restart and two-main-window synchronization. task2-native-reader-receipt.json also proves the registered reader section displays the current notebook and main workspace survives reader close. Normal final-window close removed the exact owned engine. Disable/uninstall remains unverified. | PARTIAL |
 | A02 | Selecionar múltiplas coleções usa APIs plurais e não confunde cabeçalhos da lista com itens. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A03 | Item em coleções sobrepostas entra uma vez; itens homônimos de bibliotecas diferentes não se fundem. | Not yet implemented | Not yet executed | NOT_VERIFIED |
 | A04 | Subcoleções/filtros/buscas salvas/exclusões produzem exatamente o snapshot esperado. | Not yet implemented | Not yet executed | NOT_VERIFIED |
