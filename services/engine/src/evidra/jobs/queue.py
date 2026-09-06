@@ -325,7 +325,12 @@ class JobQueue:
                 if old[0] != fingerprint(body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Job command changed.")
                 return job
-            if job.revision != body.expected_revision:
+            # Worker progress must not defeat a user's restrictive stop command.
+            # Resume/reconciliation still require the exact displayed revision;
+            # no command may claim a revision that has not existed.
+            if body.expected_revision > job.revision or (
+                job.revision != body.expected_revision and body.action not in {"pause", "cancel"}
+            ):
                 raise EvidraError("REVISION_CONFLICT", "Job changed after display.")
             if job.state in {"CANCELLED", "SUCCEEDED"}:
                 raise EvidraError("INVALID_REQUEST", "This job is terminal.")

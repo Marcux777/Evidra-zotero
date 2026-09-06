@@ -632,7 +632,7 @@ def test_real_process_interruption_preserves_checkpoint_and_blocks_resend(tmp_pa
             assert conn.execute("SELECT count(*) FROM extraction_proposals").fetchone()[0] == 0
 
 
-@pytest.mark.parametrize("action", ["cancel", "revoke"])
+@pytest.mark.parametrize("action", ["cancel", "pause", "revoke"])
 def test_inflight_stop_or_revocation_never_commits_or_dispatches_next_batch(tmp_path, action):
     import asyncio
     import threading
@@ -693,18 +693,37 @@ def test_inflight_stop_or_revocation_never_commits_or_dispatches_next_batch(tmp_
         unit = client.get(prefix + "/jobs/" + job["id"] + "/units", headers=HEADERS).json()[
             "items"
         ][0]
-        if action == "cancel":
+        if action in {"cancel", "pause"}:
             current = client.get(prefix + "/jobs/" + job["id"], headers=HEADERS).json()
+            displayed_revision = response.json()["revision"]
+            assert current["revision"] > displayed_revision
+            for rejected_action, revision in [
+                ("resume", displayed_revision),
+                (action, current["revision"] + 1),
+            ]:
+                rejected = client.post(
+                    prefix + "/jobs/" + job["id"] + "/control",
+                    headers=HEADERS,
+                    json={
+                        "action": rejected_action,
+                        "expected_revision": revision,
+                        "idempotency_key": f"reject-{rejected_action}-{revision}",
+                    },
+                )
+                assert rejected.json()["code"] == "REVISION_CONFLICT", rejected.text
             cancelled = client.post(
                 prefix + "/jobs/" + job["id"] + "/control",
                 headers=HEADERS,
                 json={
-                    "action": "cancel",
-                    "expected_revision": current["revision"],
-                    "idempotency_key": "cancel",
+                    "action": action,
+                    "expected_revision": displayed_revision,
+                    "idempotency_key": action,
                 },
             )
-            assert cancelled.json()["state"] == "CANCELLED", cancelled.text
+            assert cancelled.status_code == 200, cancelled.text
+            assert cancelled.json()["state"] == ("CANCELLED" if action == "cancel" else "PAUSED"), (
+                cancelled.text
+            )
         else:
             app.state.services.scopes.revoke_access(unit["source_id"])
         release.set()
@@ -718,7 +737,12 @@ def test_inflight_stop_or_revocation_never_commits_or_dispatches_next_batch(tmp_
             assert conn.execute("SELECT count(*) FROM extraction_results").fetchone()[0] == 0
             assert conn.execute("SELECT count(*) FROM extraction_proposals").fetchone()[0] == 0
         final = client.get(prefix + "/jobs/" + job["id"], headers=HEADERS).json()
-        assert final["state"] == ("CANCELLED" if action == "cancel" else "PAUSED")
+        assert (
+            final["state"]
+            == {"cancel": "CANCELLED", "pause": "WAITING_PROVIDER", "revoke": "PAUSED"}[action]
+        )
+        if action == "pause":
+            assert final["reason"] == "BILLING_UNKNOWN"
 
 
 def test_full_scan_counts_missing_attachment_and_failed_pdf_page(tmp_path):
