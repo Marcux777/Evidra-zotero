@@ -14,15 +14,26 @@ test('Sources requires a current preview, preserves filter drafts on notificatio
     const messages: UiMessage[] = [];
     let eventRevision = 0;
     let captured = false;
+    let loseCaptureResponse = true;
+    let captureFailure: Error | null = null;
+    let stateFailure: Error | null = null;
+    const committed = new Map<string, unknown>();
     let delayed = false;
     let release: ((value: unknown) => void) | undefined;
     let lastPreview: unknown;
     const bridge = { request: async (message: UiMessage) => {
         messages.push(message);
-        if (message.op === 'sources.state') return { revision: eventRevision };
+        if (message.op === 'sources.state') { if (stateFailure) { const error = stateFailure; stateFailure = null; throw error; } return { revision: eventRevision }; }
         if (message.op === 'sources.history') return { items: [{ id: 'a'.repeat(32), notebook_id: notebook.id, revision: 1, member_count: 0, selection: {}, created_at: '2026-09-05T00:00:00Z' }], offset: 0, limit: 50, total: 1 };
         if (message.op === 'sources.read') return { items: captured ? [{ source: (lastPreview as { preview: { items: unknown[] } }).preview.items[0], state: 'current' }] : [], offset: 0, limit: 50, total: captured ? 1 : 0, unavailable_count: 0 };
-        if (message.op === 'sources.create') { captured = true; return { id: 'd'.repeat(32), notebook_id: notebook.id, revision: 2, member_count: 1, selection: {}, created_at: '2026-09-05T00:00:00Z' }; }
+        if (message.op === 'sources.create') {
+            if (captureFailure) throw captureFailure;
+            captured = true;
+            if (!committed.has(message.request.idempotency_key)) committed.set(message.request.idempotency_key,
+                { id: 'd'.repeat(32), notebook_id: notebook.id, revision: 2, member_count: 1, selection: {}, created_at: '2026-09-05T00:00:00Z' });
+            if (loseCaptureResponse) { loseCaptureResponse = false; throw new Error('BRIDGE_TIMEOUT'); }
+            return committed.get(message.request.idempotency_key);
+        }
         if (message.op === 'sources.revoke') { captured = false; return { revision: 3 }; }
         if (message.op === 'sources.preview.page') {
             expect(message.preview_id).toBe('b'.repeat(32));
@@ -60,10 +71,31 @@ test('Sources requires a current preview, preserves filter drafts on notificatio
         expect(host.textContent).toContain('Selected paper');
         await act(async () => button('Capture immutable snapshot').click());
         expect(messages.find(m => m.op === 'sources.create')).toMatchObject({ request: { preview_id: 'b'.repeat(32), expected_revision: 1, idempotency_key: expect.stringMatching(/^[a-f0-9]{64}$/) } });
+        expect(button('Retry original capture')).toBeDefined();
+        expect(button('Retry original capture').disabled).toBe(false);
+        expect(button('Preview current Zotero selection').disabled).toBe(true);
+        // App polling can learn the committed revision before its response reaches Sources.
+        await act(async () => root.render(<Sources bridge={bridge} notebook={{ ...notebook, revision: 2 }} locale="en-US"/>));
+        stateFailure = new Error('BRIDGE_SEND_FAILED');
+        await act(async () => vi.advanceTimersByTimeAsync(10000));
+        expect(messages.filter(m => m.op === 'sources.create')).toHaveLength(1);
+        expect(button('Retry original capture').disabled).toBe(false);
+        await act(async () => button('Retry original capture').click());
+        const creates = messages.filter(m => m.op === 'sources.create');
+        expect(creates).toHaveLength(2);
+        expect(creates[1]).toEqual(creates[0]);
+        expect(committed.size).toBe(1);
         expect(host.textContent).toContain('Selected paper');
         await act(async () => button('Remove access in this notebook').click());
         expect(messages.find(m => m.op === 'sources.revoke')).toMatchObject({ source_id: 'c'.repeat(64), expected_revision: 2 });
         expect(host.textContent).not.toContain('Selected paper');
+        await act(async () => button('Preview current Zotero selection').click());
+        captureFailure = new Error('SCOPE_STALE');
+        await act(async () => button('Capture immutable snapshot').click());
+        expect(button('Retry original capture')).toBeUndefined();
+        expect(button('Capture immutable snapshot').disabled).toBe(true);
+        expect(host.querySelector('[role="alert"]')?.textContent).toContain('SCOPE_STALE');
+        captureFailure = null;
         await act(async () => button('Preview current Zotero selection').click());
         eventRevision = 1;
         await act(async () => vi.advanceTimersByTimeAsync(10000));
@@ -78,6 +110,15 @@ test('Sources requires a current preview, preserves filter drafts on notificatio
         await act(async () => vi.advanceTimersByTimeAsync(10000));
         await act(async () => release!(lastPreview));
         expect(host.textContent).not.toContain('Selected paper');
+        expect(button('Capture immutable snapshot').disabled).toBe(true);
+        delayed = false;
+        await act(async () => button('Preview current Zotero selection').click());
+        loseCaptureResponse = true;
+        await act(async () => button('Capture immutable snapshot').click());
+        expect(button('Retry original capture').disabled).toBe(false);
+        ++eventRevision;
+        await act(async () => vi.advanceTimersByTimeAsync(10000));
+        expect(button('Retry original capture')).toBeUndefined();
         expect(button('Capture immutable snapshot').disabled).toBe(true);
     } finally { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); }
 });

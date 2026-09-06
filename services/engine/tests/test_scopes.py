@@ -81,6 +81,7 @@ def test_snapshot_intersection_forgery_and_guarded_commit(tmp_path: Path):
             client.post(f"/v1/notebooks/{notebook}/snapshots", headers=HEADERS, json=request).json()
             == snap
         )
+        assert client.get(f"/v1/notebooks/{notebook}/snapshots", headers=HEADERS).json()["total"] == 2
         scopes = app.state.services.scopes
         with pytest.raises(EvidraError) as error:
             scopes.resolve(

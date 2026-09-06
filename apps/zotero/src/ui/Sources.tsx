@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AttachmentRole, Locale, Notebook, SelectionSpec, Snapshot, SnapshotPage, SnapshotSourcePage, Source, SourceChange, SourceIdentity, UiBridge } from '../bridge/types';
+import type { AttachmentRole, Locale, Notebook, SelectionSpec, Snapshot, SnapshotCreate, SnapshotPage, SnapshotSourcePage, Source, SourceChange, SourceIdentity, UiBridge } from '../bridge/types';
 import type { SourcePreviewResult, SourceState } from '../bridge/sources';
 import { catalog } from './i18n';
 
 const sameIdentity = (a: SourceIdentity, b: SourceIdentity) => a.profile_instance_id === b.profile_instance_id && a.library_id === b.library_id && a.item_key === b.item_key;
 const emptyHistory: SnapshotPage = { items: [], offset: 0, limit: 50, total: 0 };
+const confirmedCaptureFailure = (error: unknown) => error instanceof Error &&
+    ['SCOPE_STALE', 'SOURCE_REVOKED', 'FORBIDDEN', 'UNAUTHENTICATED', 'BRIDGE_EXPIRED', 'NOT_FOUND', 'IDEMPOTENCY_CONFLICT'].includes(error.message);
 
 export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBridge; notebook: Notebook; locale: Locale; onRevision?: (revision: number) => void }) {
     const t = catalog(locale), s = t.sources;
@@ -14,13 +16,17 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
     const [preview, setPreview] = useState<SourcePreviewResult | null>(null), [valid, setValid] = useState(false);
     const [previewOffsets, setPreviewOffsets] = useState<number[]>([]), [sourceOffsets, setSourceOffsets] = useState<number[]>([]), [historyOffsets, setHistoryOffsets] = useState<number[]>([]);
     const [history, setHistory] = useState(emptyHistory), [snapshot, setSnapshot] = useState<Snapshot | null>(null), [sources, setSources] = useState<SnapshotSourcePage | null>(null);
-    const version = useRef(0), epoch = useRef<number | null>(null), actionBusy = useRef(false), alive = useRef(true), revision = useRef(notebook.revision), idempotency = useRef<string | null>(null);
+    const version = useRef(0), epoch = useRef<number | null>(null), actionBusy = useRef(false), alive = useRef(true), revision = useRef(notebook.revision), pendingCapture = useRef<SnapshotCreate | null>(null);
+    const [capturePending, setCapturePending] = useState(false);
     const report = (value: unknown) => setError(value instanceof Error ? value.message : 'OPERATION_FAILED');
-    function invalidate() { ++version.current; setPreview(null); setValid(false); setSources(null); idempotency.current = null; setNotice(s.changed); }
-    function edit(next: Partial<SelectionSpec>) { ++version.current; setSpec(old => ({ ...old, ...next })); setValid(false); idempotency.current = null; }
+    function clearPending() { pendingCapture.current = null; setCapturePending(false); }
+    function invalidate(discardCapture = true) { ++version.current; setPreview(null); setValid(false); setSources(null); if (discardCapture) clearPending(); setNotice(pendingCapture.current ? s.captureUncertain : s.changed); }
+    function edit(next: Partial<SelectionSpec>) { if (pendingCapture.current) return; ++version.current; setSpec(old => ({ ...old, ...next })); setValid(false); }
     function updateRevision(next: number) { revision.current = next; onRevision?.(next); }
     useEffect(() => { alive.current = true; return () => { alive.current = false; ++version.current; }; }, []);
-    useEffect(() => { if (notebook.revision > revision.current) { revision.current = notebook.revision; invalidate(); } }, [notebook.revision]);
+    // A newer notebook revision can be our own committed capture with a lost response.
+    // Recovery still submits its original expected revision; the server decides idempotency.
+    useEffect(() => { if (notebook.revision > revision.current) { revision.current = notebook.revision; invalidate(false); } }, [notebook.revision]);
     useEffect(() => {
         if (!open) return;
         let active = true, polling = false;
@@ -32,7 +38,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
                 if (!active) return;
                 if (epoch.current !== null && next.revision !== epoch.current) invalidate();
                 epoch.current = next.revision;
-            } catch (value) { if (active) { invalidate(); report(value); } }
+            } catch (value) { if (active) { invalidate(confirmedCaptureFailure(value)); report(value); } }
             finally { polling = false; }
         };
         void poll();
@@ -72,11 +78,11 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
         const split = (value: string) => [...new Set(value.split(',').map(v => v.trim()).filter(Boolean))];
         return { ...spec, selectors: [], year_min, year_max, item_types: split(types), tags: split(tags) };
     }
-    function previewSelection(capture: boolean) { void action(async current => {
+    function previewSelection(capture: boolean) { if (pendingCapture.current) return; void action(async current => {
         setValid(false); setNotice('');
         const result = await bridge.request({ op: 'sources.preview', notebook_id: notebook.id, selection: options(), capture }) as SourcePreviewResult;
         if (!current()) return;
-        setPreview(result); setPreviewOffsets([]); setValid(true); idempotency.current = null;
+        setPreview(result); setPreviewOffsets([]); setValid(true);
         updateRevision(result.preview.expected_revision);
     }); }
     function previewPage(back: boolean) { if (!preview) return; void action(async current => {
@@ -85,12 +91,23 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
         if (!current()) return;
         setPreview(page); setPreviewOffsets(old => back ? old.slice(0, -1) : [...old, preview.offset]);
     }); }
-    function capture() { if (!preview || !valid) return; void action(async current => {
-        idempotency.current ??= Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
-        const result = await bridge.request({ op: 'sources.create', notebook_id: notebook.id, request: {
-            preview_id: preview.preview.id, expected_revision: preview.preview.expected_revision, idempotency_key: idempotency.current
-        } }) as Snapshot;
+    function capture() { if (!pendingCapture.current && (!preview || !valid)) return; void action(async current => {
+        const request = pendingCapture.current ?? {
+            preview_id: preview!.preview.id, expected_revision: preview!.preview.expected_revision,
+            idempotency_key: Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('')
+        };
+        pendingCapture.current = request; setCapturePending(true);
+        let result: Snapshot;
+        try { result = await bridge.request({ op: 'sources.create', notebook_id: notebook.id, request }) as Snapshot; }
+        catch (value) {
+            if (current()) {
+                if (confirmedCaptureFailure(value)) { invalidate(); report(value); }
+                else setNotice(s.captureUncertain);
+            }
+            throw value;
+        }
         if (!current()) return;
+        clearPending();
         updateRevision(result.revision); setSnapshot(result); setSourceOffsets([]); setPreview(null); setValid(false); setNotice(s.captured);
         await loadHistory(0, current);
         if (!current()) return;
@@ -117,18 +134,18 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             <p className="source-meta">{source.year ?? s.yearMissing} · {source.item_type} · {s.library} {source.identity.library_id} · {source.identity.item_key}</p>
             {!!source.contents?.length && <ul className="source-contents">{source.contents.map(content => <li key={content.key}>
                 <span>{s.kinds[content.kind]}: {content.title || content.key}</span>
-                {pending && ['pdf', 'text_attachment'].includes(content.kind) ? <label>{s.role}<select disabled={busy} value={(spec.attachment_roles ?? []).find(r => sameIdentity(r.identity, source.identity) && r.key === content.key)?.role ?? content.role} onChange={e => role(source, content.key, e.target.value as AttachmentRole['role'])}>
+                {pending && ['pdf', 'text_attachment'].includes(content.kind) ? <label>{s.role}<select disabled={busy || capturePending} value={(spec.attachment_roles ?? []).find(r => sameIdentity(r.identity, source.identity) && r.key === content.key)?.role ?? content.role} onChange={e => role(source, content.key, e.target.value as AttachmentRole['role'])}>
                     <option value="unassigned">{s.unassigned}</option><option value="principal">{s.principal}</option><option value="supplement">{s.supplement}</option>
                 </select></label> : <span>{s.roles[content.role]}</span>}
             </li>)}</ul>}
-            {pending ? <button disabled={busy} type="button" onClick={() => edit({ exclusions: [...(spec.exclusions ?? []), source.identity] })}>{s.exclude}</button>
-                : <button disabled={busy} type="button" onClick={() => revoke(source)}>{s.revoke}</button>}
+            {pending ? <button disabled={busy || capturePending} type="button" onClick={() => edit({ exclusions: [...(spec.exclusions ?? []), source.identity] })}>{s.exclude}</button>
+                : <button disabled={busy || capturePending} type="button" onClick={() => revoke(source)}>{s.revoke}</button>}
         </li>;
     }
     if (!open) return <button className="sources-open" type="button" onClick={openView}>{s.open}</button>;
     return <section className="sources" aria-label={s.title} aria-busy={busy}><h2>{s.title}</h2>
         <p>{s.help}</p><div role="status" className="source-status">{notice}</div>{error && <p role="alert" className="source-error">{t.error}: {error}</p>}
-        <fieldset disabled={busy}><legend>{s.selection}</legend>
+        <fieldset disabled={busy || capturePending}><legend>{s.selection}</legend>
             {(['include_selected_containers', 'include_descendants', 'include_notes', 'include_annotations', 'pdf_only'] as const).map(key => <label className="source-check" key={key}><input type="checkbox" name={key} checked={!!spec[key]} onChange={e => edit({ [key]: e.target.checked })}/>{s[key]}</label>)}
             {(spec.include_notes || spec.include_annotations) && <p className="source-warning">{s.provenance}</p>}
             <div className="source-filters"><label>{s.yearMin}<input name="year_min" inputMode="numeric" value={minimum} onChange={e => { setMinimum(e.target.value); edit({}); }}/></label>
@@ -139,9 +156,9 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             </div>
             {!!spec.exclusions?.length && <div><p>{s.exclusions}: {spec.exclusions.length}</p><button type="button" onClick={() => edit({ exclusions: [] })}>{s.clearExclusions}</button></div>}
         </fieldset>
-        <div className="actions"><button type="button" disabled={busy} onClick={() => previewSelection(true)}>{s.preview}</button><button type="button" disabled={busy} onClick={() => previewSelection(false)}>{s.refresh}</button></div>
+        <div className="actions"><button type="button" disabled={busy || capturePending} onClick={() => previewSelection(true)}>{s.preview}</button><button type="button" disabled={busy || capturePending} onClick={() => previewSelection(false)}>{s.refresh}</button></div>
         {preview && <div><h3>{s.previewTitle}: {preview.preview.included_count}</h3><p>{s.added}: {preview.preview.added_count} · {s.dropped}: {preview.preview.dropped_count} · {s.updated}: {preview.preview.changed_count}</p>
-            {!valid && <p>{s.previewAgain}</p>}
+            {!valid && !capturePending && <p>{s.previewAgain}</p>}
             {!!preview.preview.possible_duplicate_count && <p className="source-warning">{s.duplicates}: {preview.preview.possible_duplicate_count}</p>}
             <ul className="source-list">{preview.preview.items.map(source => sourceRow(source, true))}</ul>
             {!!(preview.preview.removed_count + preview.unavailable_total) && <p>{s.removed}: {preview.preview.removed_count + preview.unavailable_total}</p>}
@@ -151,7 +168,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             </ul>}
             {preview.total > preview.limit && <nav className="actions" aria-label={s.previewTitle}><button disabled={busy || !previewOffsets.length} onClick={() => previewPage(true)}>{t.previous}</button><span>{preview.offset + 1}–{preview.offset + preview.limit} / {preview.total}</span><button disabled={busy || preview.offset + preview.limit >= preview.total} onClick={() => previewPage(false)}>{t.next}</button></nav>}
         </div>}
-        <button className="primary" type="button" disabled={busy || !preview || !valid} onClick={capture}>{s.capture}</button><p className="source-meta">{s.frozen}</p>
+        <button className="primary" type="button" disabled={busy || !capturePending && (!preview || !valid)} onClick={capture}>{capturePending ? s.retryCapture : s.capture}</button><p className="source-meta">{s.frozen}</p>
         <h3>{s.history}</h3><div className="actions">{history.items.map(row => <button type="button" disabled={busy} key={row.id} aria-pressed={snapshot?.id === row.id} onClick={() => read(row, 0)}>{t.revision} {row.revision} · {row.member_count} · {new Date(row.created_at).toLocaleString(locale)}</button>)}</div>
         {history.total > history.limit && <nav className="actions" aria-label={s.history}><button disabled={busy || !historyOffsets.length} onClick={() => void action(current => loadHistory(historyOffsets.at(-1) ?? 0, current, false, 'previous'))}>{t.previous}</button><button disabled={busy || history.offset + history.limit >= history.total} onClick={() => void action(current => loadHistory(history.offset + history.limit, current, false, 'next'))}>{t.next}</button></nav>}
         {snapshot && <div><h3>{s.members} · {t.revision} {snapshot.revision}</h3>{sources && <><p>{s.accessible}: {sources.total} · {s.unavailable}: {sources.unavailable_count}</p><ul className="source-list">{sources.items.map(row => sourceRow(row.source, false, row.state))}</ul>
