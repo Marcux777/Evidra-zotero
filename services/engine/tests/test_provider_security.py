@@ -606,8 +606,16 @@ async def test_registry_shutdown_finishes_inflight_accounting_before_database_cl
                 assert cancelled.value.code == row.error == "PROVIDER_CLEANUP_FAILED"
 
 
-@pytest.mark.parametrize("cleanup_failure", [False, True])
-@pytest.mark.parametrize("stop_after", ["draft", "terminal"])
+@pytest.mark.parametrize(
+    "stop_after,cleanup_failure",
+    [
+        ("draft", False),
+        ("draft", True),
+        ("terminal", False),
+        ("terminal", True),
+        ("cancel_cleanup", False),
+    ],
+)
 async def test_registry_aclosing_owns_response_cleanup_before_accounting(
     tmp_path, cleanup_failure, stop_after, caplog
 ):
@@ -622,6 +630,8 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
         kind = "ollama" if stop_after == "draft" else "lm_studio"
         write_profile(client, kind)
         closed = asyncio.Event()
+        cancel, cleanup_started, release_cleanup = (asyncio.Event() for _ in range(3))
+        cancel_during_cleanup = stop_after == "cancel_cleanup"
         final_events = []
 
         class Bytes(httpx.AsyncByteStream):
@@ -636,6 +646,9 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
             async def aclose(self):
                 # The original call must remain pending until its HTTP response closes.
                 assert services.providers.usage.read(context, "outer-close").state == "SENT"
+                if cancel_during_cleanup:
+                    cleanup_started.set()
+                    await release_cleanup.wait()
                 closed.set()
                 if cleanup_failure:
                     raise RuntimeError("sensitive response cleanup detail")
@@ -655,7 +668,7 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
                         GenerationRequest(
                             messages=[{"role": "user", "text": "synthetic"}], max_output_tokens=32
                         ),
-                        asyncio.Event(),
+                        cancel,
                         identity=CallIdentity(call_id="outer-close", job_id="j", session_id="s"),
                     )
                 ) as events:
@@ -666,7 +679,20 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
                             if event.kind == "final":
                                 final_events.append(event)
 
-            if cleanup_failure:
+            if cancel_during_cleanup:
+                pending = asyncio.create_task(consume_one())
+                try:
+                    await asyncio.wait_for(cleanup_started.wait(), 2)
+                    assert not final_events
+                    cancel.set()
+                    release_cleanup.set()
+                    with pytest.raises(EvidraError) as cancelled:
+                        await asyncio.wait_for(pending, 2)
+                    assert cancelled.value.code == "CANCELLED"
+                finally:
+                    release_cleanup.set()
+                    await asyncio.gather(pending, return_exceptions=True)
+            elif cleanup_failure:
                 with pytest.raises(EvidraError) as failed:
                     await consume_one()
                 assert failed.value.code == "PROVIDER_CLEANUP_FAILED"
@@ -676,11 +702,18 @@ async def test_registry_aclosing_owns_response_cleanup_before_accounting(
                 await consume_one()
             assert closed.is_set() and response.is_closed
             row = services.providers.usage.read(context, "outer-close")
-            if stop_after == "terminal":
+            if stop_after != "draft":
                 # Native terminal usage is known even if local response cleanup fails.
                 assert row.state == "CONFIRMED" and (row.input_tokens, row.output_tokens) == (8, 4)
-                assert row.error == ("PROVIDER_CLEANUP_FAILED" if cleanup_failure else None)
-                assert len(final_events) == (0 if cleanup_failure else 1)
+                expected = (
+                    "CANCELLED"
+                    if cancel_during_cleanup
+                    else "PROVIDER_CLEANUP_FAILED"
+                    if cleanup_failure
+                    else None
+                )
+                assert row.error == expected
+                assert len(final_events) == (0 if cleanup_failure or cancel_during_cleanup else 1)
             else:
                 assert row.state == "BILLING_UNKNOWN" and not final_events
                 assert row.error == ("PROVIDER_CLEANUP_FAILED" if cleanup_failure else "CANCELLED")

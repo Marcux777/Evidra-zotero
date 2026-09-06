@@ -205,6 +205,8 @@ class ProviderRegistry:
             if final_event is None:
                 raise fail("STREAM_INCOMPLETE")
             # Cleanup may fail or yield control. Recheck scope before promoting the final result.
+            if cancel_event.is_set():
+                raise fail("CANCELLED")
             current = self.profiles.authorize(context, profile_id, categories)
             if current.revision != profile.revision:
                 raise fail("REVISION_CONFLICT")
