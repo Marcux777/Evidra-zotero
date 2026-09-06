@@ -23,6 +23,26 @@ export type SnapshotCreate = components['schemas']['SnapshotCreate'];
 export type AttachmentRole = components['schemas']['AttachmentRole'];
 export type SourceChange = components['schemas']['SourceChange'];
 export type DocumentCommand = components['schemas']['DocumentCommand'];
+export type ConversationCommand = components['schemas']['ConversationCommand'];
+export type ProviderCommand = components['schemas']['ProviderCommand'];
+export type ConversationRecord = components['schemas']['ConversationRecord'];
+export type ConversationPage = components['schemas']['ConversationPage'];
+export type RunRecord = components['schemas']['RunRecord'];
+export type RunPrepare = components['schemas']['RunPrepare'];
+export type RunPage = components['schemas']['RunPage'];
+export type EventPage = components['schemas']['EventPage'];
+export type ProviderProfile = components['schemas']['ProviderProfile'];
+export type ProfileSpec = components['schemas']['ProfileSpec'];
+export type ProfilePage = components['schemas']['ProfilePage'];
+export type ModelPage = components['schemas']['ModelPage'];
+export type ProviderSettings = components['schemas']['Settings'];
+export type Consent = components['schemas']['Consent'];
+export type SecretReceipt = components['schemas']['SecretReceipt'];
+export type UsagePage = components['schemas']['UsagePage'];
+export type BudgetWrite = components['schemas']['BudgetWrite'];
+export type Budget = components['schemas']['Budget'];
+export type PriceConfig = components['schemas']['PriceConfig'];
+export type VectorJob = components['schemas']['VectorJob'];
 export type DocumentPage = components['schemas']['DocumentPage'];
 export type DocumentStatus = components['schemas']['DocumentStatus'];
 export type RegisteredDocument = components['schemas']['RegisteredDocument'];
@@ -85,7 +105,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

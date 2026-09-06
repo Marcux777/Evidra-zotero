@@ -373,6 +373,49 @@
       "title": "ProviderBudgetCommand",
       "type": "object"
     },
+    "ProviderBudgetReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "provider.budget.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "call",
+            "job",
+            "session"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "identity": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Identity",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "kind",
+        "identity"
+      ],
+      "title": "ProviderBudgetReadCommand",
+      "type": "object"
+    },
     "ProviderCallsCommand": {
       "additionalProperties": false,
       "properties": {
@@ -810,6 +853,7 @@
   "discriminator": {
     "mapping": {
       "provider.budget": "#/$defs/ProviderBudgetCommand",
+      "provider.budget.read": "#/$defs/ProviderBudgetReadCommand",
       "provider.calls": "#/$defs/ProviderCallsCommand",
       "provider.consent": "#/$defs/ProviderConsentReadCommand",
       "provider.consent.write": "#/$defs/ProviderConsentWriteCommand",
@@ -862,6 +906,9 @@
     },
     {
       "$ref": "#/$defs/ProviderBudgetCommand"
+    },
+    {
+      "$ref": "#/$defs/ProviderBudgetReadCommand"
     },
     {
       "$ref": "#/$defs/ProviderPriceCommand"

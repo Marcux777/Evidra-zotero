@@ -1,5 +1,6 @@
 import validateManifest from '../../../../packages/contracts/generated/validate-manifest.js';
 import type { EngineManifest, EnginePreview, RuntimeStatus } from '../bridge/types';
+import { readEventBatch } from '../security/stream';
 
 const notebookRoute = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(\/.*)?$/;
 const snapshotSourcesRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/(sources|identities)$/;
@@ -8,14 +9,34 @@ const snapshotDocumentRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9
 function allowedEngineRoute(method: string, path: string): boolean {
     // Match the literal path before fetch can normalize traversal or encoded segments.
     if (/[\u0000-\u0020\u007f\\%#]/.test(path)) return false;
+    const eventRoute = /^\/v1\/notebooks\/[a-f0-9-]{36}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9-]{36})\/runs\/[a-f0-9]{32}\/events\?cursor=(0|[1-9][0-9]{0,6})$/.exec(path);
+    if (eventRoute) return method === 'GET' && Number(eventRoute[1]) <= 1000000;
     const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|50|100)$/.exec(path);
     if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
+    const profile = /^\/v1\/providers\/profiles\/[a-zA-Z0-9_-]{1,100}(\/secret|\/models|\/resume)?$/.exec(base);
+    if (method === 'PUT') return !page && (base === '/v1/providers/settings'
+        || !!profile && (!profile[1] || profile[1] === '/secret')
+        || !!notebook && /^\/providers\/[a-zA-Z0-9_-]{1,100}\/consent$/.test(suffix)
+        || documentPath === '/provider-budgets');
+    if (method === 'DELETE') return !page && !!profile && profile[1] === '/secret';
+    if (method === 'GET' && (base === '/v1/providers/settings' && !page
+        || base === '/v1/providers/profiles' && limit === '50'
+        || !!profile && (profile[1] === '/secret' && !page || profile[1] === '/models' && limit === '50')
+        || !!notebook && !page && /^\/providers\/[a-zA-Z0-9_-]{1,100}\/consent$/.test(suffix)
+        || !!documentPath && (limit === '50' && (/^\/conversations(?:\/[a-f0-9]{32}\/runs)?$/.test(documentPath) || documentPath === '/provider-calls')
+            || !page && (/^\/(?:conversations|runs|vectors)\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/runs\/[a-f0-9]{32}\/access$/.test(documentPath)
+                || /^\/provider-budgets\/(call|job|session)\/[a-f0-9]{32}$/.test(documentPath))))) return true;
     if (method === 'POST') {
         if (page) return false;
-        return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate'].includes(base)
+        return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate', '/v1/providers/prices'].includes(base)
+            || !!profile && profile[1] === '/resume'
+            || !!documentPath && (/^\/conversations(?:\/[a-f0-9]{32}\/runs)?$/.test(documentPath)
+                || /^\/runs\/[a-f0-9]{32}\/(start|cancel)$/.test(documentPath)
+                || documentPath === '/vectors' || /^\/vectors\/[a-f0-9]{32}\/cancel$/.test(documentPath))
             || !!notebook && (['/sources/sync', '/sources/preview', '/snapshots'].includes(suffix)
                 || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix))
             || !!documentPath && (/^\/documents\/(register|missing|verify|ingest|text|preview)$/.test(documentPath)
@@ -165,23 +186,26 @@ export class EngineController {
             throw new Error(this.#error, { cause: error });
         }
     }
-    async request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+    async request(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<unknown> {
         if (this.#state !== 'running' || !this.#session)
             throw new Error('ENGINE_NOT_RUNNING');
         if (!allowedEngineRoute(method, path))
             throw new Error('INVALID_ENGINE_ROUTE');
+        const serialized = body === undefined ? undefined : JSON.stringify(body);
+        if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > 65536) throw new Error('BODY_TOO_LARGE');
         const controller = new AbortController();
         this.#requests.add(controller);
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), /\/conversations\/[a-f0-9]{32}\/runs$|\/models\?/.test(path) ? 55000 : 10000);
         try {
-            const response = await this.#platform.fetch(this.#url + path, { method, headers: { Authorization: `Bearer ${this.#session.token}`, 'X-Evidra-Client': 'bridge', 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), credentials: 'omit', redirect: 'error', signal: controller.signal });
+            const response = await this.#platform.fetch(this.#url + path, { method, headers: { Authorization: `Bearer ${this.#session.token}`, 'X-Evidra-Client': 'bridge', 'Content-Type': 'application/json' }, ...(serialized === undefined ? {} : { body: serialized }), credentials: 'omit', redirect: 'error', signal: controller.signal });
             if (!response.ok) {
                 const error = await response.json() as {
                     code?: unknown;
                 };
                 throw new Error(typeof error.code === 'string' && /^[A-Z_]{1,80}$/.test(error.code) ? error.code : 'ENGINE_HTTP_ERROR', { cause: { operation: 'engine_http', http_status: response.status } });
             }
-            return await response.json();
+            const events = /\/events\?cursor=([0-9]+)$/.exec(path);
+            return events ? await readEventBatch(response, Number(events[1])) : await response.json();
         }
         finally {
             clearTimeout(timeout);

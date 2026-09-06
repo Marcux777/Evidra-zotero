@@ -187,9 +187,10 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
   return errors === 0;
 }
 validate21.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
-var schema38 = { "additionalProperties": false, "properties": { "idempotency_key": { "maxLength": 200, "minLength": 1, "title": "Idempotency Key", "type": "string" }, "expected_revision": { "minimum": 0, "title": "Expected Revision", "type": "integer" }, "profile_id": { "pattern": "^[a-zA-Z0-9_-]{1,100}$", "title": "Profile Id", "type": "string" }, "question": { "maxLength": 2e3, "minLength": 1, "title": "Question", "type": "string" }, "context_tokens": { "maximum": 1e6, "minimum": 1024, "title": "Context Tokens", "type": "integer" }, "max_output_tokens": { "maximum": 32768, "minimum": 1, "title": "Max Output Tokens", "type": "integer" }, "ollama_options": { "anyOf": [{ "$ref": "#/$defs/OllamaOptions" }, { "type": "null" }], "default": null }, "embedding_profile_id": { "anyOf": [{ "pattern": "^[a-zA-Z0-9_-]{1,100}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Embedding Profile Id" }, "preview_operation_id": { "anyOf": [{ "pattern": "^[a-f0-9]{32}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Preview Operation Id" } }, "required": ["idempotency_key", "expected_revision", "profile_id", "question", "context_tokens", "max_output_tokens"], "title": "RunPrepare", "type": "object" };
+var schema38 = { "additionalProperties": false, "properties": { "idempotency_key": { "maxLength": 200, "minLength": 1, "title": "Idempotency Key", "type": "string" }, "expected_revision": { "minimum": 0, "title": "Expected Revision", "type": "integer" }, "profile_id": { "pattern": "^[a-zA-Z0-9_-]{1,100}$", "title": "Profile Id", "type": "string" }, "question": { "maxLength": 2e3, "minLength": 1, "title": "Question", "type": "string" }, "context_tokens": { "maximum": 1e6, "minimum": 1024, "title": "Context Tokens", "type": "integer" }, "max_output_tokens": { "maximum": 32768, "minimum": 1, "title": "Max Output Tokens", "type": "integer" }, "ollama_options": { "anyOf": [{ "$ref": "#/$defs/OllamaOptions" }, { "type": "null" }], "default": null }, "evidence_id": { "anyOf": [{ "pattern": "^[a-f0-9]{64}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Evidence Id" }, "document_version_id": { "anyOf": [{ "pattern": "^[a-f0-9]{64}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Document Version Id" }, "embedding_profile_id": { "anyOf": [{ "pattern": "^[a-zA-Z0-9_-]{1,100}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Embedding Profile Id" }, "preview_operation_id": { "anyOf": [{ "pattern": "^[a-f0-9]{32}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Preview Operation Id" } }, "required": ["idempotency_key", "expected_revision", "profile_id", "question", "context_tokens", "max_output_tokens"], "title": "RunPrepare", "type": "object" };
 var func3 = Object.prototype.hasOwnProperty;
 var pattern17 = new RegExp("^[a-zA-Z0-9_-]{1,100}$", "u");
+var pattern18 = new RegExp("^[a-f0-9]{64}$", "u");
 function validate24(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -671,16 +672,16 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                         var valid0 = true;
                       }
                       if (valid0) {
-                        if (data.embedding_profile_id !== void 0) {
-                          let data11 = data.embedding_profile_id;
+                        if (data.evidence_id !== void 0) {
+                          let data11 = data.evidence_id;
                           const _errs46 = errors;
                           const _errs47 = errors;
                           let valid8 = false;
                           const _errs48 = errors;
                           if (errors === _errs48) {
                             if (typeof data11 === "string") {
-                              if (!pattern17.test(data11)) {
-                                const err19 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-zA-Z0-9_-]{1,100}$" }, message: 'must match pattern "^[a-zA-Z0-9_-]{1,100}$"' };
+                              if (!pattern18.test(data11)) {
+                                const err19 = { instancePath: instancePath + "/evidence_id", schemaPath: "#/properties/evidence_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' };
                                 if (vErrors === null) {
                                   vErrors = [err19];
                                 } else {
@@ -689,7 +690,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                                 errors++;
                               }
                             } else {
-                              const err20 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                              const err20 = { instancePath: instancePath + "/evidence_id", schemaPath: "#/properties/evidence_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
                               if (vErrors === null) {
                                 vErrors = [err20];
                               } else {
@@ -702,7 +703,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                           valid8 = valid8 || _valid5;
                           const _errs50 = errors;
                           if (data11 !== null) {
-                            const err21 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                            const err21 = { instancePath: instancePath + "/evidence_id", schemaPath: "#/properties/evidence_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
                             if (vErrors === null) {
                               vErrors = [err21];
                             } else {
@@ -713,7 +714,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                           var _valid5 = _errs50 === errors;
                           valid8 = valid8 || _valid5;
                           if (!valid8) {
-                            const err22 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                            const err22 = { instancePath: instancePath + "/evidence_id", schemaPath: "#/properties/evidence_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
                             if (vErrors === null) {
                               vErrors = [err22];
                             } else {
@@ -737,16 +738,16 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                           var valid0 = true;
                         }
                         if (valid0) {
-                          if (data.preview_operation_id !== void 0) {
-                            let data12 = data.preview_operation_id;
+                          if (data.document_version_id !== void 0) {
+                            let data12 = data.document_version_id;
                             const _errs52 = errors;
                             const _errs53 = errors;
                             let valid9 = false;
                             const _errs54 = errors;
                             if (errors === _errs54) {
                               if (typeof data12 === "string") {
-                                if (!pattern10.test(data12)) {
-                                  const err23 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' };
+                                if (!pattern18.test(data12)) {
+                                  const err23 = { instancePath: instancePath + "/document_version_id", schemaPath: "#/properties/document_version_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' };
                                   if (vErrors === null) {
                                     vErrors = [err23];
                                   } else {
@@ -755,7 +756,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                                   errors++;
                                 }
                               } else {
-                                const err24 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                                const err24 = { instancePath: instancePath + "/document_version_id", schemaPath: "#/properties/document_version_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
                                 if (vErrors === null) {
                                   vErrors = [err24];
                                 } else {
@@ -768,7 +769,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                             valid9 = valid9 || _valid6;
                             const _errs56 = errors;
                             if (data12 !== null) {
-                              const err25 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                              const err25 = { instancePath: instancePath + "/document_version_id", schemaPath: "#/properties/document_version_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
                               if (vErrors === null) {
                                 vErrors = [err25];
                               } else {
@@ -779,7 +780,7 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                             var _valid6 = _errs56 === errors;
                             valid9 = valid9 || _valid6;
                             if (!valid9) {
-                              const err26 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                              const err26 = { instancePath: instancePath + "/document_version_id", schemaPath: "#/properties/document_version_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
                               if (vErrors === null) {
                                 vErrors = [err26];
                               } else {
@@ -801,6 +802,140 @@ function validate24(data, { instancePath = "", parentData, parentDataProperty, r
                             var valid0 = _errs52 === errors;
                           } else {
                             var valid0 = true;
+                          }
+                          if (valid0) {
+                            if (data.embedding_profile_id !== void 0) {
+                              let data13 = data.embedding_profile_id;
+                              const _errs58 = errors;
+                              const _errs59 = errors;
+                              let valid10 = false;
+                              const _errs60 = errors;
+                              if (errors === _errs60) {
+                                if (typeof data13 === "string") {
+                                  if (!pattern17.test(data13)) {
+                                    const err27 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-zA-Z0-9_-]{1,100}$" }, message: 'must match pattern "^[a-zA-Z0-9_-]{1,100}$"' };
+                                    if (vErrors === null) {
+                                      vErrors = [err27];
+                                    } else {
+                                      vErrors.push(err27);
+                                    }
+                                    errors++;
+                                  }
+                                } else {
+                                  const err28 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                                  if (vErrors === null) {
+                                    vErrors = [err28];
+                                  } else {
+                                    vErrors.push(err28);
+                                  }
+                                  errors++;
+                                }
+                              }
+                              var _valid7 = _errs60 === errors;
+                              valid10 = valid10 || _valid7;
+                              const _errs62 = errors;
+                              if (data13 !== null) {
+                                const err29 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                                if (vErrors === null) {
+                                  vErrors = [err29];
+                                } else {
+                                  vErrors.push(err29);
+                                }
+                                errors++;
+                              }
+                              var _valid7 = _errs62 === errors;
+                              valid10 = valid10 || _valid7;
+                              if (!valid10) {
+                                const err30 = { instancePath: instancePath + "/embedding_profile_id", schemaPath: "#/properties/embedding_profile_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                                if (vErrors === null) {
+                                  vErrors = [err30];
+                                } else {
+                                  vErrors.push(err30);
+                                }
+                                errors++;
+                                validate24.errors = vErrors;
+                                return false;
+                              } else {
+                                errors = _errs59;
+                                if (vErrors !== null) {
+                                  if (_errs59) {
+                                    vErrors.length = _errs59;
+                                  } else {
+                                    vErrors = null;
+                                  }
+                                }
+                              }
+                              var valid0 = _errs58 === errors;
+                            } else {
+                              var valid0 = true;
+                            }
+                            if (valid0) {
+                              if (data.preview_operation_id !== void 0) {
+                                let data14 = data.preview_operation_id;
+                                const _errs64 = errors;
+                                const _errs65 = errors;
+                                let valid11 = false;
+                                const _errs66 = errors;
+                                if (errors === _errs66) {
+                                  if (typeof data14 === "string") {
+                                    if (!pattern10.test(data14)) {
+                                      const err31 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' };
+                                      if (vErrors === null) {
+                                        vErrors = [err31];
+                                      } else {
+                                        vErrors.push(err31);
+                                      }
+                                      errors++;
+                                    }
+                                  } else {
+                                    const err32 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/0/type", keyword: "type", params: { type: "string" }, message: "must be string" };
+                                    if (vErrors === null) {
+                                      vErrors = [err32];
+                                    } else {
+                                      vErrors.push(err32);
+                                    }
+                                    errors++;
+                                  }
+                                }
+                                var _valid8 = _errs66 === errors;
+                                valid11 = valid11 || _valid8;
+                                const _errs68 = errors;
+                                if (data14 !== null) {
+                                  const err33 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf/1/type", keyword: "type", params: { type: "null" }, message: "must be null" };
+                                  if (vErrors === null) {
+                                    vErrors = [err33];
+                                  } else {
+                                    vErrors.push(err33);
+                                  }
+                                  errors++;
+                                }
+                                var _valid8 = _errs68 === errors;
+                                valid11 = valid11 || _valid8;
+                                if (!valid11) {
+                                  const err34 = { instancePath: instancePath + "/preview_operation_id", schemaPath: "#/properties/preview_operation_id/anyOf", keyword: "anyOf", params: {}, message: "must match a schema in anyOf" };
+                                  if (vErrors === null) {
+                                    vErrors = [err34];
+                                  } else {
+                                    vErrors.push(err34);
+                                  }
+                                  errors++;
+                                  validate24.errors = vErrors;
+                                  return false;
+                                } else {
+                                  errors = _errs65;
+                                  if (vErrors !== null) {
+                                    if (_errs65) {
+                                      vErrors.length = _errs65;
+                                    } else {
+                                      vErrors = null;
+                                    }
+                                  }
+                                }
+                                var valid0 = _errs64 === errors;
+                              } else {
+                                var valid0 = true;
+                              }
+                            }
                           }
                         }
                       }

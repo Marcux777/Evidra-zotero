@@ -35,7 +35,8 @@ async function readerNotifications(incompleteObservation = false) {
     const library = { libraryID: 1, libraryType: 'user', libraryTypeID: null, archived: false };
     const fetched: (number | string)[] = [], invalidated: unknown[] = [], locations: unknown[] = [], errors: unknown[] = [];
     let observer: any, exists = true, verifyCount = 0;
-    const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true };
+    const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true, runAccess: async () => {} };
+    const requests: { path: string; body: any }[] = [];
     const nativeItems = new Map([[1, parent], [2, pdf], [3, note], [4, annotation]]);
     const lookup = (id: number) => { fetched.push(id); if (!nativeItems.has(id)) throw new Error('UNAUTHORIZED_ITEM_READ'); return nativeItems.get(id); };
     const api: any = { Libraries: { exists: () => exists, get: () => library },
@@ -56,6 +57,12 @@ async function readerNotifications(incompleteObservation = false) {
         items: [], removed: [], offset: 0, limit: 0, total: 0, included_count: 1, removed_count: 0,
         added_count: 1, dropped_count: 0, changed_count: 0, possible_duplicate_count: 0 };
     const engine = { stop: async () => {}, request: async (_: string, path: string, body?: any): Promise<any> => {
+        requests.push({ path, body });
+        if (path.endsWith('/access')) { await hooks.runAccess(); return { items: [{ identity, contents: [
+            { key: 'PDFKEY1', kind: 'pdf' }, { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' },
+        ] }], documents: [['b'.repeat(64), 'PDFKEY1']] }; }
+        if (path.endsWith('/cancel')) return { id: 'f'.repeat(32), state: 'RUNNING' };
+        if (path.endsWith('/events?cursor=0')) return { items: [], cursor: 0, state: 'RUNNING' };
         if (path.includes('/snapshots?')) return { items: [{ selection: {} }], total: 1, offset: 0, limit: 1 };
         if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind: 'pdf' },
             { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' }] }], total: 1, offset: 0, limit: 100 };
@@ -73,11 +80,32 @@ async function readerNotifications(incompleteObservation = false) {
         include_notes: true, include_annotations: true, tag_mode: 'AND', pdf_only: false }, { getSelectedItems: () => [pdf, note, annotation] } as any);
     const bridge = new DocumentBridge(api, sources, engine, webcrypto as unknown as Crypto, value => value);
     const notify = (ids = [2], extra: any = { '2': { changed: {} } }, event = 'modify', type = 'item') => observer.notify(event, type, ids, extra);
-    return { pdf, note, annotation, library, sources, evidence, hooks, locations, invalidated, errors, fetched, notify,
+    return { pdf, note, annotation, library, sources, evidence, hooks, locations, invalidated, errors, fetched, notify, requests,
+        events: () => bridge.dispatch({ op: 'conversation.events', ...scope, run_id: 'f'.repeat(32), cursor: 0 }),
+        cancel: () => bridge.dispatch({ op: 'conversation.cancel', ...scope, run_id: 'f'.repeat(32) }),
         removeLibrary: () => { exists = false; },
         open: () => bridge.dispatch({ op: 'documents.open', ...scope, evidence_id: evidence.id }),
         preview: () => sources.previewPage(scope.notebook_id, preview.id, 0) };
 }
+
+test('run continuation preserves authorized sibling sync and cancellation bypasses blocked content preflight', async () => {
+    const f = await readerNotifications();
+    f.requests.length = 0;
+    let release!: () => void, entered!: () => void;
+    const waiting = new Promise<void>(resolve => { entered = resolve; });
+    f.hooks.runAccess = () => new Promise<void>(resolve => { release = resolve; entered(); });
+    const events = f.events();
+    await waiting;
+    expect(await f.cancel()).toEqual({ id: 'f'.repeat(32), state: 'RUNNING' });
+    expect(f.requests.some(r => r.path.endsWith('/events?cursor=0'))).toBe(false);
+    release();
+    await events;
+    expect(f.requests.some(r => r.path.includes('/identities?'))).toBe(false);
+    expect(f.requests.filter(r => r.path.endsWith('/documents/register'))).toHaveLength(1);
+    expect(f.requests.find(r => r.path.endsWith('/sources/sync'))!.body.items[0].contents.map((c: any) => c.key)).toEqual(['PDFKEY1', 'NOTE1', 'ANNOT1']);
+    f.hooks.runAccess = async () => { await f.notify([1], {}, 'modify'); };
+    await expect(f.events()).rejects.toThrow('SCOPE_STALE');
+});
 
 test.each([
     'reader-last-read', 'verified-native-processing', 'path', 'link-mode', 'content-type', 'charset', 'sync-state',

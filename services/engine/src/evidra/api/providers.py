@@ -1,6 +1,6 @@
 """Privileged typed configuration; generation is an internal scoped Task6 consumer."""
 
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from fastapi import APIRouter, Path, Query, Request
 
@@ -117,6 +117,21 @@ def price(body: PriceConfig, request: Request) -> PriceConfig:
 def budget(notebook_id: str, snapshot_id: str, body: BudgetWrite, request: Request) -> Budget:
     service, context = services(request, notebook_id, snapshot_id, commit=True)
     return service.providers.usage.set_budget(context, body)
+
+
+@router.get(
+    "/notebooks/{notebook_id}/snapshots/{snapshot_id}/provider-budgets/{kind}/{identity}",
+    response_model=Budget | None,
+)
+def read_budget(
+    notebook_id: str,
+    snapshot_id: str,
+    kind: Literal["call", "job", "session"],
+    identity: str,
+    request: Request,
+) -> Budget | None:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.providers.usage.read_budget(context, kind, identity)
 
 
 @router.get(

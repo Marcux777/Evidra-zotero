@@ -2,6 +2,7 @@ import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
 import { DocumentBridge } from './documents';
+import { providerCommand } from './conversations';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
 import { catalog } from '../ui/i18n';
@@ -60,10 +61,11 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
-        if (message.op.startsWith('documents.')) {
+        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.')) {
             return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText)
-                .dispatch(message as import('./types').DocumentCommand);
+                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand);
         }
+        if (message.op.startsWith('provider.')) return providerCommand(message as import('./types').ProviderCommand, engine);
         switch (message.op) {
             case 'sources.state': return sources().state();
             case 'sources.history': return sources().history(message.notebook_id, message.offset);
@@ -135,6 +137,12 @@ export class ZoteroBridge {
         let active = true;
         let frameWindow: Window | null = null;
         const pending = new Set<string>();
+        type OwnedRun = { notebook_id: string; snapshot_id: string; run_id: string };
+        const ownedRuns = new Map<string, OwnedRun>();
+        const cancelOwned = (message: OwnedRun) => {
+            void this.dispatch({ ...message, op: 'conversation.cancel' }, window, close).catch(error =>
+                this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
+        };
         const listener = (event: MessageEvent) => {
             if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string' || event.data.length > 16384)
                 return;
@@ -164,7 +172,18 @@ export class ZoteroBridge {
                 }
                 frameWindow?.postMessage(message, '*');
             };
-            void Promise.resolve().then(() => this.dispatch(parseUiMessage(envelope.request), window, close)).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
+            void Promise.resolve().then(async () => {
+                const request = parseUiMessage(envelope.request);
+                if (!active) throw new Error('VIEW_CLOSED');
+                if (request.op === 'conversation.start') ownedRuns.set(request.run_id, request);
+                const value = await this.dispatch(request, window, close);
+                if (request.op === 'conversation.start' && !active) cancelOwned(request);
+                if (['conversation.start', 'conversation.run', 'conversation.events', 'conversation.cancel'].includes(request.op)
+                    && value && typeof value === 'object' && 'state' in value
+                    && ['COMPLETE', 'FAILED', 'CANCELLED'].includes(String(value.state)))
+                    ownedRuns.delete((request as { run_id: string }).run_id);
+                return value;
+            }).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
         };
         const loaded = (event: Event) => {
             if (!active || !event.isTrusted || frameWindow) return;
@@ -182,7 +201,7 @@ export class ZoteroBridge {
         const addLoadListener = iframe.addEventListener as (type: string, listener: EventListener, options: AddEventListenerOptions, wantsUntrusted: boolean) => void;
         addLoadListener.call(iframe, 'load', loaded, { capture: true }, true);
         parent.append(iframe);
-        const cleanup = () => { active = false; pending.clear(); removeLoadListener(); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
+        const cleanup = () => { active = false; for (const run of ownedRuns.values()) cancelOwned(run); ownedRuns.clear(); pending.clear(); removeLoadListener(); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
         this.#frames.add(cleanup);
         return cleanup;
     }

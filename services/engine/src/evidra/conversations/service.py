@@ -11,10 +11,12 @@ from typing import Literal
 
 from evidra.conversations.models import (
     Answer,
+    CancelReceipt,
     ConversationCreate,
     ConversationPage,
     ConversationRecord,
     EventPage,
+    RunAccess,
     RunEvent,
     RunPage,
     RunPrepare,
@@ -120,6 +122,33 @@ class ConversationService:
         with self.scopes.guarded(context, capability=context.capability) as connection:
             return self._read(connection, context, run_id)
 
+    def access(self, context: ScopeContext, run_id: str) -> RunAccess:
+        with self.scopes.guarded(context, capability=context.capability) as connection:
+            run = self._read(connection, context, run_id)
+            versions = {value.document_version_id for value in run.context.evidence}
+            versions.update(run.context.history_visual_versions)
+            for identity in run.context.history_evidence_ids:
+                versions.add(
+                    self.evidence.from_connection(connection, context, identity).document_version_id
+                )
+            if run.visual:
+                versions.add(run.visual.document_version_id)
+            documents = set()
+            for version in versions:
+                row = connection.execute(
+                    "SELECT document_id FROM document_versions WHERE id=?", (version,)
+                ).fetchone()
+                document = self.ingestion.registry.require(connection, context, row[0])
+                documents.add((document["source_id"], document["content_key"]))
+            source_ids = {source for source, _ in documents}
+            access = self.scopes.snapshot_access(
+                connection, context.notebook_id, context.snapshot_id
+            )
+            return RunAccess(
+                items=[item for item in access if item.identity.source_id in source_ids],
+                documents=sorted(documents),
+            )
+
     def _read(
         self, connection: sqlite3.Connection, context: ScopeContext, run_id: str
     ) -> RunRecord:
@@ -132,6 +161,15 @@ class ConversationService:
         if row is None:
             raise EvidraError("NOT_FOUND", "Run not found in this snapshot.")
         run = RunRecord.model_validate_json(row[0])
+        for identity in run.context.history_evidence_ids:
+            self.evidence.from_connection(connection, context, identity)
+        for version in run.context.history_visual_versions:
+            document = connection.execute(
+                "SELECT document_id FROM document_versions WHERE id=?", (version,)
+            ).fetchone()
+            if document is None:
+                raise EvidraError("NOT_FOUND", "Historical visual source is unavailable.")
+            self.ingestion.registry.require(connection, context, document[0])
         for value in run.context.evidence:
             current = self.evidence.from_connection(connection, context, value.id)
             if (
@@ -191,6 +229,8 @@ class ConversationService:
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "The prepared request differs.")
                 return self._read(connection, context, prior["id"])
             history = []
+            history_evidence: set[str] = set()
+            history_visual: set[str] = set()
             for row in connection.execute(
                 "SELECT id FROM conversation_runs WHERE conversation_id=? AND "
                 "json_extract(payload,'$.state')='COMPLETE' ORDER BY rowid",
@@ -198,6 +238,11 @@ class ConversationService:
             ):
                 run = self._read(connection, context, row[0])
                 assert run.output is not None
+                history_evidence.update(value.id for value in run.context.evidence)
+                history_evidence.update(run.context.history_evidence_ids)
+                history_visual.update(run.context.history_visual_versions)
+                if run.visual:
+                    history_visual.add(run.visual.document_version_id)
                 history.extend(
                     [
                         {"role": "user", "text": run.question},
@@ -247,14 +292,26 @@ class ConversationService:
                 sha256=preview.sha256,
                 destination=f"{profile.adapter} / {profile.model} / {profile.base_url}",
             )
-        hits = self.lexical.search(context, SearchRequest(query=body.question, limit=40))
+        if body.evidence_id and body.document_version_id:
+            raise EvidraError("INVALID_REQUEST", "Select one question scope: excerpt or document.")
+        hits = self.lexical.search(
+            context,
+            SearchRequest(query=body.question, limit=40),
+            document_version_id=body.document_version_id,
+        )
         vector_ids = (
-            await self.vectors.search(context, body.embedding_profile_id, body.question)
-            if body.embedding_profile_id
+            await self.vectors.search(
+                context, body.embedding_profile_id, body.question, body.document_version_id
+            )
+            if body.embedding_profile_id and not body.evidence_id
             else []
         )
         ids = fuse([h.evidence_id for h in hits.items], vector_ids)
-        values = [self.evidence.read(context, identity) for identity in ids]
+        values = (
+            [self.evidence.read(context, body.evidence_id)]
+            if body.evidence_id
+            else [self.evidence.read(context, identity) for identity in ids]
+        )
         built = build_context(
             body.question,
             values,
@@ -270,7 +327,13 @@ class ConversationService:
                 "No retrieved evidence fits this question/context. Lexical reading remains "
                 "available.",
             )
-        categories: set[ContentCategory] = {"excerpts"} if built.evidence else set()
+        built = built.model_copy(
+            update={
+                "history_evidence_ids": sorted(history_evidence),
+                "history_visual_versions": sorted(history_visual),
+            }
+        )
+        categories: set[ContentCategory] = {"excerpts", "metadata"} if built.evidence else set()
         if history:
             categories.add("history")
         if visual:
@@ -433,6 +496,7 @@ class ConversationService:
                 raise EvidraError("CANCELLED", "Run cancelled.")
             output = validate_answer(text, run, context, self.evidence)
             with self.scopes.guarded(context, capability="commit") as connection:
+                self._read(connection, context, run.id)
                 if self.providers.profiles.load(connection, run.profile.id) != run.profile:
                     raise EvidraError("REVISION_CONFLICT", "Provider changed before final commit.")
                 if (
@@ -440,7 +504,15 @@ class ConversationService:
                     != run.conversation_revision
                 ):
                     raise EvidraError("REVISION_CONFLICT", "History changed before final commit.")
-                run = run.model_copy(update={"state": "COMPLETE", "output": output})
+                run = run.model_copy(
+                    update={
+                        "state": "COMPLETE",
+                        "output": output,
+                        "anchor_status": "VERIFIED_EXISTENCE_ONLY"
+                        if any(c.evidence for c in output.claims)
+                        else None,
+                    }
+                )
                 self._save(connection, run)
                 connection.execute(
                     "UPDATE conversations SET revision=revision+1 WHERE id=?",
@@ -482,8 +554,17 @@ class ConversationService:
                     connection, run.id, "cancelled" if code == "CANCELLED" else "failed", code=code
                 )
 
-    def cancel(self, context: ScopeContext, run_id: str) -> RunRecord:
-        run = self.read(context, run_id)
+    def cancel(self, context: ScopeContext, run_id: str) -> CancelReceipt:
+        # Cancellation returns no source/model content and remains possible after invalidation.
+        with self.scopes.guarded(context, capability="commit") as connection:
+            row = connection.execute(
+                "SELECT r.payload FROM conversation_runs r JOIN conversations c ON "
+                "c.id=r.conversation_id WHERE r.id=? AND c.notebook_id=? AND c.snapshot_id=?",
+                (run_id, context.notebook_id, context.snapshot_id),
+            ).fetchone()
+            if row is None:
+                raise EvidraError("NOT_FOUND", "Run not found in this snapshot.")
+            run = RunRecord.model_validate_json(row[0])
         active = self.tasks.get(run_id)
         if active:
             active[1].set()
@@ -493,7 +574,7 @@ class ConversationService:
             with self.scopes.guarded(context, capability="commit") as connection:
                 self._save(connection, run)
                 self._event(connection, run.id, "cancelled", code="CANCELLED")
-        return run
+        return CancelReceipt(id=run.id, state=run.state)
 
     def events(self, context: ScopeContext, run_id: str, cursor: int) -> EventPage:
         run = self.read(context, run_id)

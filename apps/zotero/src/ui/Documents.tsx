@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { DocumentCommand, DocumentOperation, DocumentPage, DocumentStatus, Evidence, Locale, PagePreview, PagePreviewRequest, ParserLimits, SearchPage, UiBridge } from '../bridge/types';
 import type { IndexResult } from '../bridge/documents';
 import { catalog } from './i18n';
+import type { QuestionTarget, VisualSelection } from './Conversation';
 
 const active = (operation: DocumentOperation | null | undefined) => operation && ['QUEUED', 'RUNNING'].includes(operation.state);
 const key = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
 const confirmed = (error: unknown) => error instanceof Error && ['SCOPE_STALE', 'SOURCE_REVOKED', 'FORBIDDEN', 'UNAUTHENTICATED', 'DOCUMENT_STALE', 'MISSING_FILE', 'INVALID_REQUEST', 'IDEMPOTENCY_CONFLICT', 'UNSUPPORTED_DOCUMENT', 'INVALID_DOCUMENT_TYPE', 'DOCUMENT_FILE_ERROR', 'INVALID_DOCUMENT_PATH', 'REPARSE_POINT', 'NOT_REGULAR_FILE'].includes(error.message);
 
-export function Documents({ bridge, notebook_id, snapshot_id, locale }: { bridge: UiBridge; notebook_id: string; snapshot_id: string; locale: Locale }) {
+export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onPreview }: { bridge: UiBridge; notebook_id: string; snapshot_id: string; locale: Locale; onAsk?: (target: QuestionTarget) => void; onPreview?: (preview: VisualSelection | null) => void }) {
     const t = catalog(locale), d = t.evidence, scope = { notebook_id, snapshot_id };
     const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
     const [page, setPage] = useState<DocumentPage | null>(null), [offsets, setOffsets] = useState<number[]>([]), [polling, setPolling] = useState(true);
@@ -18,6 +19,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale }: { bridge
     const pending = useRef(new Map<string, Extract<DocumentCommand, { op: 'documents.index' }>>());
     const [uncertain, setUncertain] = useState<string[]>([]);
     const alive = useRef(true), running = useRef(false), generation = useRef(0);
+    useEffect(() => { onPreview?.(preview && previewOp ? { operation_id: previewOp.id, image: preview } : null); }, [preview, previewOp?.id]);
     useEffect(() => { alive.current = true; return () => { alive.current = false; ++generation.current; }; }, []);
 
     function reason(value: string | null | undefined) { return value ? d.reasons[value as keyof typeof d.reasons] ?? value : ''; }
@@ -135,6 +137,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale }: { bridge
                     {active(operation) && <button type="button" disabled={busy} onClick={() => cancel(operation!)}>{d.cancel}</button>}
                     {row.source_kind === 'pdf' && row.document_version_id && <button type="button" disabled={busy} onClick={() => { setVersion(row.document_version_id!); setPhysicalPage('1'); setRegion(''); setPreview(null); setPreviewOp(null); }}>{d.preview}</button>}
                 </div> : <p>{d.unsupported}</p>}
+                {row.document_version_id && onAsk && <button type="button" disabled={busy} onClick={() => onAsk({ kind: 'document', id: row.document_version_id!, label: row.title, nonce: key() })}>{t.chat.askDocument}</button>}
             </li>;
         })}</ul>
         {page && page.total > page.limit && <nav className="actions" aria-label={d.open}><button disabled={busy || !offsets.length} onClick={() => void action(current => load(offsets.at(-1) ?? 0, current, 'previous'))}>{t.previous}</button>
@@ -155,6 +158,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale }: { bridge
             {evidence.page_index !== null && <p>{d.page}: {evidence.page_index + 1} · {d.label}: {evidence.page_label ?? '—'}</p>}
             {evidence.precision === 'page' && <p>{d.pageOnly}</p>}
             {evidence.source_kind === 'pdf' && <button type="button" disabled={busy} onClick={openEvidence}>{evidence.precision === 'rectangles' ? d.openExcerpt : d.openPage}</button>}
+            {onAsk && <button type="button" disabled={busy} onClick={() => onAsk({ kind: 'excerpt', id: evidence.id, label: evidence.content_key, nonce: key() })}>{t.chat.askExcerpt}</button>}
         </aside>}
         {version && <fieldset className="preview-controls" disabled={busy || !!active(previewOp)}><legend>{d.preview}</legend><p>{d.previewHelp}</p>
             <div className="source-filters"><label>{d.page}<input type="number" min="1" max="10000" value={physicalPage} onChange={e => setPhysicalPage(e.target.value)}/></label>

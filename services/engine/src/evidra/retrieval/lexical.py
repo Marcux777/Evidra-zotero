@@ -13,7 +13,9 @@ class LexicalSearch:
     def __init__(self, evidence: EvidenceService) -> None:
         self.evidence, self.scopes = evidence, evidence.scopes
 
-    def search(self, context: ScopeContext, body: SearchRequest) -> SearchPage:
+    def search(
+        self, context: ScopeContext, body: SearchRequest, *, document_version_id: str | None = None
+    ) -> SearchPage:
         # All query syntax is data. Unicode word tokens are individually quoted, never SQL.
         terms = re.findall(r"[^\W_]+", normalize(body.query)[0], flags=re.UNICODE)
         query = " AND ".join('"' + term.replace('"', '""') + '"' for term in terms)
@@ -43,12 +45,16 @@ class LexicalSearch:
                 "JOIN lexical_allowed a ON a.version_id=c.version_id "
                 "JOIN document_versions v ON v.id=c.version_id WHERE document_fts MATCH ?"
             )
-            total = connection.execute("SELECT count(*)" + joins, (query,)).fetchone()[0]
+            parameters: tuple[str, ...] = (query,)
+            if document_version_id is not None:
+                joins += " AND c.version_id=?"
+                parameters += (document_version_id,)
+            total = connection.execute("SELECT count(*)" + joins, parameters).fetchone()[0]
             rows = connection.execute(
                 "SELECT c.id,bm25(document_fts) AS score,v.document_id"
                 + joins
                 + " ORDER BY score,c.id LIMIT ? OFFSET ?",
-                (query, body.limit, body.offset),
+                (*parameters, body.limit, body.offset),
             ).fetchall()
             hits = []
             for row in rows:

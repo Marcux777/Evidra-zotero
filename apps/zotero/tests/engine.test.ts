@@ -97,7 +97,20 @@ test('controller requires current consent, validates receipt, hides credential, 
     expect(new Headers(requests[0]!.init.headers).get('Authorization')).toBe(`Bearer ${'d'.repeat(64)}`);
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
-    const requiredRoutes: ['GET' | 'POST', string][] = [
+    const requiredRoutes: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
+        ['GET', '/v1/providers/profiles?offset=0&limit=50'], ['GET', '/v1/providers/settings'],
+        ['PUT', '/v1/providers/settings'], ['PUT', '/v1/providers/profiles/local'],
+        ['GET', '/v1/providers/profiles/local/models?offset=0&limit=50'],
+        ['GET', '/v1/providers/profiles/local/secret'], ['PUT', '/v1/providers/profiles/local/secret'], ['DELETE', '/v1/providers/profiles/local/secret'],
+        ['POST', '/v1/providers/profiles/local/resume'], ['POST', '/v1/providers/prices'],
+        ['GET', `${notebook}/providers/local/consent`], ['PUT', `${notebook}/providers/local/consent`],
+        ['GET', `${snapshot}/conversations?offset=0&limit=50`], ['POST', `${snapshot}/conversations`],
+        ['GET', `${snapshot}/conversations/${'f'.repeat(32)}`], ['GET', `${snapshot}/conversations/${'f'.repeat(32)}/runs?offset=0&limit=50`],
+        ['POST', `${snapshot}/conversations/${'f'.repeat(32)}/runs`], ['GET', `${snapshot}/runs/${'f'.repeat(32)}`],
+        ['POST', `${snapshot}/runs/${'f'.repeat(32)}/start`], ['POST', `${snapshot}/runs/${'f'.repeat(32)}/cancel`],
+        ['POST', `${snapshot}/vectors`], ['GET', `${snapshot}/vectors/${'f'.repeat(32)}`], ['POST', `${snapshot}/vectors/${'f'.repeat(32)}/cancel`],
+        ['GET', `${snapshot}/provider-calls?offset=0&limit=50`], ['PUT', `${snapshot}/provider-budgets`],
+        ['GET', `${snapshot}/provider-budgets/call/${'f'.repeat(32)}`],
         ['GET', `${snapshot}/documents?offset=0&limit=50`],
         ['POST', `${snapshot}/documents/register`],
         ['POST', `${snapshot}/documents/missing`], ['POST', `${snapshot}/documents/verify`],
@@ -128,6 +141,10 @@ test('controller requires current consent, validates receipt, hides credential, 
         expect(new Headers(sent.init.headers).get('X-Evidra-Client')).toBe('bridge');
     }
     const rejectedRoutes: [string, string][] = [
+        ['POST', `${snapshot}/runs/${'f'.repeat(32)}/events?cursor=0`],
+        ['GET', `${snapshot}/runs/${'f'.repeat(32)}/events?cursor=0&token=private`],
+        ['PUT', '/v1/providers/profiles/local/models'], ['DELETE', '/v1/providers/profiles/local'],
+        ['GET', `${snapshot}/provider-budgets/unknown/${'f'.repeat(32)}`],
         ['GET', `${snapshot}/documents/register`], ['GET', `${snapshot}/documents?path=C:/private.pdf`],
         ['POST', `${snapshot}/operations/${'d'.repeat(32)}/preview`],
         ['GET', `${snapshot}/documents?offset=0&limit=100`], ['GET', `${snapshot}/search`],

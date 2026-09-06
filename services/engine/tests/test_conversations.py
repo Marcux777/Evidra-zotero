@@ -5,6 +5,7 @@ import hashlib
 import json
 import time
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from test_documents import document_scope
@@ -62,6 +63,144 @@ def profile(client):
         },
     )
     assert response.status_code == 200, response.text
+
+
+@pytest.mark.parametrize("scenario", ["text", "visual", "monetary_cap"])
+def test_conversation_consumes_actual_registry_usage_and_server_visual_bytes(tmp_path, scenario):
+    from pdf_fixtures import write_pdf
+    from test_documents import finished, ingest, register
+    from test_providers import stream
+
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        _, _, prefix = indexed(client)
+        profile(client)
+        preview_id = None
+        pixels = None
+        if scenario == "visual":
+            path = tmp_path / "visual.pdf"
+            write_pdf(path)
+            _, _, sources, prefix = document_scope(client, key="visual")
+            document = register(client, prefix, sources["items"][0]["id"], path)
+            parsed = finished(client, prefix, ingest(client, prefix, document))
+            response = client.post(
+                prefix + "/documents/preview",
+                headers=HEADERS,
+                json={
+                    "document_version_id": parsed["document_version_id"],
+                    "page_index": 0,
+                    "region": [30, 410, 200, 470],
+                    "scale": 1,
+                    "idempotency_key": "visual",
+                },
+            )
+            assert response.status_code == 202, response.text
+            rendered = finished(client, prefix, response.json())
+            assert rendered["state"] == "COMPLETE", rendered
+            preview_id = rendered["id"]
+            pixels = client.get(
+                prefix + "/operations/" + preview_id + "/preview", headers=HEADERS
+            ).json()
+            spec = client.get("/v1/providers/profiles", headers=HEADERS).json()["items"][0]
+            for field in ["id", "revision", "paused_code"]:
+                spec.pop(field)
+            spec["capabilities"]["images"] = {"supported": True, "provenance": "USER_DECLARED"}
+            assert (
+                client.put(
+                    "/v1/providers/profiles/local",
+                    headers=HEADERS,
+                    json={"spec": spec, "expected_revision": 1, "idempotency_key": "vision"},
+                ).status_code
+                == 200
+            )
+        calls = []
+
+        def boundary(request):
+            body = json.loads(request.content)
+            calls.append(body)
+            claim = {
+                "text": "Controlled interpretation",
+                "kind": "visual_proposal" if scenario == "visual" else "general",
+                "evidence": [],
+            }
+            return httpx.Response(200, text=stream("ollama", json.dumps({"claims": [claim]})))
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(boundary)
+        )
+        conversation = client.post(
+            prefix + "/conversations", headers=HEADERS, json={"idempotency_key": "registry"}
+        ).json()
+        prepared = client.post(
+            prefix + "/conversations/" + conversation["id"] + "/runs",
+            headers=HEADERS,
+            json={
+                "idempotency_key": "registry",
+                "expected_revision": 0,
+                "profile_id": "local",
+                "question": "decisive finding",
+                "context_tokens": 8192,
+                "max_output_tokens": 512,
+                "preview_operation_id": preview_id,
+            },
+        )
+        assert prepared.status_code == 201, prepared.text
+        run = prepared.json()
+        path = prefix + "/runs/" + run["id"]
+        if scenario == "monetary_cap":
+            assert client.post(
+                "/v1/providers/prices",
+                headers=HEADERS,
+                json={
+                    "version": "v1",
+                    "adapter": "ollama",
+                    "model": "fixture",
+                    "currency": "USD",
+                    "source": "controlled fixture",
+                    "input_per_million": "1",
+                    "output_per_million": "1",
+                    "effective_date": "2026-01-01",
+                },
+            ).status_code in [200, 201]
+            assert (
+                client.put(
+                    prefix + "/provider-budgets",
+                    headers=HEADERS,
+                    json={
+                        "kind": "call",
+                        "identity": run["id"],
+                        "currency": "USD",
+                        "ceiling": "1",
+                        "expected_revision": 0,
+                        "idempotency_key": "cap",
+                    },
+                ).status_code
+                == 200
+            )
+        started = client.post(path + "/start", headers=HEADERS)
+        assert started.status_code == 200, started.text
+        deadline = time.monotonic() + 4
+        while time.monotonic() < deadline:
+            result = client.get(path, headers=HEADERS).json()
+            if result["state"] not in ["RUNNING", "PREPARED"]:
+                break
+            time.sleep(0.01)
+        if scenario == "monetary_cap":
+            assert result["state"] == "FAILED" and result["error"] == "TOKEN_BOUND_REQUIRED", result
+            assert not calls
+        else:
+            assert result["state"] == "COMPLETE", result
+            ledger = client.get(
+                prefix + "/provider-calls?offset=0&limit=50", headers=HEADERS
+            ).json()["items"]
+            assert len(calls) == len(ledger) == 1 and ledger[0]["state"] == "CONFIRMED"
+            assert ledger[0]["call_id"] == ledger[0]["job_id"] == run["id"]
+            assert ledger[0]["session_id"] == conversation["id"] and ledger[0]["input_tokens"] == 8
+            if pixels:
+                assert calls[0]["messages"][-1]["images"] == [pixels["data_base64"]]
+                assert result["visual"]["sha256"] == pixels["sha256"]
+                assert result["visual"]["interpretation"] == "PROPOSED_REQUIRES_HUMAN_REVIEW"
+                assert result["anchor_status"] is None and "images" in result["categories"]
 
 
 def test_prepared_run_stream_promotes_only_verified_evidence_and_preserves_history(tmp_path):
@@ -130,6 +269,36 @@ def test_prepared_run_stream_promotes_only_verified_evidence_and_preserves_histo
             prefix + "/conversations/" + conversation["id"] + "/runs", headers=HEADERS
         ).json()
         assert history["total"] == 1 and history["items"][0]["id"] == run["id"]
+        next_run = client.post(
+            prefix + "/conversations/" + conversation["id"] + "/runs",
+            headers=HEADERS,
+            json={
+                "idempotency_key": "history",
+                "expected_revision": 1,
+                "profile_id": "local",
+                "question": "decisive",
+                "context_tokens": 8192,
+                "max_output_tokens": 1024,
+            },
+        )
+        assert next_run.status_code == 201, next_run.text
+        next_run = next_run.json()
+        assert next_run["context"]["history_evidence_ids"] == [run["context"]["evidence"][0]["id"]]
+        access = client.get(prefix + "/runs/" + next_run["id"] + "/access", headers=HEADERS).json()
+        assert access["documents"] == [[run["context"]["evidence"][0]["source_id"], "SAMEKEY1"]]
+        revoked = client.post(
+            f"/v1/notebooks/{conversation['notebook_id']}/sources/{access['documents'][0][0]}/revoke",
+            headers=HEADERS,
+            json={
+                "expected_revision": client.get(
+                    f"/v1/notebooks/{conversation['notebook_id']}", headers=HEADERS
+                ).json()["revision"]
+            },
+        )
+        assert revoked.status_code == 200, revoked.text
+        assert client.get(prefix + "/runs/" + next_run["id"], headers=HEADERS).status_code == 403
+        cancelled = client.post(prefix + "/runs/" + next_run["id"] + "/cancel", headers=HEADERS)
+        assert cancelled.status_code == 200 and set(cancelled.json()) == {"id", "state"}
 
 
 @pytest.mark.parametrize(

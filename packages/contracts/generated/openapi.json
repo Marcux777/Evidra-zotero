@@ -4813,6 +4813,158 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/provider-budgets/{kind}/{identity}": {
+      "get": {
+        "tags": [
+          "providers"
+        ],
+        "summary": "Read Budget",
+        "operationId": "read_budget_v1_notebooks__notebook_id__snapshots__snapshot_id__provider_budgets__kind___identity__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "call",
+                "job",
+                "session"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Budget"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Read Budget V1 Notebooks  Notebook Id  Snapshots  Snapshot Id  Provider Budgets  Kind   Identity  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/provider-calls": {
       "get": {
         "tags": [
@@ -6041,6 +6193,136 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/access": {
+      "get": {
+        "tags": [
+          "conversations"
+        ],
+        "summary": "Access",
+        "operationId": "access_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__access_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunAccess"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/cancel": {
       "post": {
         "tags": [
@@ -6083,7 +6365,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RunRecord"
+                  "$ref": "#/components/schemas/CancelReceipt"
                 }
               }
             }
@@ -7170,6 +7452,25 @@
         "title": "BudgetWrite",
         "type": "object"
       },
+      "CancelReceipt": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "state": {
+            "type": "string",
+            "title": "State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "state"
+        ],
+        "title": "CancelReceipt"
+      },
       "Capability": {
         "additionalProperties": false,
         "properties": {
@@ -7510,6 +7811,20 @@
             },
             "type": "array",
             "title": "History"
+          },
+          "history_evidence_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "History Evidence Ids"
+          },
+          "history_visual_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "History Visual Versions"
           },
           "system": {
             "type": "string",
@@ -9320,6 +9635,41 @@
         ],
         "title": "Revocation"
       },
+      "RunAccess": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "documents": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Documents"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "documents"
+        ],
+        "title": "RunAccess"
+      },
       "RunPage": {
         "properties": {
           "items": {
@@ -9399,6 +9749,32 @@
               }
             ],
             "default": null
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Evidence Id"
+          },
+          "document_version_id": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Document Version Id"
           },
           "embedding_profile_id": {
             "anyOf": [
@@ -9539,10 +9915,16 @@
             "title": "Created At"
           },
           "anchor_status": {
-            "type": "string",
-            "const": "VERIFIED_EXISTENCE_ONLY",
-            "title": "Anchor Status",
-            "default": "VERIFIED_EXISTENCE_ONLY"
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "VERIFIED_EXISTENCE_ONLY"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Anchor Status"
           },
           "support_status": {
             "type": "string",
@@ -12233,6 +12615,49 @@
         "title": "ProviderBudgetCommand",
         "type": "object"
       },
+      "ProviderBudgetReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "provider.budget.read",
+            "title": "Op",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "call",
+              "job",
+              "session"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "identity": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "kind",
+          "identity"
+        ],
+        "title": "ProviderBudgetReadCommand",
+        "type": "object"
+      },
       "ProviderCallsCommand": {
         "additionalProperties": false,
         "properties": {
@@ -12565,6 +12990,7 @@
         "discriminator": {
           "mapping": {
             "provider.budget": "#/components/schemas/ProviderBudgetCommand",
+            "provider.budget.read": "#/components/schemas/ProviderBudgetReadCommand",
             "provider.calls": "#/components/schemas/ProviderCallsCommand",
             "provider.consent": "#/components/schemas/ProviderConsentReadCommand",
             "provider.consent.write": "#/components/schemas/ProviderConsentWriteCommand",
@@ -12617,6 +13043,9 @@
           },
           {
             "$ref": "#/components/schemas/ProviderBudgetCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ProviderBudgetReadCommand"
           },
           {
             "$ref": "#/components/schemas/ProviderPriceCommand"

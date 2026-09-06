@@ -3,9 +3,11 @@ from fastapi.responses import Response
 
 from evidra.api.documents import services
 from evidra.conversations.models import (
+    CancelReceipt,
     ConversationCreate,
     ConversationPage,
     ConversationRecord,
+    RunAccess,
     RunPage,
     RunPrepare,
     RunRecord,
@@ -79,8 +81,16 @@ async def start(notebook_id: str, snapshot_id: str, run_id: str, request: Reques
     return service.conversations.start(context, run_id)
 
 
-@router.post("/runs/{run_id}/cancel", response_model=RunRecord)
-async def cancel(notebook_id: str, snapshot_id: str, run_id: str, request: Request) -> RunRecord:
+@router.get("/runs/{run_id}/access", response_model=RunAccess)
+def access(notebook_id: str, snapshot_id: str, run_id: str, request: Request) -> RunAccess:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.conversations.access(context, run_id)
+
+
+@router.post("/runs/{run_id}/cancel", response_model=CancelReceipt)
+async def cancel(
+    notebook_id: str, snapshot_id: str, run_id: str, request: Request
+) -> CancelReceipt:
     service, context = services(request, notebook_id, snapshot_id, commit=True)
     return service.conversations.cancel(context, run_id)
 

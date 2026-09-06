@@ -142,6 +142,12 @@ class ProviderBudgetCommand(DocumentCommandScope):
     request: BudgetWrite
 
 
+class ProviderBudgetReadCommand(DocumentCommandScope):
+    op: Literal["provider.budget.read"]
+    kind: Literal["call", "job", "session"]
+    identity: Id
+
+
 class ProviderPriceCommand(StrictModel):
     op: Literal["provider.price"]
     request: PriceConfig
@@ -165,6 +171,7 @@ ProviderCommand = Annotated[
     | ProviderConsentReadCommand
     | ProviderConsentWriteCommand
     | ProviderBudgetCommand
+    | ProviderBudgetReadCommand
     | ProviderPriceCommand
     | ProviderCallsCommand,
     Field(discriminator="op"),

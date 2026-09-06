@@ -3,14 +3,17 @@ import type { AttachmentRole, Locale, Notebook, SelectionSpec, Snapshot, Snapsho
 import type { SourcePreviewResult, SourceState } from '../bridge/sources';
 import { catalog } from './i18n';
 import { Documents } from './Documents';
+import { Conversation } from './Conversation';
+import type { QuestionTarget, VisualSelection } from './Conversation';
 
 const sameIdentity = (a: SourceIdentity, b: SourceIdentity) => a.profile_instance_id === b.profile_instance_id && a.library_id === b.library_id && a.item_key === b.item_key;
 const emptyHistory: SnapshotPage = { items: [], offset: 0, limit: 50, total: 0 };
 const confirmedCaptureFailure = (error: unknown) => error instanceof Error &&
     ['SCOPE_STALE', 'SOURCE_REVOKED', 'FORBIDDEN', 'UNAUTHENTICATED', 'BRIDGE_EXPIRED', 'NOT_FOUND', 'IDEMPOTENCY_CONFLICT'].includes(error.message);
 
-export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBridge; notebook: Notebook; locale: Locale; onRevision?: (revision: number) => void }) {
+export function Sources({ bridge, notebook, locale, onRevision, profilesEpoch = 0 }: { bridge: UiBridge; notebook: Notebook; locale: Locale; onRevision?: (revision: number) => void; profilesEpoch?: number }) {
     const t = catalog(locale), s = t.sources;
+    const [questionTarget, setQuestionTarget] = useState<QuestionTarget | null>(null), [visualSelection, setVisualSelection] = useState<VisualSelection | null>(null);
     const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
     const [spec, setSpec] = useState<SelectionSpec>({ include_selected_containers: false, include_descendants: false, include_notes: false, include_annotations: false, pdf_only: false, tag_mode: 'AND' });
     const [minimum, setMinimum] = useState(''), [maximum, setMaximum] = useState(''), [types, setTypes] = useState(''), [tags, setTags] = useState('');
@@ -19,6 +22,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
     const [history, setHistory] = useState(emptyHistory), [snapshot, setSnapshot] = useState<Snapshot | null>(null), [sources, setSources] = useState<SnapshotSourcePage | null>(null);
     const version = useRef(0), epoch = useRef<number | null>(null), actionBusy = useRef(false), alive = useRef(true), revision = useRef(notebook.revision), pendingCapture = useRef<SnapshotCreate | null>(null);
     const [capturePending, setCapturePending] = useState(false), [documentEpoch, setDocumentEpoch] = useState(0);
+    useEffect(() => { setQuestionTarget(null); setVisualSelection(null); }, [snapshot?.id, documentEpoch]);
     const report = (value: unknown) => setError(value instanceof Error ? value.message : 'OPERATION_FAILED');
     function clearPending() { pendingCapture.current = null; setCapturePending(false); }
     function invalidate(discardCapture = true) { ++version.current; setPreview(null); setValid(false); setSources(null); if (discardCapture) { clearPending(); setDocumentEpoch(value => value + 1); } setNotice(pendingCapture.current ? s.captureUncertain : s.changed); }
@@ -176,6 +180,7 @@ export function Sources({ bridge, notebook, locale, onRevision }: { bridge: UiBr
             {sources.total > sources.limit && <nav className="actions" aria-label={s.members}><button disabled={busy || !sourceOffsets.length} onClick={() => read(snapshot, sourceOffsets.at(-1) ?? 0, 'previous')}>{t.previous}</button><button disabled={busy || sources.offset + sources.limit >= sources.total} onClick={() => read(snapshot, sources.offset + sources.limit, 'next')}>{t.next}</button></nav>}</>}
             <button type="button" disabled={busy} onClick={() => read(snapshot, sources?.offset ?? 0)}>{s.readAgain}</button></div>}
         <p className="source-meta">{s.external}</p>
-        {snapshot && <div hidden={!sources}><Documents key={`${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
+        {snapshot && <div hidden={!sources}><Documents key={`${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} onAsk={setQuestionTarget} onPreview={setVisualSelection}/>
+            <Conversation key={`conversation:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch} target={questionTarget} preview={visualSelection}/></div>}
     </section>;
 }

@@ -160,6 +160,17 @@ class UsageService:
             remember(connection, self.profiles.owner, target, body, result)
             return result
 
+    def read_budget(
+        self, context: ScopeContext, kind: Literal["call", "job", "session"], identity: str
+    ) -> Budget | None:
+        with self.scopes.guarded(context, capability=context.capability) as connection:
+            row = connection.execute(
+                "SELECT kind,identity,currency,ceiling,revision FROM provider_budgets "
+                "WHERE notebook_id=? AND kind=? AND identity=?",
+                (context.notebook_id, kind, identity),
+            ).fetchone()
+            return Budget(**dict(row)) if row else None
+
     def reserve(
         self,
         context: ScopeContext,

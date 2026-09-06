@@ -4,6 +4,7 @@ import asyncio
 import logging
 import secrets
 import sqlite3
+from itertools import groupby
 
 import numpy as np
 
@@ -210,7 +211,12 @@ class VectorSearch:
         return values
 
     def search_batch(
-        self, context: ScopeContext, profile_id: str, batch: EmbeddingBatch, limit: int = 40
+        self,
+        context: ScopeContext,
+        profile_id: str,
+        batch: EmbeddingBatch,
+        limit: int = 40,
+        document_version_id: str | None = None,
     ) -> list[str]:
         query = self._matrix(batch, 1)[0]
         query = query / np.linalg.norm(query)
@@ -239,12 +245,13 @@ class VectorSearch:
                 "SELECT m.chunk_id,m.block,m.position FROM vector_members m "
                 "JOIN document_chunks c ON c.id=m.chunk_id JOIN vector_allowed a ON "
                 "a.version_id=c.version_id "
-                "WHERE m.generation_id=? ORDER BY m.block,m.position",
-                (generation.id,),
-            ).fetchall()
+                "WHERE m.generation_id=? AND (? IS NULL OR c.version_id=?) ORDER BY "
+                "m.block,m.position",
+                (generation.id, document_version_id, document_version_id),
+            )
             results: list[tuple[float, str]] = []
-            for block in sorted({r["block"] for r in members}):
-                selected = [r for r in members if r["block"] == block]
+            for block, grouped in groupby(members, key=lambda row: row["block"]):
+                selected = list(grouped)
                 raw = connection.execute(
                     "SELECT data FROM vector_blocks WHERE generation_id=? AND block=?",
                     (generation.id, block),
@@ -258,9 +265,17 @@ class VectorSearch:
                 results = sorted(results, key=lambda v: (-v[0], v[1]))[:limit]
             return [value[1] for value in results]
 
-    async def search(self, context: ScopeContext, profile_id: str, query: str) -> list[str]:
+    async def search(
+        self,
+        context: ScopeContext,
+        profile_id: str,
+        query: str,
+        document_version_id: str | None = None,
+    ) -> list[str]:
         batch = await self.providers.embed(context, profile_id, [query])
-        return self.search_batch(context, profile_id, batch)
+        return self.search_batch(
+            context, profile_id, batch, document_version_id=document_version_id
+        )
 
     def read(self, context: ScopeContext, job_id: str, *, cancel: bool = False) -> VectorJob:
         with self.scopes.guarded(context, capability=context.capability) as connection:

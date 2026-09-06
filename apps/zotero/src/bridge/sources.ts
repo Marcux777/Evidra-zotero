@@ -275,6 +275,25 @@ export class SourceBridge {
         this.#assertEpoch(epoch);
     }
     /** Internal continuation for DocumentBridge only; no renderer callback, URL or file capability. */
+    async withRunDocuments<T>(notebook: string, snapshot: string, run: string,
+        action: (sources: Source[], check: () => void, verifyReaderFile: VerifyReaderFile, documents?: Set<string>) => Promise<T>): Promise<T> {
+        return this.#run(async epoch => {
+            const access = await this.#engine.request('GET', `/v1/notebooks/${notebook}/snapshots/${snapshot}/runs/${run}/access`) as { items: SourceAccess[]; documents: [string, string][] };
+            this.#assertEpoch(epoch);
+            // Complete authorized source contents preserve Task4 subset-sync revocation semantics.
+            // Only server-owned run dependencies are subsequently registered as PDFs.
+            const native = await revalidateSelection(this.#api, this.#profile, access.items);
+            const synced: Source[] = [];
+            await this.#sync(notebook, native, epoch, 'revalidation', null, snapshot, synced);
+            const result = await action(synced, () => this.#assertEpoch(epoch),
+                (item, path, verify) => this.#verifyReaderFile(item, path, epoch, verify),
+                new Set(access.documents.map(([source, key]) => `${source}:${key}`)));
+            serializeUiResponse('0'.repeat(80), result, null);
+            return result;
+        });
+    }
+
+    /** Internal continuation for DocumentBridge only; no renderer callback, URL or file capability. */
     async withDocuments<T>(notebook: string, snapshot: string,
         action: (sources: Source[], check: () => void, verifyReaderFile: VerifyReaderFile) => Promise<T>): Promise<T> {
         return this.#run(async epoch => {

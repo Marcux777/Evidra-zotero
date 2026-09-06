@@ -1,6 +1,7 @@
 import type { NativeReader, NativeSourceItem, NativeZotero } from './native-types';
 import type { SourceBridge, SourceTransport } from './sources';
-import type { DocumentCommand, DocumentOperation, Evidence, RegisteredDocument, Source, SourceContent, TextStage } from './types';
+import type { ConversationCommand, DocumentCommand, DocumentOperation, Evidence, RegisteredDocument, Source, SourceContent, TextStage } from './types';
+import { conversationCommand } from './conversations';
 import { identityKey } from '../sources/resolver';
 
 export interface IndexResult { document: RegisteredDocument; operation: DocumentOperation | null }
@@ -21,9 +22,15 @@ export class DocumentBridge {
         return item;
     }
 
-    async dispatch(message: DocumentCommand): Promise<unknown> {
+    async dispatch(message: DocumentCommand | ConversationCommand): Promise<unknown> {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
-        return this.sources.withDocuments(message.notebook_id, message.snapshot_id, async (sources, check, verifyReaderFile) => {
+        // Scoped status-only cancellation must not queue behind native content revalidation.
+        if (message.op === 'conversation.cancel' || message.op === 'conversation.vectors.cancel')
+            return conversationCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
+        const continuation = ['conversation.run', 'conversation.start', 'conversation.events'].includes(message.op)
+            ? (action: Parameters<SourceBridge['withRunDocuments']>[3]) => this.sources.withRunDocuments(message.notebook_id, message.snapshot_id, (message as { run_id: string }).run_id, action)
+            : (action: Parameters<SourceBridge['withRunDocuments']>[3]) => this.sources.withDocuments(message.notebook_id, message.snapshot_id, action);
+        return continuation(async (sources, check, verifyReaderFile, dependencies) => {
             const documents = new Map<string, { document: RegisteredDocument; item: NativeSourceItem; path: string | false }>();
             const request = async (method: 'GET' | 'POST', path: string, body?: unknown) => {
                 check(); const value = await this.engine.request(method, prefix + path, body); check(); return value;
@@ -32,6 +39,7 @@ export class DocumentBridge {
             // for each exact PDF content key. No parent/sibling traversal or byte hashing here.
             for (const source of sources) for (const content of source.contents ?? []) {
                 if (content.kind !== 'pdf') continue;
+                if (dependencies && !dependencies.has(`${source.id}:${content.key}`)) continue;
                 const item = await this.#item(source, content, check);
                 const path = await item.getFilePathAsync(); check();
                 const target = { source_id: source.id, content_key: content.key };
@@ -39,6 +47,7 @@ export class DocumentBridge {
                     path === false ? target : { ...target, path }) as RegisteredDocument;
                 documents.set(`${source.id}:${content.key}`, { document, item, path });
             }
+            if (message.op.startsWith('conversation.')) return conversationCommand(message as ConversationCommand, request);
             switch (message.op) {
                 case 'documents.list': return request('GET', `/documents?offset=${message.offset}&limit=50`);
                 case 'documents.search': return request('POST', '/search', message.request);

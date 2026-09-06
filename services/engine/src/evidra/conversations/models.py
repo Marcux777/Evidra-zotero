@@ -5,11 +5,22 @@ from typing import Literal
 from pydantic import Field
 
 from evidra.domain.documents import Rectangle
+from evidra.domain.sources import SourceAccess
 from evidra.providers.models import ContentCategory, OllamaOptions, ProviderProfile, StrictModel
 
 
 class ConversationCreate(StrictModel):
     idempotency_key: str = Field(min_length=1, max_length=200)
+
+
+class RunAccess(StrictModel):
+    items: list[SourceAccess]
+    documents: list[tuple[str, str]]
+
+
+class CancelReceipt(StrictModel):
+    id: str
+    state: str
 
 
 class ConversationRecord(StrictModel):
@@ -33,6 +44,8 @@ class RunPrepare(ConversationCreate):
     context_tokens: int = Field(ge=1024, le=1_000_000)
     max_output_tokens: int = Field(ge=1, le=32768)
     ollama_options: OllamaOptions | None = None
+    evidence_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    document_version_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     embedding_profile_id: str | None = Field(default=None, pattern=r"^[a-zA-Z0-9_-]{1,100}$")
     preview_operation_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
@@ -77,6 +90,8 @@ class ContextPreview(StrictModel):
     max_output_tokens: int
     history_messages: int
     history: list[dict[str, str]]
+    history_evidence_ids: list[str] = Field(default_factory=list)
+    history_visual_versions: list[str] = Field(default_factory=list)
     system: str
     prompt: str
     coverage: Literal["RETRIEVED_CHUNKS_ONLY"] = "RETRIEVED_CHUNKS_ONLY"
@@ -107,7 +122,7 @@ class RunRecord(StrictModel):
     output: Answer | None = None
     error: str | None = None
     created_at: str
-    anchor_status: Literal["VERIFIED_EXISTENCE_ONLY"] = "VERIFIED_EXISTENCE_ONLY"
+    anchor_status: Literal["VERIFIED_EXISTENCE_ONLY"] | None = None
     support_status: Literal["PROPOSED"] = "PROPOSED"
     human_review: Literal["NOT_REVIEWED"] = "NOT_REVIEWED"
 

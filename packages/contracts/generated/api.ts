@@ -549,6 +549,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/provider-budgets/{kind}/{identity}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Budget */
+        get: operations["read_budget_v1_notebooks__notebook_id__snapshots__snapshot_id__provider_budgets__kind___identity__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/provider-calls": {
         parameters: {
             query?: never;
@@ -664,6 +681,23 @@ export interface paths {
         put?: never;
         /** Start */
         post: operations["start_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/runs/{run_id}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Access */
+        get: operations["access_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__access_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -869,6 +903,13 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
         };
+        /** CancelReceipt */
+        CancelReceipt: {
+            /** Id */
+            id: string;
+            /** State */
+            state: string;
+        };
         /** Capability */
         Capability: {
             /** Supported */
@@ -996,6 +1037,10 @@ export interface components {
             history: {
                 [key: string]: string;
             }[];
+            /** History Evidence Ids */
+            history_evidence_ids?: string[];
+            /** History Visual Versions */
+            history_visual_versions?: string[];
             /** System */
             system: string;
             /** Prompt */
@@ -1664,6 +1709,16 @@ export interface components {
             /** Expected Revision */
             expected_revision: number;
         };
+        /** RunAccess */
+        RunAccess: {
+            /** Items */
+            items: components["schemas"]["SourceAccess"][];
+            /** Documents */
+            documents: [
+                string,
+                string
+            ][];
+        };
         /** RunPage */
         RunPage: {
             /** Items */
@@ -1691,6 +1746,16 @@ export interface components {
             max_output_tokens: number;
             /** @default null */
             ollama_options: components["schemas"]["OllamaOptions"] | null;
+            /**
+             * Evidence Id
+             * @default null
+             */
+            evidence_id: string | null;
+            /**
+             * Document Version Id
+             * @default null
+             */
+            document_version_id: string | null;
             /**
              * Embedding Profile Id
              * @default null
@@ -1734,12 +1799,8 @@ export interface components {
             error?: string | null;
             /** Created At */
             created_at: string;
-            /**
-             * Anchor Status
-             * @default VERIFIED_EXISTENCE_ONLY
-             * @constant
-             */
-            anchor_status: "VERIFIED_EXISTENCE_ONLY";
+            /** Anchor Status */
+            anchor_status?: "VERIFIED_EXISTENCE_ONLY" | null;
             /**
              * Support Status
              * @default PROPOSED
@@ -2698,6 +2759,25 @@ export interface components {
             op: "provider.budget";
             request: components["schemas"]["BudgetWrite"];
         };
+        /** ProviderBudgetReadCommand */
+        ProviderBudgetReadCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "provider.budget.read";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "call" | "job" | "session";
+            /** Identity */
+            identity: string;
+        };
         /** ProviderCallsCommand */
         ProviderCallsCommand: {
             /** Notebook Id */
@@ -2843,7 +2923,7 @@ export interface components {
             profile_id: string;
             request: components["schemas"]["ProfileWrite"];
         };
-        ProviderCommand: components["schemas"]["ProviderListCommand"] | components["schemas"]["ProviderWriteCommand"] | components["schemas"]["ProviderModelsCommand"] | components["schemas"]["ProviderResumeCommand"] | components["schemas"]["ProviderSettingsReadCommand"] | components["schemas"]["ProviderSettingsWriteCommand"] | components["schemas"]["ProviderSecretReadCommand"] | components["schemas"]["ProviderSecretWriteCommand"] | components["schemas"]["ProviderSecretDeleteCommand"] | components["schemas"]["ProviderConsentReadCommand"] | components["schemas"]["ProviderConsentWriteCommand"] | components["schemas"]["ProviderBudgetCommand"] | components["schemas"]["ProviderPriceCommand"] | components["schemas"]["ProviderCallsCommand"];
+        ProviderCommand: components["schemas"]["ProviderListCommand"] | components["schemas"]["ProviderWriteCommand"] | components["schemas"]["ProviderModelsCommand"] | components["schemas"]["ProviderResumeCommand"] | components["schemas"]["ProviderSettingsReadCommand"] | components["schemas"]["ProviderSettingsWriteCommand"] | components["schemas"]["ProviderSecretReadCommand"] | components["schemas"]["ProviderSecretWriteCommand"] | components["schemas"]["ProviderSecretDeleteCommand"] | components["schemas"]["ProviderConsentReadCommand"] | components["schemas"]["ProviderConsentWriteCommand"] | components["schemas"]["ProviderBudgetCommand"] | components["schemas"]["ProviderBudgetReadCommand"] | components["schemas"]["ProviderPriceCommand"] | components["schemas"]["ProviderCallsCommand"];
         /** EngineManifest */
         EngineManifest: {
             /**
@@ -6589,6 +6669,103 @@ export interface operations {
             };
         };
     };
+    read_budget_v1_notebooks__notebook_id__snapshots__snapshot_id__provider_budgets__kind___identity__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                kind: "call" | "job" | "session";
+                identity: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Budget"] | null;
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     calls_v1_notebooks__notebook_id__snapshots__snapshot_id__provider_calls_get: {
         parameters: {
             query?: {
@@ -7467,6 +7644,102 @@ export interface operations {
             };
         };
     };
+    access_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__access_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunAccess"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     cancel_v1_notebooks__notebook_id__snapshots__snapshot_id__runs__run_id__cancel_post: {
         parameters: {
             query?: never;
@@ -7486,7 +7759,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RunRecord"];
+                    "application/json": components["schemas"]["CancelReceipt"];
                 };
             };
             /** @description Unauthorized */
