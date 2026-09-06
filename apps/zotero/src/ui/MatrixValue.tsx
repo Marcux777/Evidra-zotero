@@ -13,7 +13,7 @@ export function valueSummary(value:Value,locale:Locale):string {
     if(typeof value==='string')return value;
     if(typeof value==='boolean')return value?catalog(locale).matrix.booleanTrue:catalog(locale).matrix.booleanFalse;
     if(!Array.isArray(value))return value.original;
-    return value.map(item=>typeof item==='string'?item:`${item.metric}: ${item.number.original} ${item.unit??''}`).join('; ');
+    return value.map(item=>typeof item==='string'?item:`${item.metric}: ${item.number.original}`).join('; ');
 }
 
 export function ValueDisplay({value,locale,unit}: {value:Value;locale:Locale;unit?:string|null}) {
@@ -21,9 +21,9 @@ export function ValueDisplay({value,locale,unit}: {value:Value;locale:Locale;uni
     if(value===null) return <span>—</span>;
     if(typeof value==='boolean') return <span>{value?t.booleanTrue:t.booleanFalse}</span>;
     if(typeof value==='string') return <span className="matrix-value">{value}</span>;
-    if(!Array.isArray(value)) return <span>{value.original}{unit?` ${unit}`:''} <small>({t.normalized}: {value.normalized})</small></span>;
+    if(!Array.isArray(value)) return <span>{value.original} <small>({t.normalized}: {value.normalized}{unit?` ${unit}`:''})</small></span>;
     return <ul className="matrix-values">{value.map((item,index)=><li key={index}>{typeof item==='string'?item:<>
-        <strong>{item.metric}</strong>: {item.number.original} {item.unit??''} ({t.normalized}: {item.number.normalized})
+        <strong>{item.metric}</strong>: {item.number.original} ({t.normalized}: {item.number.normalized}{item.unit?` ${item.unit}`:''})
         <dl>{(['dataset','condition','baseline'] as const).map(key=><div key={key}><dt>{t[key]}</dt><dd>{item[key]??'—'}</dd></div>)}
             <div><dt>{t.direction}</dt><dd>{t.directions[item.direction]}</dd></div></dl>
     </>}</li>)}</ul>;
