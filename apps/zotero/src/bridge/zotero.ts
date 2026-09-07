@@ -2,9 +2,11 @@ import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
 import { DocumentBridge } from './documents';
+import { NoteBridge } from './notes';
 import { providerCommand } from './conversations';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
+import { MAX_UI_REQUEST_BYTES } from '../security/limits';
 import { catalog } from '../ui/i18n';
 import type { NativeGlobals, NativePicker, NativeSourcePane } from './native-types';
 import type { BridgeStatus, Locale, Mode, Notebook, Theme, UiMessage } from './types';
@@ -13,6 +15,7 @@ export class ZoteroBridge {
     #g: NativeGlobals;
     #engine: EngineController | null = null;
     #sources: SourceBridge | null = null;
+    #notes: NoteBridge | null = null;
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
@@ -61,9 +64,15 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
-        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.') || message.op.startsWith('jobs.')) {
+        if (message.op === 'research.notes.publish') {
+            const sourceBridge = sources();
+            this.#notes ??= new NoteBridge(this.#g.Zotero, sourceBridge, engine, this.#g.crypto,
+                new DocumentBridge(this.#g.Zotero, sourceBridge, engine, this.#g.crypto, this.#g.plainText));
+            return this.#notes.publish(message);
+        }
+        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.') || message.op.startsWith('jobs.') || message.op.startsWith('research.')) {
             return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText)
-                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand | import('./types').JobCommand);
+                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand | import('./types').JobCommand | Exclude<import('./types').ResearchCommand, { op: 'research.notes.publish' }>);
         }
         if (message.op.startsWith('provider.')) return providerCommand(message as import('./types').ProviderCommand, engine);
         switch (message.op) {
@@ -103,7 +112,7 @@ export class ZoteroBridge {
             }
             case 'engine.verify': return engine.verify();
             case 'engine.start':
-                this.#sources?.shutdown(); this.#sources = null;
+                this.#sources?.shutdown(); this.#sources = null; this.#notes = null;
                 await engine.start(message.fingerprint, message.consent);
                 this.#setupError = null;
                 return engine.view();
@@ -144,7 +153,8 @@ export class ZoteroBridge {
                 this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
         const listener = (event: MessageEvent) => {
-            if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string' || event.data.length > 16384)
+            if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string'
+                || event.data.length > MAX_UI_REQUEST_BYTES || new TextEncoder().encode(event.data).byteLength > MAX_UI_REQUEST_BYTES)
                 return;
             let envelope: {
                 channel?: unknown;

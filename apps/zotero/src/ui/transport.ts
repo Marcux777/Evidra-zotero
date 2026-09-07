@@ -1,4 +1,5 @@
 import type { UiBridge, UiMessage } from '../bridge/types';
+import { MAX_UI_REQUEST_BYTES } from '../security/limits';
 
 export function createUiTransport(target: Window): { bridge: UiBridge; close: () => void } {
     const pending = new Map<string, {
@@ -38,8 +39,10 @@ export function createUiTransport(target: Window): { bridge: UiBridge; close: ()
     const bridge: UiBridge = { request: (request: UiMessage) => new Promise((resolve, reject) => {
         if (closed) { reject(new Error('BRIDGE_CLOSED')); return; }
         const id = `ui-${++sequence}`;
+        const message = JSON.stringify({ channel: 'evidra-ui-v1', id, request });
+        if (new TextEncoder().encode(message).byteLength > MAX_UI_REQUEST_BYTES) { reject(new Error('BODY_TOO_LARGE')); return; }
         const timer = setTimeout(() => { pending.delete(id); reject(new Error('BRIDGE_TIMEOUT')); }, 60000);
-        pending.set(id, { resolve, reject, timer, message: JSON.stringify({ channel: 'evidra-ui-v1', id, request }) });
+        pending.set(id, { resolve, reject, timer, message });
         if (ready) send(id);
     }) };
     const close = () => {

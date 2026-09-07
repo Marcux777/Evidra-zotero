@@ -26,6 +26,27 @@ export type DocumentCommand = components['schemas']['DocumentCommand'];
 export type ConversationCommand = components['schemas']['ConversationCommand'];
 export type MatrixCommand = components['schemas']['MatrixCommand'];
 export type JobCommand = components['schemas']['JobCommand'];
+export type ResearchCommand = components['schemas']['ResearchCommand'];
+export type ProtocolVersion = components['schemas']['ProtocolVersion'];
+export type ProtocolWrite = components['schemas']['ProtocolWrite'];
+export type ProtocolPage = components['schemas']['ProtocolPage'];
+export type Criterion = components['schemas']['Criterion'];
+export type ScreeningWrite = components['schemas']['ScreeningWrite'];
+export type ScreeningPage = components['schemas']['ScreeningPage'];
+export type ResearchRun = components['schemas']['ResearchRun'];
+export type ResearchRunPage = components['schemas']['ResearchRunPage'];
+export type ResearchPrepare = components['schemas']['ResearchPrepare'];
+export type ResearchPreview = components['schemas']['ResearchPreview'];
+export type ResearchControl = components['schemas']['ResearchControl'];
+export type ResearchAccessPage = components['schemas']['ResearchAccessPage'];
+export type ArtifactVersion = components['schemas']['ArtifactVersion'];
+export type ArtifactReview = components['schemas']['ArtifactReview'];
+export type ArtifactPage = components['schemas']['ArtifactPage'];
+export type NotePreview = components['schemas']['NotePreview'];
+export type NotePreviewWrite = components['schemas']['NotePreviewWrite'];
+export type ApprovedWriteOutbox = components['schemas']['ApprovedWriteOutbox'];
+export type OutboxBegin = components['schemas']['OutboxBegin'];
+export type OutboxPage = components['schemas']['OutboxPage'];
 export type JobRecord = components['schemas']['JobRecord'];
 export type JobWrite = components['schemas']['JobWrite'];
 export type JobControl = components['schemas']['JobControl'];
@@ -126,7 +147,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand | ResearchCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

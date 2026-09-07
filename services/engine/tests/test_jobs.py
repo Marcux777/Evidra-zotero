@@ -472,13 +472,14 @@ def test_results_keep_batch_contexts_and_numeric_meaning(tmp_path, kind, scenari
 
 def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkeypatch):
     import sqlite3
-    from unittest.mock import Mock
+    from unittest.mock import AsyncMock, Mock
 
     from evidra.storage import database as storage
 
     with monkeypatch.context() as patch:
         patch.setattr(storage, "SCHEMA_VERSION", 7)
         patch.setattr("evidra.api.app.JobQueue", Mock())
+        patch.setattr("evidra.api.app.ResearchService", Mock(return_value=Mock(close=AsyncMock())))
         with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
             prefix, _, manual = setup(client)
             proposal = client.post(
@@ -496,7 +497,9 @@ def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkey
             )
             assert decision.status_code == 201, decision.text
             before = decision.json()
-    db = storage.Database(tmp_path / "evidra.sqlite3")
+    with monkeypatch.context() as patch:
+        patch.setattr(storage, "SCHEMA_VERSION", 8)
+        db = storage.Database(tmp_path / "evidra.sqlite3")
     with db.transaction() as conn:
         assert conn.execute("PRAGMA user_version").fetchone()[0] == 8
         assert (

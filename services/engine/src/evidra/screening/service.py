@@ -28,7 +28,7 @@ class ScreeningService:
                 (context.notebook_id, body.idempotency_key),
             ).fetchone()
             if old:
-                if old["request"] != fingerprint(body):
+                if old["snapshot_id"] != context.snapshot_id or old["request"] != fingerprint(body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Screening request changed.")
                 return ScreeningDecision.model_validate_json(old["payload"])
             prior = conn.execute(

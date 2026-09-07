@@ -138,6 +138,7 @@ class ResearchInputs(StrictModel):
 
 class ResearchPreview(StrictModel):
     run_id: str
+    request: ResearchPrepare
     prompt: str
     schema_plan: SchemaPlan
     profile: ProviderProfile

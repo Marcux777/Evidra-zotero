@@ -6,8 +6,10 @@ import ptMatrix from './locales/matrix.pt-BR.json';
 import enMatrix from './locales/matrix.en-US.json';
 import ptJobs from './locales/jobs.pt-BR.json';
 import enJobs from './locales/jobs.en-US.json';
+import ptResearch from './locales/research.pt-BR.json';
+import enResearch from './locales/research.en-US.json';
 import type { Locale } from '../bridge/types';
-export type Catalog = typeof pt & { chat: typeof ptChat; matrix: typeof ptMatrix; jobs: typeof ptJobs };
-const english: Catalog = { ...en, chat: enChat, matrix: enMatrix, jobs: enJobs };
-const portuguese: Catalog = { ...pt, chat: ptChat, matrix: ptMatrix, jobs: ptJobs };
+export type Catalog = typeof pt & { chat: typeof ptChat; matrix: typeof ptMatrix; jobs: typeof ptJobs; research: typeof ptResearch };
+const english: Catalog = { ...en, chat: enChat, matrix: enMatrix, jobs: enJobs, research: enResearch };
+const portuguese: Catalog = { ...pt, chat: ptChat, matrix: ptMatrix, jobs: ptJobs, research: ptResearch };
 export function catalog(locale: Locale): Catalog { return locale === 'en-US' ? english : portuguese; }

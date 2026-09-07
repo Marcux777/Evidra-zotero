@@ -48,12 +48,18 @@ class ResearchService:
                 run = ResearchRun.model_validate_json(row["payload"])
                 if run.state != "RUNNING":
                     continue
-                uncertain = not row["checkpoint"] and self.sent(conn, run)
+                uncertain = not row["checkpoint"] and self.uncertain(conn, run)
                 self.save(
                     conn,
                     run.model_copy(
                         update={
-                            "state": "BILLING_UNKNOWN" if uncertain else "PAUSED",
+                            "state": "BILLING_UNKNOWN"
+                            if uncertain
+                            else (
+                                "FAILED"
+                                if not row["checkpoint"] and self.sent(conn, run)
+                                else "PAUSED"
+                            ),
                             "reason": "ENGINE_INTERRUPTED",
                             "revision": run.revision + 1,
                         }
@@ -68,7 +74,16 @@ class ResearchService:
         row = conn.execute(
             "SELECT state FROM provider_calls WHERE call_id=?", (run.call_ids[-1],)
         ).fetchone()
-        return row is not None and row[0] != "NOT_SENT"
+        return row is not None and row[0] in {"SENT", "CONFIRMED", "BILLING_UNKNOWN"}
+
+    @staticmethod
+    def uncertain(conn: sqlite3.Connection, run: ResearchRun) -> bool:
+        if not run.call_ids:
+            return False
+        row = conn.execute(
+            "SELECT state FROM provider_calls WHERE call_id=?", (run.call_ids[-1],)
+        ).fetchone()
+        return row is not None and row[0] in {"SENT", "BILLING_UNKNOWN"}
 
     @staticmethod
     def save(conn: sqlite3.Connection, run: ResearchRun, *, release: bool = False) -> None:
@@ -423,6 +438,8 @@ class ResearchService:
             self.failure(run_id, token, "RESEARCH_INTERNAL_ERROR")
         finally:
             self.cancels.pop(run_id, None)
+            if self.tasks.get(run_id) is asyncio.current_task():
+                self.tasks.pop(run_id)
 
     def failure(self, run_id: str, token: str, code: str) -> None:
         # Status/accounting cleanup survives source revocation; it contains no research text.
@@ -433,7 +450,7 @@ class ResearchService:
             if row is None:
                 return
             run = ResearchRun.model_validate_json(row["payload"])
-            uncertain = not row["checkpoint"] and self.sent(conn, run)
+            uncertain = not row["checkpoint"] and self.uncertain(conn, run)
             state = (
                 "CANCELLED"
                 if run.state == "CANCELLED"

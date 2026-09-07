@@ -17,6 +17,20 @@ function allowedEngineRoute(method: string, path: string): boolean {
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
     if (documentPath && (method === 'POST' && !page && (
+        ['/protocols', '/screening/decisions', '/research/runs', '/notes/previews', '/notes/approve'].includes(documentPath)
+        || /^\/research\/runs\/[a-f0-9]{32}\/control$/.test(documentPath)
+        || /^\/artifacts\/[a-f0-9]{32}\/review$/.test(documentPath)
+        || /^\/notes\/outbox\/[a-f0-9]{32}\/(begin|ack)$/.test(documentPath))
+        || method === 'GET' && (
+            (documentPath === '/protocols' || documentPath === '/notes/outbox'
+                || /^\/artifacts\/[a-f0-9]{32}\/versions$/.test(documentPath)) && limit === '1'
+            || (documentPath === '/research/runs' || /^\/screening\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/research\/runs\/[a-f0-9]{32}\/access$/.test(documentPath)) && limit === '20'
+            || !page && (/^\/protocols\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/research\/runs\/[a-f0-9]{32}(\/preview)?$/.test(documentPath)
+                || /^\/artifacts\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/notes\/outbox\/[a-f0-9]{32}$/.test(documentPath))))) return true;
+    if (documentPath && (method === 'POST' && !page && (
         documentPath === '/jobs' || documentPath === '/job-cache/clear' || /^\/jobs\/[a-f0-9]{32}\/control$/.test(documentPath))
         || method === 'GET' && (documentPath === '/jobs' && limit === '10'
             || /^\/jobs\/[a-f0-9]{32}\/units$/.test(documentPath) && limit === '20'

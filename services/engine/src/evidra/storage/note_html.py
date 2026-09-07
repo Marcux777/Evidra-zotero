@@ -38,6 +38,7 @@ def note_html(
         "provenance": "UUID de proveniência" if pt else "Provenance UUID",
     }
     parts = [
+        '<div class="zotero-note znv1">',
         f'<div data-evidra-origin="ai" data-evidra-outbox="{uuid}">',
         f"<h1>{escaped(title)}</h1>",
         f"<p>{labels['proposal']}{escaped(artifact.review_state)}</p>",
@@ -88,8 +89,10 @@ def note_html(
     studies = {s.source_id: s for s in inputs.studies}
     for evidence in inputs.evidence:
         study = studies[evidence.source_id]
-        target = (f"{study.title} | {study.identity.library_id}/{study.identity.item_key} "
-                  f"| {evidence.content_key}")
+        target = (
+            f"{study.title} | {study.identity.library_id}/{study.identity.item_key} "
+            f"| {evidence.content_key}"
+        )
         if evidence.page_index is not None:
             target += f" | page {evidence.page_index + 1}"
         parts.extend(
@@ -97,6 +100,6 @@ def note_html(
         )
     parts.append(
         f"<p>{labels['provenance']}: {uuid}; "
-        f"Evidra {artifact.artifact_id}/{artifact.revision}</p></div>"
+        f"Evidra {artifact.artifact_id}/{artifact.revision}</p></div></div>"
     )
     return "\n".join(parts)

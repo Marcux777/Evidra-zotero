@@ -64,6 +64,11 @@ export interface NativePicker {
     returnOK: number;
 }
 export interface NativeZotero {
+    Item: new (type: 'note') => NativeSourceItem & {
+        setNote(html: string): void;
+        addTag(tag: string): void;
+        saveTx(): Promise<number | boolean>;
+    };
     EditorInstanceUtilities: {
         _transformTextToHTML(text: string): string;
     };

@@ -316,6 +316,7 @@ def test_outbox_preview_approval_and_readback_survive_reopen_without_duplicate(t
         preview = preview_response.json()
         assert "<img" not in preview["html"] and "&lt;img" in preview["html"]
         assert 'data-evidra-origin="ai"' in preview["html"]
+        assert preview["html"].startswith('<div class="zotero-note znv1">')
         assert preview["uuid"] in preview["html"]
         with app.state.services.database.transaction() as conn:
             assert conn.execute("SELECT count(*) FROM approved_write_outbox").fetchone()[0] == 0
@@ -384,3 +385,330 @@ def test_outbox_preview_approval_and_readback_survive_reopen_without_duplicate(t
                 == "NEWNOTE1"
             )
         reopened.close()
+
+
+def crash_research(directory, after_checkpoint):
+    """Child uses production SQLite/provider accounting; only HTTP is controlled."""
+    import os
+    from pathlib import Path
+
+    directory = Path(directory)
+    app = make_app(directory, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, form, manual = setup(client)
+        _, version = protocol(client, prefix, form)
+        profile(client)
+
+        def boundary(request):
+            if not after_checkpoint:
+                os._exit(75)
+            prompt = json.loads(json.loads(request.content)["messages"][-1]["content"])
+            return httpx.Response(
+                200,
+                text=stream(
+                    "ollama",
+                    json.dumps(
+                        {
+                            "kind": "SCREENING",
+                            "decision": "UNCERTAIN",
+                            "criterion_ids": ["population"],
+                            "evidence_ids": [prompt["inputs"]["evidence"][0]["id"]],
+                            "rationale": "Review needed",
+                        }
+                    ),
+                ),
+            )
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(boundary)
+        )
+        run = prepare_research(client, prefix, version["id"], "SCREENING", manual["source_id"])
+        (directory / "receipt.json").write_text(json.dumps({"prefix": prefix, "run": run}))
+        original = app.state.services.research.planner.validate
+        validations = 0
+
+        def validate(*args):
+            nonlocal validations
+            validations += 1
+            if validations == 2:
+                os._exit(76)
+            return original(*args)
+
+        app.state.services.research.planner.validate = validate
+        finish_research(client, prefix, run)
+    raise AssertionError("Child did not reach the intended interruption boundary")
+
+
+@pytest.mark.parametrize("checkpoint", [False, True])
+def test_research_process_restart_reuses_checkpoint_and_never_resends_unknown(tmp_path, checkpoint):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from test_scopes import source, sync
+
+    program = (
+        "import sys;sys.path.insert(0,sys.argv[1]);from test_research import crash_research;"
+        "crash_research(sys.argv[2],sys.argv[3]=='True')"
+    )
+    child = subprocess.run(
+        [sys.executable, "-c", program, str(Path(__file__).parent), str(tmp_path), str(checkpoint)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert child.returncode == (76 if checkpoint else 75), child.stdout + child.stderr
+    receipt = json.loads((tmp_path / "receipt.json").read_text())
+    prefix, original = receipt["prefix"], receipt["run"]
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        item = source()
+        item["contents"] = [{"key": "SAMEKEY1", "kind": "abstract", "version": "1"}]
+        assert (
+            sync(
+                client,
+                prefix.split("/")[3],
+                [item],
+                purpose="revalidation",
+                snapshot_id=prefix.split("/")[5],
+            ).status_code
+            == 200
+        )
+        calls = []
+
+        def reject_call(request):
+            calls.append(request)
+            raise AssertionError("A restarted run must not repeat the original call")
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(reject_call)
+        )
+        run = client.get(prefix + "/research/runs/" + original["id"], headers=HEADERS).json()
+        assert run["checkpointed"] is checkpoint
+        if checkpoint:
+            assert run["state"] == "PAUSED"
+            result = finish_research(client, prefix, run)
+            assert result["state"] == "PARTIAL", result
+        else:
+            assert run["state"] == "BILLING_UNKNOWN"
+            denied = client.post(
+                prefix + "/research/runs/" + run["id"] + "/control",
+                headers=HEADERS,
+                json={
+                    "action": "start",
+                    "expected_revision": run["revision"],
+                    "idempotency_key": "no-resend",
+                },
+            )
+            assert denied.status_code == 422
+        assert calls == []
+        with app.state.services.database.transaction() as conn:
+            assert conn.execute("SELECT count(*) FROM provider_calls").fetchone()[0] == 1
+            assert conn.execute("SELECT count(*) FROM artifact_versions").fetchone()[0] == int(
+                checkpoint
+            )
+
+
+@pytest.mark.parametrize(
+    "invalid", ["missing_stage", "invented_anchor", "indirect_as_direct", "unreviewed_upgrade"]
+)
+def test_invalid_research_has_no_artifact_or_hidden_retry_and_preserves_confirmed_usage(
+    tmp_path, invalid
+):
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, form, manual = setup(client)
+        _, version = protocol(client, prefix, form)
+        profile(client)
+        calls = []
+        if invalid == "unreviewed_upgrade":
+            assert (
+                client.post(prefix + "/matrix/proposals", headers=HEADERS, json=manual).status_code
+                == 201
+            )
+
+        def boundary(request):
+            inputs = json.loads(json.loads(request.content)["messages"][-1]["content"])["inputs"]
+            calls.append(inputs)
+            if invalid == "missing_stage":
+                assert inputs["evidence"] == []
+                output = {
+                    "kind": "SCREENING",
+                    "decision": "EXCLUDE",
+                    "criterion_ids": ["population"],
+                    "evidence_ids": [],
+                    "rationale": "Missing full text means exclusion",
+                }
+            elif invalid == "unreviewed_upgrade":
+                cell = inputs["cells"][0]
+                assert cell["basis"] == "UNREVIEWED"
+                output = {
+                    "kind": "SYNTHESIS",
+                    "sections": [
+                        {
+                            "heading": "Result",
+                            "text": "Reviewed result",
+                            "cell_ids": [cell["id"]],
+                            "evidence_ids": cell["evidence_ids"],
+                            "basis": "REVIEWED",
+                            "comparability": "One study",
+                        }
+                    ],
+                    "limitations": ["Notebook only"],
+                }
+            else:
+                output = {
+                    "kind": "AUDIT",
+                    "claims": [
+                        {
+                            "text": "The reported result is 42 percent.",
+                            "start": 0,
+                            "end": 34,
+                            "support": "SUPPORTED_PROPOSAL",
+                            "evidence_ids": [
+                                "0" * 64
+                                if invalid == "invented_anchor"
+                                else inputs["evidence"][0]["id"]
+                            ],
+                            "explanation": "Claimed support",
+                            "references": [
+                                {
+                                    "citation": "Unavailable external work",
+                                    "source_id": None,
+                                    "relationship": "DIRECT",
+                                }
+                            ]
+                            if invalid == "indirect_as_direct"
+                            else [],
+                        }
+                    ],
+                    "collection_limitations": "Notebook only",
+                }
+            return httpx.Response(200, text=stream("ollama", json.dumps(output)))
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(boundary)
+        )
+        body = {
+            "kind": "SCREENING"
+            if invalid == "missing_stage"
+            else "SYNTHESIS"
+            if invalid == "unreviewed_upgrade"
+            else "AUDIT",
+            "protocol_version_id": version["id"],
+            "profile_id": "local",
+            "question": "Check result",
+            "idempotency_key": "invalid",
+        }
+        if invalid == "missing_stage":
+            body.update(source_id=manual["source_id"], stage="FULL_TEXT")
+        elif invalid == "unreviewed_upgrade":
+            body.update(include_unreviewed=True)
+        else:
+            body.update(
+                pasted_text="The reported result is 42 percent.", retrieval_query="reported"
+            )
+        prepared = client.post(prefix + "/research/runs", headers=HEADERS, json=body)
+        assert prepared.status_code == 201, prepared.text
+        result = finish_research(client, prefix, prepared.json())
+        assert result["state"] == "FAILED" and result["reason"] == "INVALID_OUTPUT", result
+        refused = client.post(
+            prefix + "/research/runs/" + result["id"] + "/control",
+            headers=HEADERS,
+            json={
+                "action": "start",
+                "expected_revision": result["revision"],
+                "idempotency_key": "no-retry",
+            },
+        )
+        assert refused.status_code == 422, refused.text
+        assert len(calls) == 1
+        with app.state.services.database.transaction() as conn:
+            assert conn.execute("SELECT count(*) FROM artifact_versions").fetchone()[0] == 0
+            assert conn.execute("SELECT count(*) FROM screening_decisions").fetchone()[0] == 0
+            usage = conn.execute(
+                "SELECT state,input_tokens,output_tokens FROM provider_calls"
+            ).fetchall()
+            assert len(usage) == 1 and usage[0][0] == "CONFIRMED"
+            assert usage[0][1] is not None and usage[0][2] is not None
+
+
+@pytest.mark.parametrize("action", ["cancel", "revoke"])
+def test_inflight_research_stop_never_commits_partial_model_output(tmp_path, action):
+    import asyncio
+    import threading
+
+    app = make_app(tmp_path, [0.0])
+    entered, release = threading.Event(), threading.Event()
+    calls = []
+
+    class Delayed(httpx.AsyncByteStream):
+        async def __aiter__(self):
+            entered.set()
+            while not release.is_set():
+                await asyncio.sleep(0.01)
+            yield stream(
+                "ollama",
+                json.dumps(
+                    {
+                        "kind": "SCREENING",
+                        "decision": "UNCERTAIN",
+                        "criterion_ids": ["population"],
+                        "evidence_ids": [],
+                        "rationale": "Requires human review",
+                    }
+                ),
+            ).encode()
+
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, form, manual = setup(client)
+        _, version = protocol(client, prefix, form)
+        profile(client)
+
+        def boundary(request):
+            calls.append(str(request.url))
+            return httpx.Response(200, stream=Delayed())
+
+        app.state.services.providers.client = httpx.AsyncClient(
+            transport=httpx.MockTransport(boundary)
+        )
+        run = prepare_research(client, prefix, version["id"], "SCREENING", manual["source_id"])
+        started = client.post(
+            prefix + "/research/runs/" + run["id"] + "/control",
+            headers=HEADERS,
+            json={"action": "start", "expected_revision": 0, "idempotency_key": "start"},
+        )
+        assert started.status_code == 200, started.text
+        try:
+            assert entered.wait(3), "Controlled request did not reach the provider boundary"
+            if action == "cancel":
+                response = client.post(
+                    prefix + "/research/runs/" + run["id"] + "/control",
+                    headers=HEADERS,
+                    json={
+                        "action": "cancel",
+                        "expected_revision": started.json()["revision"],
+                        "idempotency_key": "cancel",
+                    },
+                )
+                assert response.status_code == 200 and response.json()["state"] == "CANCELLED"
+            else:
+                app.state.services.scopes.revoke_access(manual["source_id"])
+        finally:
+            release.set()
+        for _ in range(100):
+            if not app.state.services.research.tasks:
+                break
+            time.sleep(0.01)
+        assert app.state.services.research.tasks == {}
+        assert len(calls) == 1
+        with app.state.services.database.transaction() as conn:
+            assert conn.execute("SELECT count(*) FROM artifact_versions").fetchone()[0] == 0
+            assert conn.execute("SELECT count(*) FROM screening_decisions").fetchone()[0] == 0
+            assert conn.execute("SELECT count(*) FROM provider_calls").fetchone()[0] == 1
+            final = json.loads(conn.execute("SELECT payload FROM research_runs").fetchone()[0])
+            assert (
+                final["state"] == "CANCELLED"
+                if action == "cancel"
+                else final["state"] in {"PAUSED", "BILLING_UNKNOWN"}
+            )

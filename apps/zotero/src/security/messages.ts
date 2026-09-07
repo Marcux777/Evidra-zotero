@@ -5,6 +5,7 @@ import validateConversation from '../../../../packages/contracts/generated/valid
 import validateProvider from '../../../../packages/contracts/generated/validate-provider-command';
 import validateMatrix from '../../../../packages/contracts/generated/validate-matrix-command';
 import validateJob from '../../../../packages/contracts/generated/validate-job-command';
+import validateResearch from '../../../../packages/contracts/generated/validate-research-command';
 
 export function serializeUiResponse(id: string, result: unknown, error: string | null): string {
     const message = JSON.stringify({ channel: 'evidra-ui-v1', id, result, error });
@@ -15,6 +16,10 @@ const plain = (value: unknown): value is Record<string, unknown> => !!value && t
 export function parseUiMessage(value: unknown): UiMessage {
     if (!plain(value) || typeof value.op !== 'string')
         throw new Error('INVALID_UI_MESSAGE');
+    if (value.op.startsWith('research.')) {
+        if (!validateResearch(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
     if (value.op.startsWith('jobs.')) {
         if (!validateJob(value)) throw new Error('INVALID_UI_MESSAGE');
         return value;

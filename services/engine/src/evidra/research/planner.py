@@ -182,6 +182,7 @@ class ResearchPlanner:
             )
         result = ResearchPreview(
             run_id=run_id,
+            request=body,
             prompt=prompt,
             schema_plan=schema,
             profile=profile,

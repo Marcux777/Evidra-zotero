@@ -1,0 +1,1441 @@
+{
+  "$defs": {
+    "ArtifactReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.artifact",
+          "title": "Op",
+          "type": "string"
+        },
+        "version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Version Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "version_id"
+      ],
+      "title": "ArtifactReadCommand",
+      "type": "object"
+    },
+    "ArtifactReview": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "APPROVED",
+            "CORRECTED",
+            "REJECTED"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "corrected_output": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "AUDIT": "#/$defs/AuditOutput",
+                  "SCREENING": "#/$defs/ScreeningOutput",
+                  "SYNTHESIS": "#/$defs/SynthesisOutput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ScreeningOutput"
+                },
+                {
+                  "$ref": "#/$defs/SynthesisOutput"
+                },
+                {
+                  "$ref": "#/$defs/AuditOutput"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corrected Output"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "expected_revision",
+        "action",
+        "rationale"
+      ],
+      "title": "ArtifactReview",
+      "type": "object"
+    },
+    "ArtifactReviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.review",
+          "title": "Op",
+          "type": "string"
+        },
+        "version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Version Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ArtifactReview"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "version_id",
+        "request"
+      ],
+      "title": "ArtifactReviewCommand",
+      "type": "object"
+    },
+    "ArtifactVersionsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.versions",
+          "title": "Op",
+          "type": "string"
+        },
+        "version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Version Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "version_id",
+        "offset"
+      ],
+      "title": "ArtifactVersionsCommand",
+      "type": "object"
+    },
+    "AuditClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "start": {
+          "maximum": 12000,
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "maximum": 12000,
+          "minimum": 1,
+          "title": "End",
+          "type": "integer"
+        },
+        "support": {
+          "enum": [
+            "SUPPORTED_PROPOSAL",
+            "PARTIALLY_SUPPORTED_PROPOSAL",
+            "CONTRADICTED_PROPOSAL",
+            "INSUFFICIENT_EVIDENCE"
+          ],
+          "title": "Support",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "explanation": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Explanation",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/AuditReference"
+          },
+          "maxItems": 12,
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "start",
+        "end",
+        "support",
+        "evidence_ids",
+        "explanation",
+        "references"
+      ],
+      "title": "AuditClaim",
+      "type": "object"
+    },
+    "AuditOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "AUDIT",
+          "title": "Kind",
+          "type": "string"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/AuditClaim"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Claims",
+          "type": "array"
+        },
+        "collection_limitations": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Collection Limitations",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "claims",
+        "collection_limitations"
+      ],
+      "title": "AuditOutput",
+      "type": "object"
+    },
+    "AuditReference": {
+      "additionalProperties": false,
+      "properties": {
+        "citation": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Citation",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "relationship": {
+          "enum": [
+            "DIRECT",
+            "INDIRECT_MENTION",
+            "NOT_IN_NOTEBOOK"
+          ],
+          "title": "Relationship",
+          "type": "string"
+        }
+      },
+      "required": [
+        "citation",
+        "source_id",
+        "relationship"
+      ],
+      "title": "AuditReference",
+      "type": "object"
+    },
+    "Criterion": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "INCLUSION",
+            "EXCLUSION"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "applicability": {
+          "enum": [
+            "TITLE_ABSTRACT",
+            "FULL_TEXT",
+            "BOTH"
+          ],
+          "title": "Applicability",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "kind",
+        "applicability"
+      ],
+      "title": "Criterion",
+      "type": "object"
+    },
+    "NoteApproval": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "preview_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "expected_artifact_revision": {
+          "minimum": 1,
+          "title": "Expected Artifact Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "preview_id",
+        "expected_artifact_revision"
+      ],
+      "title": "NoteApproval",
+      "type": "object"
+    },
+    "NoteApproveCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.notes.approve",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/NoteApproval"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "NoteApproveCommand",
+      "type": "object"
+    },
+    "NotePreviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.notes.preview",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/NotePreviewWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "NotePreviewCommand",
+      "type": "object"
+    },
+    "NotePreviewWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "artifact_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Artifact Version Id",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Title",
+          "type": "string"
+        },
+        "locale": {
+          "default": "pt-BR",
+          "enum": [
+            "pt-BR",
+            "en-US"
+          ],
+          "title": "Locale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "artifact_version_id",
+        "source_id",
+        "title"
+      ],
+      "title": "NotePreviewWrite",
+      "type": "object"
+    },
+    "NotePublishCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.notes.publish",
+          "title": "Op",
+          "type": "string"
+        },
+        "intent_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Intent Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/Write"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "intent_id",
+        "request"
+      ],
+      "title": "NotePublishCommand",
+      "type": "object"
+    },
+    "NoteReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.notes.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "intent_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Intent Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "intent_id"
+      ],
+      "title": "NoteReadCommand",
+      "type": "object"
+    },
+    "OllamaOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "num_ctx": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Ctx"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "think": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Think"
+        }
+      },
+      "title": "OllamaOptions",
+      "type": "object"
+    },
+    "ProtocolReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.protocol.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "protocol_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "protocol_id"
+      ],
+      "title": "ProtocolReadCommand",
+      "type": "object"
+    },
+    "ProtocolWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Question",
+          "type": "string"
+        },
+        "objective": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Objective",
+          "type": "string"
+        },
+        "review_type": {
+          "enum": [
+            "EXPLORATORY",
+            "SYSTEMATIC"
+          ],
+          "title": "Review Type",
+          "type": "string"
+        },
+        "form_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Form Version Id",
+          "type": "string"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/Criterion"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "question",
+        "objective",
+        "review_type",
+        "form_version_id",
+        "criteria",
+        "expected_revision"
+      ],
+      "title": "ProtocolWrite",
+      "type": "object"
+    },
+    "ProtocolWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.protocol.write",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ProtocolWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ProtocolWriteCommand",
+      "type": "object"
+    },
+    "ResearchControl": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "start",
+            "cancel",
+            "acknowledge_uncertain"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "action",
+        "expected_revision"
+      ],
+      "title": "ResearchControl",
+      "type": "object"
+    },
+    "ResearchControlCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.control",
+          "title": "Op",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ResearchControl"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "run_id",
+        "request"
+      ],
+      "title": "ResearchControlCommand",
+      "type": "object"
+    },
+    "ResearchListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "research.protocols",
+            "research.runs",
+            "research.notes.list"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "ResearchListCommand",
+      "type": "object"
+    },
+    "ResearchPrepare": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "SCREENING",
+            "SYNTHESIS",
+            "AUDIT"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "protocol_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Version Id",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Id"
+        },
+        "stage": {
+          "anyOf": [
+            {
+              "enum": [
+                "TITLE_ABSTRACT",
+                "FULL_TEXT"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Question",
+          "type": "string"
+        },
+        "pasted_text": {
+          "default": "",
+          "maxLength": 12000,
+          "title": "Pasted Text",
+          "type": "string"
+        },
+        "retrieval_query": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Retrieval Query",
+          "type": "string"
+        },
+        "include_unreviewed": {
+          "default": false,
+          "title": "Include Unreviewed",
+          "type": "boolean"
+        },
+        "context_tokens": {
+          "default": 32768,
+          "maximum": 1000000,
+          "minimum": 1024,
+          "title": "Context Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "default": 4096,
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "ollama_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OllamaOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "kind",
+        "protocol_version_id",
+        "profile_id",
+        "question"
+      ],
+      "title": "ResearchPrepare",
+      "type": "object"
+    },
+    "ResearchPrepareCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.prepare",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ResearchPrepare"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ResearchPrepareCommand",
+      "type": "object"
+    },
+    "ResearchRunCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "research.run",
+            "research.preview"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Run Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "run_id"
+      ],
+      "title": "ResearchRunCommand",
+      "type": "object"
+    },
+    "ScreeningOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "SCREENING",
+          "title": "Kind",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "INCLUDE",
+            "EXCLUDE",
+            "UNCERTAIN"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "criterion_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Criterion Ids",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "decision",
+        "criterion_ids",
+        "evidence_ids",
+        "rationale"
+      ],
+      "title": "ScreeningOutput",
+      "type": "object"
+    },
+    "ScreeningReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.screening",
+          "title": "Op",
+          "type": "string"
+        },
+        "protocol_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "protocol_id",
+        "offset"
+      ],
+      "title": "ScreeningReadCommand",
+      "type": "object"
+    },
+    "ScreeningWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "protocol_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Version Id",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "TITLE_ABSTRACT",
+            "FULL_TEXT"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "reviewer": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "INCLUDE",
+            "EXCLUDE",
+            "UNCERTAIN"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "criterion_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Criterion Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "protocol_version_id",
+        "source_id",
+        "stage",
+        "reviewer",
+        "decision",
+        "criterion_ids",
+        "rationale",
+        "expected_revision"
+      ],
+      "title": "ScreeningWrite",
+      "type": "object"
+    },
+    "ScreeningWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.screening.decide",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ScreeningWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ScreeningWriteCommand",
+      "type": "object"
+    },
+    "SynthesisOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "SYNTHESIS",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/SynthesisSection"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Sections",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "sections",
+        "limitations"
+      ],
+      "title": "SynthesisOutput",
+      "type": "object"
+    },
+    "SynthesisSection": {
+      "additionalProperties": false,
+      "properties": {
+        "heading": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Heading",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "cell_ids": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Cell Ids",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "basis": {
+          "enum": [
+            "REVIEWED",
+            "UNREVIEWED",
+            "MIXED"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "comparability": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Comparability",
+          "type": "string"
+        }
+      },
+      "required": [
+        "heading",
+        "text",
+        "cell_ids",
+        "evidence_ids",
+        "basis",
+        "comparability"
+      ],
+      "title": "SynthesisSection",
+      "type": "object"
+    },
+    "Write": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key"
+      ],
+      "title": "Write",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "research.artifact": "#/$defs/ArtifactReadCommand",
+      "research.control": "#/$defs/ResearchControlCommand",
+      "research.notes.approve": "#/$defs/NoteApproveCommand",
+      "research.notes.list": "#/$defs/ResearchListCommand",
+      "research.notes.preview": "#/$defs/NotePreviewCommand",
+      "research.notes.publish": "#/$defs/NotePublishCommand",
+      "research.notes.read": "#/$defs/NoteReadCommand",
+      "research.prepare": "#/$defs/ResearchPrepareCommand",
+      "research.preview": "#/$defs/ResearchRunCommand",
+      "research.protocol.read": "#/$defs/ProtocolReadCommand",
+      "research.protocol.write": "#/$defs/ProtocolWriteCommand",
+      "research.protocols": "#/$defs/ResearchListCommand",
+      "research.review": "#/$defs/ArtifactReviewCommand",
+      "research.run": "#/$defs/ResearchRunCommand",
+      "research.runs": "#/$defs/ResearchListCommand",
+      "research.screening": "#/$defs/ScreeningReadCommand",
+      "research.screening.decide": "#/$defs/ScreeningWriteCommand",
+      "research.versions": "#/$defs/ArtifactVersionsCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ResearchListCommand"
+    },
+    {
+      "$ref": "#/$defs/ProtocolWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ProtocolReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ScreeningReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ScreeningWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/ResearchPrepareCommand"
+    },
+    {
+      "$ref": "#/$defs/ResearchRunCommand"
+    },
+    {
+      "$ref": "#/$defs/ResearchControlCommand"
+    },
+    {
+      "$ref": "#/$defs/ArtifactReadCommand"
+    },
+    {
+      "$ref": "#/$defs/ArtifactVersionsCommand"
+    },
+    {
+      "$ref": "#/$defs/ArtifactReviewCommand"
+    },
+    {
+      "$ref": "#/$defs/NotePreviewCommand"
+    },
+    {
+      "$ref": "#/$defs/NoteApproveCommand"
+    },
+    {
+      "$ref": "#/$defs/NoteReadCommand"
+    },
+    {
+      "$ref": "#/$defs/NotePublishCommand"
+    }
+  ]
+}
