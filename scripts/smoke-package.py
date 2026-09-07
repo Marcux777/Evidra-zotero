@@ -171,7 +171,10 @@ def main() -> None:
 
                         keeper = threading.Thread(target=heartbeat, daemon=True)
                         keeper.start()
-                        assert client.get("/v1/status").status_code == 401
+                        unauthenticated = client.get(
+                            "/v1/status", headers={"X-Evidra-Client": "bridge"}
+                        )
+                        assert unauthenticated.status_code == 401, unauthenticated.text
                         status = client.get("/v1/status", headers=HEADERS)
                         assert (
                             status.status_code == 200

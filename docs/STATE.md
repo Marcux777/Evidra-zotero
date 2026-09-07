@@ -2,7 +2,17 @@
 
 Updated: 2026-09-07. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
 
-The full v1 implementation is in progress, not complete. Tasks 1–10 have passed their scoped source reviews. Task 10 also has native Zotero and official MCP SDK lifecycle evidence on its reviewed frozen package. Task 11 (exports/restore) is implemented and undergoing scoped review corrections; Task 12 (final distribution/acceptance) remains outstanding. The supplied SPEC.md is preserved unchanged.
+The full v1 acceptance is not complete. Tasks 1–11 have passed their scoped source reviews. Task12 now provides UI/cache/export corrections, root check/package runners, a real Windows distribution with dependency notices, a16-check packaged-process smoke and the measured1,000-source/50,000-chunk CPU benchmark. Final independent review and corrected native Zotero flow remain pending. The supplied SPEC.md is preserved unchanged.
+
+## Task 12 delivery checkpoint — 2026-09-07
+
+The verified local package is `.local/task12/package-2/`, built from clean `a808abc4442e595012b24b1615292b0d62fe39dc`. Its source-input ZIP and before/after captures bind exact bytes; later smoke-harness/documentation changes are separate. The XPI SHA is `d7a373b1558aba546d1d6d861376083ae0c965325aab4ca238d43ae29c08eb4e`; the Windows engine ZIP SHA is `f26d4f07227b1134d47afaebd7a00b536c6c6fee74299268fc092fa322b8e557`. See `SHA256SUMS.txt`, `release-manifest.json` and [installation](INSTALL_WINDOWS.md).
+
+Final local checks found stale UI/schema assertions and strict typing gaps; their focused corrections pass. Combined executed coverage is101 UI cases and285 Python cases, with1 skipped Windows symlink case; this aggregates the initial full runs and documented focused reruns, rather than claiming a new all-green full suite. Strict mypy passes102 modules. `.local/task12/package-smoke-2/report.json` records16 real frozen-process checks, original PDF parsing, durable approved matrix state and two normal heartbeat-expiry exits. `.local/task12/benchmark-3/report.json` records combined warm retrieval p95 1.265s on its declared synthetic corpus and actual host. [TEST_REPORT.md](TEST_REPORT.md) preserves all failures, commands, counts and limits.
+
+Native Task11 exposed a retained-approved-cell CSV defect and rejection of an otherwise valid backup. Both are source-fixed with regression evidence, but their original real native failures remain recorded until the controller runs the final corrected CSV/backup/map/import/evidence flow. Original Task9 model runs remain failed at their unchanged4096-token caps; Task8 native cancellation still needs revalidation. Clean Windows, blocked-external-network, complete native keyboard/viewport/uninstall and installed-client MCP gates remain unverified. No model parameters, personal library, credentials, network security or publication settings were changed.
+
+Next action: independently review the task-owned source and package input binding, then stage those exact reviewed artifacts in the authorized synthetic Zotero profile and perform the remaining native regressions. Do not infer native or clean-machine success from the packaged-process fixture smoke. [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md) retains all36 rows and explicit gaps.
 
 ## Current checkpoint — 2026-09-07
 

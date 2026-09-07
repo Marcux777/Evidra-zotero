@@ -1,6 +1,54 @@
 # Evidra test report
 
-Date: 2026-09-05. Status: implementation in progress. No acceptance criterion is declared passed by environment setup alone.
+Updated: 2026-09-07. Task 12 local distribution and bounded acceptance evidence are available. Native final regression and independent review remain pending; this is not complete-v1 acceptance. Earlier dated results below remain historical evidence.
+
+## Task 12 final local evidence
+
+The package was built from clean commit `a808abc4442e595012b24b1615292b0d62fe39dc`. `.local/task12/package-2/inputs-before.json` and `inputs-after.json` have identical file lists; their canonical input digest is `3d36b6a8e98fed7a7848e726a7dce460fab2030f7b949f8828ed4701c18097f4`. `source-inputs.zip` preserves the actual bytes, including Windows line endings. The later smoke-test header correction and final documentation do not modify the bundled runtime source.
+
+| Check | Executed result | Evidence |
+|---|---|---|
+| `npm ci`, frozen `uv sync`, `npm run typecheck` | Passed | `.local/task12/check-final-1/commands.json` and `logs/` |
+| Full `npm test` | 99 passed, 2 failed out of 101; both failures were stale manual-ready text expectations in `vertical.test.tsx` | `.local/task12/check-final-1/vitest.json` and raw logs |
+| Focused UI correction | All 6 `vertical.test.tsx` cases passed after correcting the obsolete assertion; combined evidence covers all 101 cases, not a new all-green full run | `npm test -- apps/zotero/tests/vertical.test.tsx`, console result 2026-09-07 07:00 UTC |
+| Full engine pytest | 281 passed, 4 failed, 1 skipped out of 286; failures hardcoded schema5 in the old migration test | `.local/task12/final-pytest.xml`; workflow `task12-remaining-checks-f5d2870c361b43fba8ae73c778c71a86/logs/pytest.stdout.log` |
+| Focused migration correction | 4 passed, preserving old notebook/source data, pre-upgrade backup and rollback against the actual next schema | `.local/task12/fixed-migrations-pytest.xml`; combined evidence covers285 passed/1 skipped |
+| Strict typing and lint | mypy passed102 source files after annotating generic transfer/history/SQLite returns; Ruff passed after import-order correction | Commands use the documented root configuration; original Ruff failure retained in `task12-remaining-checks-c9d3807e2eaf477c84607e859b6fb148` |
+| Export typing/idempotency check | 2 existing roundtrip/cached-PDF tests passed; no new behavior test added for annotations | `.local/task12/fixed-export-typing-pytest.xml` |
+| Generated contracts and XPI | Generation passed with no semantic Git diff; XPI build passed12 resource checks | `.local/task12/package-2/build-receipt.json` |
+| Retained approved-cell regression | 3 passed across two CSV orientations and backup; nonexistent retained proposal still rejected | `test_exports.py::test_export_current_cell_survives_rejection_of_a_competing_proposal`; initial CSV2fail and backup1fail reproduced before fixes |
+| Cache/UI focused work | Migration14→15, derived-only LRU, invalid settings/preview eviction; locale parity/UTF-8, both-locale named controls, matrix row keyboard virtualization | `test_cache_limits.py`, modified `test_documents.py`, `locale-accessibility.test.tsx`, `matrix-ui.test.tsx`; included in full suites above |
+| Windows package |597 engine payload files; production verifier accepted exact file set/hashes; ZIP path/CRC checks passed | `.local/task12/package-2/package-report.json`; workflow `task12-windows-package-a000e871043e42c59f903ee7a98af286` |
+| Packaged-process smoke |16 checks passed across two real frozen Windows sessions; child PATH contains only System32 | `.local/task12/package-smoke-2/report.json`, SHA `c335a1a94f5f8d36ba4720ae0ea79b0d22637723a8a0d2e381a8b28dab921349`; workflow `task12-packaged-smoke-2720defa629d466fb0ef41a3b03ba6eb` |
+
+The packaged smoke exercises authenticated notebook/snapshot/search, exact original evidence, an approved matrix cell, a 15,769-byte JSON export, and frozen PDFium parsing of a real synthetic 1,055-byte/two-page PDF. Parsing took0.409s and its cache reuse0.0265s. A second session revalidated source availability and retained the approved value42. Both processes exited0 after the real30-second heartbeat expiry, removed their connection receipts and closed their sockets. The verifier rejected deliberately malformed manifest JSON and changed payload bytes; the disposable payload was restored and reverified. Session credentials were absent from the captured process arguments and engine logs. This is a developer Windows host with child PATH restricted, not a clean Windows-machine test or native Zotero smoke.
+
+The full-check runner stops at the first failure and retains exact return codes and raw outputs. Successful checks were not unnecessarily repeated. Failures and their focused corrections above must be read together. One file-symlink case remains skipped because Windows returned WinError1314; no privilege change was made. Existing Starlette deprecation and React act-environment warnings are retained in raw logs and are not counted as test passes.
+
+## Task 12 measured performance
+
+`.local/task12/benchmark-3/report.json` (SHA `bb4613e9dd4fab8d19b6a3f0969d1df10e3e03c8c5053042f25ebf302ab1f521`) records Windows11 Home, AMD Ryzen7 7700 (8 reported logical processors), approximately31.2GiB RAM visible to Windows, current process ownership and GPU inventory. The production CPU path uses SQLite FTS5 and NumPy float32 cosine in blocks of64 vectors; no GPU or model is required. Hardware is bound by `.local/task12/hardware.json`. The run captures HEAD `af69b4a` plus its then-uncommitted actual input bytes; it is not relabeled as a later clean commit. Before/after input receipts match (file SHA `fa452577818b04d13b2ad30a5ed78afa28357230ea6025c4a1ee61fab798f488`). Root's independent arithmetic/input audit is `.local/task12/root-benchmark-binding.json`; later typing-only changes did not justify a rerun.
+
+| Measurement | Result |
+|---|---|
+| Corpus |1,000 synthetic sources,50,000 short structured pages/chunks,6,567,500 original UTF-8 bytes; corpus SHA `e628162db43c099ccfc087415d8257cb1da4c5096e577544a7ba2e6a534c54cf` |
+| Source sync / selection resolution / snapshot |0.117s /0.060s /0.087s |
+| Production page persistence, normalization and FTS indexing |8.543s; this is structured fixture indexing, not parsing1,000 PDFs |
+| Vectors |50,000 seeded random unit vectors,384 dimensions, float32, seed7; no semantic-quality claim |
+| Warm retrieval |30 measured queries after3 warmups: lexical p95 0.346s, vector p95 0.934s, fusion p95 0.000059s; combined p95 1.265s, below2s on this corpus/host |
+| Memory / index |PeakWorkingSet127,111,168B; peak committed pagefile373,391,360B; SQLite320,512,000B |
+| Restart and current-source revalidation |1.085s; all50,000 chunks retained and40 scoped hits returned |
+| Not measured |Query embedding, provider first/final token, native UI300ms progress goal, PDFium child peak memory and real-paper corpus speed |
+
+Benchmark1 correctly rejected a read-only ScopeContext used by the fixture seeder for a commit; the runner now requests a server-created commit context. Benchmark2 completed retrieval but its restart assertion omitted the mandatory new-session source revalidation. Benchmark3 fixed the runner and passed its named invariants. The original failed reports remain in `.local/task12/benchmark-{1,2}/`; their first errors were observed in console, with a terse/empty assertion message in the old report. The final runner now writes full traceback to `logs/failure.log` on failure. No production scope rule was weakened and no model call occurred.
+
+## Native failures and remaining acceptance
+
+Task11 saved nine artifacts using real Windows file pickers and Zotero translators; `.local/native-smoke/task11-native-controller-summary.json` binds the native results and43 independent backup/bibliography checks. It also records the CSV state/proposal defect and valid-backup `INVALID_BACKUP` failure after rejecting a competing proposal. Source commits `b40c224` and `af69b4a` resolve those two defects. Read-only validation of the original unchanged `backup-with-pdfs.zip` now returns44 records/1PDF. Final native CSV/backup/mapping/evidence/UI regression is pending; the old native failures are not marked passed.
+
+The three original Task9 screening/synthesis/audit runs each failed `GENERATION_INCOMPLETE` with qwen3:4b/context32768/output4096/temperature0/seed7/thinkfalse. No accepted artifact, retry or provider substitution resulted. These settings were not altered and those runs were not repeated. Task8 successful native extraction/cancellation, clean Windows, externally blocked-network smoke, complete native accessibility/uninstall, installed external MCP clients and paid-provider live tests remain separate unresolved gates. Ollama had actual earlier synthetic live generation/embedding smoke; LM Studio, OpenAI, Anthropic, Gemini and OpenAI-compatible adapters have controlled protocol coverage but no claimed live smoke here.
+
+Package1 failed at optional MCP CLI discovery (`ModuleNotFoundError: typer`); the build spec now collects the120 SDK modules while excluding the unused optional CLI. Smoke1 failed because its missing-token probe also omitted the required client marker and was refused403 before the expected401. Smoke2 corrected that test request and passed; the product's authentication policy and package binaries were unchanged. Full original causal logs are retained beside the corresponding failed workflow receipts.
 
 ## Categories
 
