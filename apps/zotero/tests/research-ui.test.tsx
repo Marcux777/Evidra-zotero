@@ -6,9 +6,47 @@ import { Protocol } from '../src/ui/Protocol';
 import { Screening } from '../src/ui/Screening';
 import { Research } from '../src/ui/Research';
 import { NotePreview } from '../src/ui/NotePreview';
+import { ResearchArtifact } from '../src/ui/ResearchArtifact';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let unmount = () => {};
 afterEach(() => { act(unmount); document.body.replaceChildren(); });
+
+function researchFixture() {
+    const studies = ['Alpha', 'Beta', 'Unused'].map((title, i) => ({ title, source_id: String(i + 1).repeat(64),
+        identity: { profile_instance_id: 'profile', library_id: i + 1, item_key: `STUDY00${i + 1}` } }));
+    const evidence = studies.map((study, i) => ({ id: String(i + 4).repeat(64), source_id: study.source_id,
+        source_identity: study.identity, excerpt: `${study.title} original quotation`, content_key: `CONTENT${i + 1}`, page_index: i, source_kind: 'PDF' }));
+    const cells = studies.map((study, i) => ({ id: `cell-${i}`, basis: i === 1 ? 'UNREVIEWED' : 'REVIEWED', evidence_ids: [evidence[i]!.id],
+        cell: { source_id: study.source_id, source_title: study.title, field_key: `result_${i}`, value: `${study.title} cell value`, value_state: 'FOUND',
+            form_version_id: 'f'.repeat(32), field_origin_form_version_id: 'f'.repeat(32), proposal_id: String(i + 7).repeat(32), revision: i + 1,
+            review_state: i === 1 ? 'UNREVIEWED' : 'CORRECTED' } }));
+    const coverage = { complete: false, included_studies: 2, snapshot_members: 3, reviewed_cells: 1, unreviewed_cells: 1, evidence_chunks: 3, candidate_chunks: 3 };
+    const artifact: any = { id: 'a'.repeat(32), artifact_id: 'b'.repeat(32), revision: 1, review_state: 'UNREVIEWED', author: 'model',
+        created_at: '2026-09-01T12:00:00Z', coverage, output: { kind: 'SYNTHESIS', sections: cells.slice(0, 2).map((cell, i) => ({
+            heading: `Result ${i + 1}`, text: `Context ${i + 1}`, cell_ids: [cell.id], evidence_ids: cell.evidence_ids, basis: cell.basis, comparability: 'No aggregate ranking' })), limitations: ['Partial collection'] } };
+    const preview: any = { inputs: { studies, evidence, cells, protocol: { criteria: [] } } };
+    return { artifact, preview };
+}
+
+test('research results expose their own anchors and cells while unused preparation evidence stays separate', async () => {
+    const { artifact, preview } = researchFixture();
+    const node = document.createElement('div'); document.body.append(node); const root = createRoot(node); unmount = () => root.unmount();
+    await act(async () => root.render(<ResearchArtifact bridge={{ request: async () => { throw new Error('Unexpected request'); } } as any}
+        notebook_id="n" snapshot_id="s" locale="en-US" artifact={artifact} preview={preview} onChange={() => {}}/>));
+    const result = (heading: string) => [...node.querySelectorAll('h4')].find(h => h.textContent === heading)!.closest('article')!;
+    expect(result('Result 1').textContent).toContain('Alpha original quotation');
+    expect(result('Result 1').textContent).toContain('Alpha cell value');
+    expect(result('Result 1').textContent).toContain('result_0');
+    expect(result('Result 1').textContent).toContain('1/STUDY001');
+    expect(result('Result 1').textContent).not.toContain('Beta original quotation');
+    expect(result('Result 1').textContent).not.toContain('Unused original quotation');
+    expect(result('Result 2').textContent).toContain('Beta original quotation');
+    expect(result('Result 2').textContent).toContain('Unreviewed');
+    expect(result('Result 2').textContent).not.toContain('Alpha original quotation');
+    const unused = [...node.querySelectorAll('details')].find(d => d.querySelector('summary')?.textContent === 'Other preparation excerpts — not linked to these results')!;
+    expect(unused.textContent).toContain('Unused original quotation');
+    expect(unused.textContent).not.toContain('Alpha original quotation');
+});
 test('protocol explicit save preserves uncertain command and shows immutable revision after identical retry', async () => {
     const requests: any[] = []; let lost = true;
     const protocol = { id: 'a'.repeat(32), revision: 1, question: 'Question', objective: 'Objective', review_type: 'EXPLORATORY',

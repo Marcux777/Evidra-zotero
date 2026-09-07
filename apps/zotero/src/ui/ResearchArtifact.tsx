@@ -3,15 +3,20 @@ import type { ArtifactPage, ArtifactVersion, ResearchPreview } from '../bridge/t
 import { catalog } from './i18n';
 import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope } from './research-actions';
 import { NotePreview } from './NotePreview';
+import { ResearchCells, ResearchEvidence } from './ResearchAssociations';
 
 export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVersion; preview: ResearchPreview; onChange: (value: ArtifactVersion) => void }) {
     const { artifact, preview, onChange, bridge, notebook_id, snapshot_id, locale } = props;
     const t = catalog(locale).research, scope = { notebook_id, snapshot_id };
-    const [draft, setDraft] = useState(artifact.output), [rationale, setRationale] = useState(''), [evidenceOffset, setEvidenceOffset] = useState(0);
+    const [draft, setDraft] = useState(artifact.output), [rationale, setRationale] = useState('');
     const [history, setHistory] = useState<ArtifactPage | null>(null), [visible, setVisible] = useState(true);
     const actions = useResearchActions(bridge, () => setVisible(false));
     const label = (key: string) => (t as Record<string, string>)[key] ?? key;
     const output = artifact.output;
+    const selectedIds = new Set(output.kind === 'SCREENING' ? output.evidence_ids
+        : output.kind === 'SYNTHESIS' ? output.sections.flatMap(section => section.evidence_ids) : output.claims.flatMap(claim => claim.evidence_ids));
+    const openEvidence = (id: string) => actions.read(async () => { await bridge.request({ op: 'documents.open', ...scope, evidence_id: id }); });
+    const references = (ids: string[]) => <ResearchEvidence evidence={preview.inputs.evidence.filter(value => ids.includes(value.id))} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence}/>;
     if (!visible) return <ResearchFeedback actions={actions} locale={locale}/>;
     async function versions(offset: number, current: () => boolean) {
         const page = await bridge.request({ op: 'research.versions', ...scope, version_id: artifact.id, offset }) as ArtifactPage;
@@ -26,18 +31,17 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
         <ResearchFeedback actions={actions} locale={locale}/>
         <p>{artifact.coverage.complete ? t.complete : t.partial} · {t.studies}: {artifact.coverage.included_studies}/{artifact.coverage.snapshot_members}</p>
         <p>{t.reviewed}: {artifact.coverage.reviewed_cells} · {t.unreviewedCount}: {artifact.coverage.unreviewed_cells} · {t.chunks}: {artifact.coverage.evidence_chunks}/{artifact.coverage.candidate_chunks}</p>
-        {output.kind === 'SCREENING' ? <><h4>{t[output.decision]}</h4><p>{output.rationale}</p><p>{output.criterion_ids.join(', ')}</p></>
+        {output.kind === 'SCREENING' ? <article><h4>{t[output.decision]}</h4><p>{output.rationale}</p><p>{output.criterion_ids.join(', ')}</p>{references(output.evidence_ids)}</article>
             : output.kind === 'SYNTHESIS' ? <>{output.sections.map((section, i) => <article key={i}><h4>{section.heading}</h4><p>{section.text}</p>
-                <p>{t.basis}: {t[section.basis]}</p><p>{t.comparison}: {section.comparability}</p></article>)}<h4>{t.limitations}</h4>{output.limitations.map((text, i) => <p key={i}>{text}</p>)}</>
+                <p>{t.basis}: {t[section.basis]}</p><p>{t.comparison}: {section.comparability}</p>
+                <ResearchCells cells={preview.inputs.cells.filter(cell => section.cell_ids.includes(cell.id))} studies={preview.inputs.studies} locale={locale}/>{references(section.evidence_ids)}</article>)}<h4>{t.limitations}</h4>{output.limitations.map((text, i) => <p key={i}>{text}</p>)}</>
             : <>{output.claims.map((claim, i) => <article key={i}><blockquote>{claim.text}</blockquote><strong>{t[claim.support]}</strong><p>{claim.explanation}</p>
-                {claim.references.map((ref, j) => <p key={j}>{ref.citation} · {t[ref.relationship]}</p>)}</article>)}<p>{output.collection_limitations}</p></>}
-        <details><summary>{t.evidence}</summary>{preview.inputs.evidence.slice(evidenceOffset, evidenceOffset + 10).map(evidence => <article key={evidence.id}>
-            <h4>{preview.inputs.studies.find(s => s.source_id === evidence.source_id)?.title}</h4><blockquote>{evidence.excerpt}</blockquote>
-            <p>{evidence.source_identity.library_id}/{evidence.source_identity.item_key} · {evidence.content_key} · {evidence.page_index === null ? evidence.source_kind : evidence.page_index + 1}</p>
-            <code>{evidence.id}</code></article>)}
-            <div className="actions"><button type="button" disabled={evidenceOffset === 0} onClick={() => setEvidenceOffset(old => Math.max(0, old - 10))}>{t.previous}</button>
-                <button type="button" disabled={evidenceOffset + 10 >= preview.inputs.evidence.length} onClick={() => setEvidenceOffset(old => old + 10)}>{t.next}</button></div>
-        </details>
+                {claim.references.map((ref, j) => { const study = preview.inputs.studies.find(value => value.source_id === ref.source_id);
+                    return <p key={j}>{ref.citation} · {t[ref.relationship]}{study && <> · {study.title} · {study.identity.library_id}/{study.identity.item_key}</>}</p>; })}
+                {references(claim.evidence_ids)}</article>)}<p>{output.collection_limitations}</p></>}
+        {preview.inputs.evidence.some(value => !selectedIds.has(value.id)) && <details><summary>{t.otherEvidence}</summary>
+            <ResearchEvidence evidence={preview.inputs.evidence.filter(value => !selectedIds.has(value.id))} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence} heading={t.evidence}/>
+        </details>}
         <details><summary>{t.review}</summary><fieldset disabled={actions.locked}><legend>{t.review}</legend>
             <label>{t.rationale}<textarea maxLength={2000} value={rationale} onChange={e => setRationale(e.target.value)}/></label>
             {draft.kind === 'SCREENING' && <><label>{t.decision}<select value={draft.decision} onChange={e => setDraft({ ...draft, decision: e.target.value as typeof draft.decision })}>{(['INCLUDE', 'EXCLUDE', 'UNCERTAIN'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>

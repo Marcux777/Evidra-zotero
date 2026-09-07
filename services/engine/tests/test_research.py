@@ -387,6 +387,126 @@ def test_outbox_preview_approval_and_readback_survive_reopen_without_duplicate(t
         reopened.close()
 
 
+@pytest.mark.parametrize("kind", ["SCREENING", "SYNTHESIS", "AUDIT"])
+def test_note_preserves_per_result_anchors_cells_and_excludes_unused_preparation(tmp_path, kind):
+    from xml.etree import ElementTree
+
+    from evidra.extraction.models import MatrixCell
+    from evidra.research.execution import ArtifactVersion, ResearchCell, ResearchPreview
+    from evidra.storage.note_html import note_html
+
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, form, manual = setup(client)
+        _, version = protocol(client, prefix, form)
+        profile(client)
+        run = prepare_research(client, prefix, version["id"], "SCREENING", manual["source_id"])
+        preview = ResearchPreview.model_validate(
+            client.get(prefix + "/research/runs/" + run["id"] + "/preview", headers=HEADERS).json()
+        )
+        original = preview.inputs.evidence[0]
+        # Rendering-only variants; no fabricated evidence is persisted or granted.
+        excerpts = [
+            original.model_copy(update={"id": str(i + 1) * 64, "excerpt": text})
+            for i, text in enumerate(
+                ["Alpha <original> excerpt", "Beta original excerpt", "Unused preparation excerpt"]
+            )
+        ]
+        cells = [
+            ResearchCell(
+                id=f"cell-{i}",
+                basis="REVIEWED",
+                evidence_ids=[excerpts[i].id],
+                cell=MatrixCell(
+                    value=f"Cell value {i}",
+                    value_state="FOUND",
+                    form_version_id=form["id"],
+                    field_origin_form_version_id=form["id"],
+                    source_id=manual["source_id"],
+                    source_title="Study",
+                    field_key=f"result_{i}",
+                    revision=i + 1,
+                    review_state="CORRECTED",
+                ),
+            )
+            for i in range(2)
+        ]
+        inputs = preview.inputs.model_copy(update={"evidence": excerpts, "cells": cells})
+        if kind == "SCREENING":
+            output = {
+                "kind": kind,
+                "decision": "UNCERTAIN",
+                "criterion_ids": ["population"],
+                "evidence_ids": [excerpts[0].id],
+                "rationale": "Screening result",
+            }
+        elif kind == "SYNTHESIS":
+            output = {
+                "kind": kind,
+                "sections": [
+                    {
+                        "heading": f"Result {i}",
+                        "text": f"Result text {i}",
+                        "cell_ids": [cells[i].id],
+                        "evidence_ids": [excerpts[i].id],
+                        "basis": "REVIEWED",
+                        "comparability": "Retain study context",
+                    }
+                    for i in range(2)
+                ],
+                "limitations": ["Collection limited"],
+            }
+        else:
+            output = {
+                "kind": kind,
+                "claims": [
+                    {
+                        "text": f"Claim {i}",
+                        "start": i * 10,
+                        "end": i * 10 + 7,
+                        "support": "SUPPORTED_PROPOSAL",
+                        "evidence_ids": [excerpts[i].id],
+                        "explanation": "Proposal only",
+                        "references": [],
+                    }
+                    for i in range(2)
+                ],
+                "collection_limitations": "Collection limited",
+            }
+        artifact = ArtifactVersion(
+            id="a" * 32,
+            artifact_id="b" * 32,
+            revision=1,
+            previous_version_id=None,
+            run_id=run["id"],
+            output=output,
+            coverage=preview.inputs.coverage,
+            review_state="UNREVIEWED",
+            rationale=None,
+            author="fixture",
+            created_at="2026-09-01T00:00:00Z",
+        )
+        html = note_html("fixture-uuid", "Title", artifact, inputs, "en-US")
+        results = ElementTree.fromstring(html).find("div").findall("div")
+        assert len(results) == (1 if kind == "SCREENING" else 2)
+        text = [" ".join(result.itertext()) for result in results]
+        assert "Alpha <original> excerpt" in text[0]
+        assert excerpts[0].id in text[0]
+        assert "Beta original excerpt" not in text[0]
+        assert "Unused preparation excerpt" not in html
+        assert "<original>" not in html and "&lt;original&gt;" in html
+        if kind != "SCREENING":
+            assert "Beta original excerpt" in text[1]
+            assert excerpts[1].id in text[1]
+            assert "Alpha <original> excerpt" not in text[1]
+        if kind == "SYNTHESIS":
+            assert "result_0" in text[0] and "Cell value 0" in text[0]
+            assert "cell-0" in text[0] and "CORRECTED" in text[0]
+            assert "result_1" not in text[0]
+        with app.state.services.database.transaction() as conn:
+            assert conn.execute("SELECT count(*) FROM provider_calls").fetchone()[0] == 0
+
+
 def crash_research(directory, after_checkpoint):
     """Child uses production SQLite/provider accounting; only HTTP is controlled."""
     import os
