@@ -278,7 +278,12 @@ def validate_references(notebook: PortableNotebook) -> None:
                     raise ValueError("Unresolved proposal dependency")
             if record.kind == "decision":
                 data = record.data
-                if data.proposal_id not in proposals or data.new.proposal_id != data.proposal_id:
+                # Rejecting a competing proposal preserves the already reviewed cell.
+                # Both the event target and retained cell must resolve independently.
+                if data.proposal_id not in proposals or any(
+                    state.proposal_id is not None and state.proposal_id not in proposals
+                    for state in (data.old, data.new)
+                ):
                     raise ValueError("Unresolved decision proposal")
             if record.kind == "screening" and (
                 record.data.protocol_version_id not in protocols

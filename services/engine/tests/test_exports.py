@@ -82,8 +82,8 @@ def decision_fixture(client):
     return prefix, form, proposal, decision, protocol1
 
 
-@pytest.mark.parametrize("format", ["csv_results", "csv_studies"])
-def test_csv_current_cell_survives_rejection_of_a_competing_proposal(tmp_path, format):
+@pytest.mark.parametrize("format", ["csv_results", "csv_studies", "backup"])
+def test_export_current_cell_survives_rejection_of_a_competing_proposal(tmp_path, format):
     with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
         prefix, form, accepted, _, _ = decision_fixture(client)
         competitor = post(
@@ -118,6 +118,23 @@ def test_csv_current_cell_survives_rejection_of_a_competing_proposal(tmp_path, f
         ).json()["items"][0]
         assert current["review_state"] == "APPROVED" and current["proposal_id"] == accepted["id"]
         data, _, _ = export(client, prefix, format)
+        if format == "backup":
+            from evidra.exports.backup import read_backup, validate_references
+            from evidra.exports.models import PortableNotebook
+
+            inspected = upload(client, prefix, data)
+            assert inspected.status_code == 201, inspected.text
+            notebook, _ = read_backup(data)
+            portable = notebook.model_dump(mode="json")
+            retained = next(
+                r["data"] for r in portable["records"]
+                if r["kind"] == "decision" and r["data"]["id"] == rejected["id"]
+            )
+            assert retained["new"]["proposal_id"] == accepted["id"]
+            retained["new"]["proposal_id"] = "missing-proposal"
+            with pytest.raises(ValueError, match="Unresolved decision proposal"):
+                validate_references(PortableNotebook.model_validate(portable))
+            return
         row = next(csv.DictReader(io.StringIO(data.decode("utf-8"))))
         column = "result.1." if format == "csv_studies" else ""
         assert row[column + "review_state"] == current["review_state"]
