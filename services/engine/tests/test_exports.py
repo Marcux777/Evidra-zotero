@@ -234,6 +234,116 @@ def test_versioned_roundtrip_has_typed_imported_history_without_local_authority(
         assert json.loads(redacted)["omissions"]
 
 
+def test_imported_omissions_survive_restart_without_denied_external_text(tmp_path):
+    from evidra.domain.sources import SourceInput
+    from evidra.exports.backup import make_backup, read_backup
+    from evidra.exports.models import PortableNotebook
+
+    identifiers = ["REVOKED_RECORD_SENTINEL", "OMISSION_ID_SENTINEL", "OMISSION_KIND_SENTINEL"]
+    payload = "REVOKED_PAYLOAD_SENTINEL"
+    app = make_app(tmp_path, [0.0])
+    failures = []
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, _, proposal, *_ = decision_fixture(client)
+        raw, _, _ = export(client, prefix)
+        portable = json.loads(raw)
+        source_data = next(r["data"] for r in portable["records"] if r["kind"] == "source")
+        native_source = {key: source_data[key] for key in SourceInput.model_fields}
+        decision = next(r for r in portable["records"] if r["kind"] == "decision")
+        decision["id"] = identifiers[0]
+        decision["data"]["rationale"] = payload
+        portable["omissions"] = [
+            {"kind": identifiers[2], "id": identifiers[1], "reason": "DEPENDENCY_OMITTED"}
+        ]
+        archive = make_backup(PortableNotebook.model_validate(portable), [])
+        inspected = upload(client, prefix, archive)
+        assert inspected.status_code == 201, inspected.text
+        preview = inspected.json()
+        sources = client.get(
+            prefix + f"/imports/uploads/{preview['id']}/sources?offset=0&limit=20", headers=HEADERS
+        ).json()["items"]
+        assert len(sources) == preview["source_count"] == 1
+        source = sources[0]
+        post(
+            client,
+            prefix + f"/imports/uploads/{preview['id']}/mappings",
+            {
+                "original": source["identity"],
+                "target": source["identity"],
+                "contents": [
+                    {"original_key": c["key"], "target_key": c["key"], "kind": c["kind"]}
+                    for c in source["contents"]
+                ],
+                "offset": 0,
+                "final": True,
+                "expected_revision": 0,
+                "idempotency_key": "map",
+            },
+            200,
+        )
+        imported = post(
+            client,
+            prefix + "/imports",
+            {
+                "preview_id": preview["id"],
+                "confirmed": True,
+                "expected_mapping_revision": 1,
+                "idempotency_key": "import",
+            },
+        )
+        post(client, prefix + f"/transfers/{preview['id']}/discard", None, 200)
+    reopened = make_app(tmp_path, [0.0])
+    with TestClient(reopened, base_url="http://127.0.0.1:49200") as client:
+        # Restart correctly invalidates native access; re-observe the same source
+        # through the real privileged sync path before testing restored history.
+        post(
+            client,
+            prefix.split("/snapshots/")[0] + "/sources/sync",
+            {
+                "items": [native_source],
+                "purpose": "revalidation",
+                "stage_id": None,
+                "snapshot_id": prefix.rsplit("/", 1)[1],
+                "final": True,
+            },
+            200,
+        )
+        restored, _, _ = export(client, prefix)
+        visible = json.loads(restored)
+        assert any(
+            r["original_record_id"] == identifiers[0]
+            for r in visible["records"]
+            if r["origin"] == "IMPORTED"
+        )
+        gaps = [o for o in visible["omissions"] if o["kind"] == "imported_omission"]
+        if gaps != [
+            {
+                "kind": "imported_omission",
+                "id": f"import:{imported['id']}:omission:0",
+                "reason": "DEPENDENCY_OMITTED",
+            }
+        ]:
+            failures.append(
+                ("existing omission lost or unsafe after discard/restart", visible["omissions"])
+            )
+        reopened.state.services.scopes.revoke_access(proposal["source_id"])
+        for format in ["json", "markdown", "backup"]:
+            denied, _, _ = export(client, prefix, format)
+            if format == "backup":
+                portable_denied, _ = read_backup(denied)
+                denied = portable_denied.model_dump_json().encode()
+            if any(value.encode() in denied for value in identifiers + [payload]):
+                failures.append(("denied export contains external identifier/payload", format))
+            if format == "json":
+                omitted = json.loads(denied)["omissions"]
+                denied_records = [o for o in omitted if o["kind"] == "imported_record"]
+                if len(denied_records) != imported["record_count"]:
+                    failures.append(("missing opaque denied-record gaps", len(denied_records)))
+                if gaps and gaps[0] not in omitted:
+                    failures.append(("existing omission disappeared on revocation", omitted))
+        assert not failures, failures
+
+
 def test_archive_cannot_erase_source_mapping_by_forging_empty_access(tmp_path):
     from evidra.exports.backup import make_backup
     from evidra.exports.models import PortableNotebook
@@ -614,7 +724,7 @@ def test_hostile_archives_rejected_without_extraction(tmp_path, kind):
                     b"malice",
                 )
             elif kind == "symlink":
-                info = zipfile.ZipInfo("pdfs/link.pdf")
+                info = zipfile.ZipInfo("pdfs/" + "b" * 64 + ".pdf")
                 info.create_system = 3
                 info.external_attr = (stat.S_IFLNK | 0o777) << 16
                 archive.writestr(info, b"../../escape.txt")

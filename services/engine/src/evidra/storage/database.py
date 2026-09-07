@@ -9,7 +9,7 @@ from threading import RLock
 
 from evidra.domain.errors import EvidraError
 
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 
 class Database:

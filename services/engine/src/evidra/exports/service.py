@@ -691,13 +691,20 @@ class ExportService:
                         "INSERT INTO imported_files VALUES(?,?,?,?,?)",
                         (result.id, file.path, file.model_dump_json(), mapped_json, data),
                     )
+                # A portable omission is already missing content; none of its
+                # external metadata can be authorized as safe text. Persist only
+                # the gap count and its server-created local import provenance.
+                conn.executemany(
+                    "INSERT INTO imported_omissions VALUES(?,?)",
+                    [(result.id, ordinal) for ordinal in range(len(stage.notebook.omissions))],
+                )
                 return result
 
     def _history(self, context: ScopeContext, identity: str | None = None):
         records, omissions = [], []
         with self.scopes.guarded(context) as conn:
             query = (
-                "SELECT r.import_id,r.ordinal,r.kind,r.original_record_id,r.access "
+                "SELECT r.import_id,r.ordinal,r.access "
                 "FROM imported_records r JOIN imported_notebooks i ON i.id=r.import_id "
                 "WHERE i.notebook_id=? AND i.snapshot_id=?"
             )
@@ -711,8 +718,8 @@ class ExportService:
                 if not self._allowed(conn, context, ACCESS.validate_json(row["access"])):
                     omissions.append(
                         Omission(
-                            kind=row["kind"],
-                            id=row["original_record_id"],
+                            kind="imported_record",
+                            id=f"import:{row['import_id']}:record:{row['ordinal']}",
                             reason="CURRENT_ACCESS_UNAVAILABLE",
                         )
                     )
@@ -726,6 +733,21 @@ class ExportService:
                 if key not in seen:
                     records.append(record)
                     seen.add(key)
+            query = (
+                "SELECT o.import_id,o.ordinal FROM imported_omissions o JOIN "
+                "imported_notebooks i ON i.id=o.import_id "
+                "WHERE i.notebook_id=? AND i.snapshot_id=?"
+            )
+            if identity is not None:
+                query += " AND i.id=?"
+            for row in conn.execute(query + " ORDER BY o.import_id,o.ordinal", args).fetchall():
+                omissions.append(
+                    Omission(
+                        kind="imported_omission",
+                        id=f"import:{row['import_id']}:omission:{row['ordinal']}",
+                        reason="DEPENDENCY_OMITTED",
+                    )
+                )
         return records, omissions
 
     def _imported_files(self, context: ScopeContext):
