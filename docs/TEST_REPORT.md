@@ -1,6 +1,26 @@
 # Evidra test report
 
-## Current state, cancellation and hostile-document acceptance — 2026-09-07 22:33Z
+## Authorized larger-budget native runs and causal diagnostic — 2026-09-07 23:00Z
+
+The user authorized output16384/context32768, then context40960 only for synthesis and audit. Package4 and all original prompts, schemas, evidence, protocol, qwen3:4b digest359d7dd4…, seed7, temperature0 and thinkfalse stayed unchanged. Actual native preparation compared every preserved input before starting. All five calls completed below the output cap but FAILED with INVALID_OUTPUT; no accepted extraction result, research checkpoint/artifact or note was created.
+
+| Native operation | Input tokens | Output tokens | Call ID |
+|---|---:|---:|---|
+| Accuracy extraction | 745 | 5440 | b1aea19a230087e9075ece0c06c6e07e |
+| Repetitions extraction | 685 | 2829 | c836320387c0d4f5ecab5e6715c91603 |
+| Screening | 1297 | 4384 | 80de278ec471d107aeb0fdbc1d0e3ddf |
+| Synthesis | 13506 | 6105 | 0cd9bad94703aae02c7b58a3e0dbe5a4 |
+| Audit | 12637 | 7989 | 99fb9ae1a18af93c57a025f3455e09a6 |
+
+Usage is CONFIRMED and monetary cost remains null. The extraction controller summary has SHA-256 `41e3847f454c8b52b44e63164a2c194cee31756a3f6b938fa33ac44409dfc468`; the research summary has SHA-256 `0bde70b7e75a10b1a59cae05165f7ac4e9f28f0677ac4fca9bc4ee63ffeec844`. They bind native UI observations, exact source/package, full GPU preloads and post-exit read-only engine SQLite inspection. Research's26 passed preparation/readback checks are not successful research-generation acceptance. Host30564 closed22:46:22Z; host37700 closed22:58:17Z; their exact engines were absent afterward. Latest staging chain is `resumed-native-research16k`; probe0.1.76 is preserved outside the stopped profile, SHA-256 `fd22b0af2bc6ad5c6e1e9f8fd80bef6259040897dd240909225fc10fae110524`. The exact package4 product and preference hash682d9eb0… remain installed/unchanged; personal instances were untouched.
+
+One separately observed adapter diagnostic repeated only the exact accuracy request after native teardown. It checked all104 current engine Python sources against the package's archived source and used the unchanged production request builder/adapter with passive output capture. It reproduced745input/5440output and a complete stop, then JSONDecodeError at line1/column1: reasoning prose and a closing `</think>` occur in message.content before the JSON. The19231-character raw output is preserved locally with SHA-256 `0d8c7539ab29f25067915aac785ea2c6f6e896b71030e0573579fbdf728606b9`; diagnostic receipt SHA-256 `0f3934bec003f9da47c161beb11169d56cdbb223537523f06d7989eb5b0da077`. This establishes the cause for that reproduction, not the uncaptured contents of the other four native calls. No prefix stripping, JSON repair, schema relaxation or result promotion was applied.
+
+The installed /api/show template unconditionally opens a think block. The [official protocol](https://docs.ollama.com/capabilities/thinking) defines separate message.thinking and message.content; matching behavior is reported in [qwen3:4b issue12917](https://github.com/ollama/ollama/issues/12917) and [issue12736](https://github.com/ollama/ollama/issues/12736). `thinktrue-validation-proposal.json` prepares changing only think=false to true with the same model/inputs/limits; the user subsequently authorized that sole change, which has not yet executed. The user confirmed that only this host is available, so clean-Windows acceptance remains externally blocked. Current token privileges omit SeCreateSymbolicLinkPrivilege; the developer-mode enable value was not found. No security setting was changed. A25/A29/A33/A36 remain PARTIAL.
+
+The first staging command named a nonexistent review-gate file and stopped before profile changes; the corrected command used the existing original-source-review-gate.json. The first preload command used system Python without httpx and stopped before any model request; the declared project venv then ran it. A diagnostic-preload composer had a shell-quoting SyntaxError before writing its target and was replaced by a readback-verifiable Python file. The first research summarizer requested a nonexistent request key; it was corrected to use the actual captured preparation request, with no new generation. These helper failures are not passing evidence. No production code or permanent test changed, and no unchanged test suite was repeated.
+
+## Earlier state, cancellation and hostile-document acceptance — 2026-09-07 22:33Z
 
 The package4 runtime remains exact source `c2ae541`; subsequent commits only document executed acceptance. Current totals are **27 fixture-verified, five bounded live, four partial**. Only A25/A29/A33/A36 remain partial; their required network isolation, file-symlink capability, clean Windows host and successful native extraction have not been substituted by other checks.
 

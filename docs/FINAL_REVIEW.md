@@ -6,6 +6,8 @@ Package4 from exact `c2ae5413512755f9ad7b4fd1701c8b5a14702a23` then passed 57 ac
 
 The subsequent acceptance increment closes native cancellation (27 checks; summary SHA-256 `db0dc7a99f985d55718c812d5723cc3dd2b5f544d5834024de34e1773e568a04`), the bounded native state/keyboard matrix (42 checks/23 controls; summary SHA-256 `a27cb321ffd849e62b51949e8ce006b6fc36ccbd951e3435eeaba5e084408db0`), and explicit hostile HTML/PDF controlled cross-flow (two cases,154 verified bound hashes). These add no production change. A28 retains the explicit controlled-provider/native-fixture/observer limitations in TEST_REPORT. Current classification is27 fixture-verified, five bounded live and four partial: A25/A29/A33/A36. No complete-v1 or release approval is inferred.
 
+The newly authorized larger-budget attempts do not close A36: all five native calls failed INVALID_OUTPUT below16384 output tokens. A separate exact-input diagnostic traced the accuracy failure to reasoning prose preceding JSON in Ollama message.content with thinkfalse. The subsequent thinktrue configuration is user-authorized but not yet executed; validators remain unchanged. Both native hosts/engines closed normally. See the23:00Z checkpoint in TEST_REPORT. The user has only this development host, so clean-Windows acceptance remains unavailable.
+
 The reviews below retain their original findings as historical evidence; their old open-F2 statements have been superseded.
 
 # Historical resumed source review — 2026-09-07
