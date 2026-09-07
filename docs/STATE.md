@@ -1,6 +1,20 @@
 # Evidra implementation state
 
-## Task 12 review correction I1/M1 — 2026-09-07
+## Current source and distribution checkpoint — 2026-09-07
+
+The final whole-branch fix wave addresses admitted textual attachment ingestion, snapshot-local CSV projection, localized document reasons, operation labels and the failed-keyring database test boundary. Source changes and exact scoped verification are recorded in [.superpowers/sdd/IMPLEMENTATION_PLAN/final-fix-report.md](../.superpowers/sdd/IMPLEMENTATION_PLAN/final-fix-report.md). Review of these source changes and a successor distribution remain pending; this is not a complete-v1 or release-readiness declaration.
+
+The existing distribution for the controller's independent native regression is **package 3**, `.local/task12/package-3/`, frozen at `08d3cf6e5f0c2456ef9a4ea9842e8c768c9add51`. Its exact binding is `.local/task12/root-package3-binding.json` (SHA-256 `70b42f1d3608d8846c563da759ef40a830c3a6220c13c5e02a97623c2bf2e584`): 287 source inputs and 597 engine payload entries. Use its XPI, engine ZIP, `SHA256SUMS.txt` and `release-manifest.json` together, following [installation](INSTALL_WINDOWS.md). Package 3 does **not** contain this later final-fix source wave. No new package or native result was created by this wave, and package 2's smoke is not a fresh package 3 execution.
+
+Textual attachment support and its explicit native-navigation/format limits are documented in [TEXT_ATTACHMENTS.md](TEXT_ATTACHMENTS.md). The CSV format retains snapshot and source-version provenance. The original failed native model runs, open acceptance rows, unverified clean Windows/installed-client/offline/complete keyboard/lifecycle gates and warning/capture debt remain recorded in [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md) and [TEST_REPORT.md](TEST_REPORT.md). No warning suppression, model changes or acceptance substitution is claimed.
+
+The controller's package-3 native regression is now recorded in `.local/native-smoke/task12-native-controller-summary.json`, SHA-256 `524e1f5817d5c16d5f149ce72fc9adaf45c999b995debef1dc5043bc4e6dc88e`: 19 observer checks and 46 saved-artifact checks passed for four exports, explicit 1/1 compound source/PDF mapping, import of 44 records, and imported original PDF evidence opening at page index1. The native matrix distinguishes approved87.5 from rejected88, has readable field labels and pagination1–3/3; scoped Tab focus and MCP provenance/status labels were observed. Owned host30408 closed normally, engine31288 was absent afterward, and the temporary smooth-scroll preference was restored. An additional default-animation `documents.open`/panel-close observation was inconclusive: visible Reader and panel closure were not verified, the automation returned stale/null observations, and the responsive host established no causal product failure. That extra observation does not erase the earlier successful `imports.open`. Long imported identifiers still cause horizontal overflow. These are package-3 results, not native verification of final-fix source8c7739b.
+
+Next: review the exact final-fix source delta, then let the controller coordinate a successor distribution and only the native acceptance actually exercised. The remaining text/EPUB citation-navigation limitation is explicit; excerpt and file-hash fixture verification does not prove native opening.
+
+All checkpoint blocks below are **historical records**, including their original present-tense instructions, failure descriptions and obsolete “next” actions. The current checkpoint above governs the handoff. The Portuguese “mojibake” observation below was a terminal-decoding mistake, already corrected by inspecting original UTF-8 bytes; it is not a current instruction to recode the catalog.
+
+## Historical — Task 12 review correction I1/M1 — 2026-09-07
 
 The current UI routes known machine codes through a shared localized diagnostic renderer in App, Conversation, ProviderSettings and ResearchFeedback (including Exports/ImportBackup). Original codes and causal error handling remain intact. `PROVIDER_HTTP_ERROR` gives endpoint/adapter/model troubleshooting without claiming that HTTP404 proves a missing model; actual transport/timeout codes also have guidance. The unused `MODEL_NOT_FOUND` entry was removed. One focused component regression covers actual provider and import failure surfaces in both locales, alongside existing locale parity/onboarding checks: 5 passed; existing typecheck passed. Saved outputs: `.local/task12/workflow-runs/task12-fix1-diagnostics-checks-4f47c6694bef4676a3745d090789feaf/logs/`. The initial two regression cases failed before the correction, showing raw PROVIDER_HTTP_ERROR alone.
 
@@ -10,7 +24,7 @@ Updated: 2026-09-07. Owner: current Codex task in C:/p/evidra-zotero. Branch: co
 
 The full v1 acceptance is not complete. Tasks 1–11 have passed their scoped source reviews. Task12 now provides UI/cache/export corrections, root check/package runners, a real Windows distribution with dependency notices, a16-check packaged-process smoke and the measured1,000-source/50,000-chunk CPU benchmark. Final independent review and corrected native Zotero flow remain pending. The supplied SPEC.md is preserved unchanged.
 
-## Task 12 delivery checkpoint — 2026-09-07
+## Historical — Task 12 delivery checkpoint — 2026-09-07
 
 The verified local package is `.local/task12/package-2/`, built from clean `a808abc4442e595012b24b1615292b0d62fe39dc`. Its source-input ZIP and before/after captures bind exact bytes; later smoke-harness/documentation changes are separate. The XPI SHA is `d7a373b1558aba546d1d6d861376083ae0c965325aab4ca238d43ae29c08eb4e`; the Windows engine ZIP SHA is `f26d4f07227b1134d47afaebd7a00b536c6c6fee74299268fc092fa322b8e557`. See `SHA256SUMS.txt`, `release-manifest.json` and [installation](INSTALL_WINDOWS.md).
 
@@ -20,7 +34,7 @@ Native Task11 exposed a retained-approved-cell CSV defect and rejection of an ot
 
 Next action: independently review the task-owned source and package input binding, then stage those exact reviewed artifacts in the authorized synthetic Zotero profile and perform the remaining native regressions. Do not infer native or clean-machine success from the packaged-process fixture smoke. [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md) retains all36 rows and explicit gaps.
 
-## Current checkpoint — 2026-09-07
+## Historical — Current checkpoint — 2026-09-07
 
 - Task 6 source `9bd75f4` has bounded native conversation acceptance: a real local answer returned the expected 87.5% with an original citation; restart reopened the same result and its PDF evidence; a separate cancellation retained unknown usage. Receipt: `.local/native-smoke/task6-native-controller-summary.json`.
 - Task 7 source `eed17a6` has native manual matrix and restart evidence: 27 and 18 observations passed, including preserved values, contexts, history and original evidence. Receipt: `.local/native-smoke/task7-native-controller-summary.json`.
@@ -35,7 +49,7 @@ Next: finish scoped export/backup/restore, then distribution, measured benchmark
 
 The sections below preserve earlier milestone history. Their old “pending” statements are historical; the current checkpoint above takes precedence.
 
-## Environment and authorizations
+## Historical — Environment and authorizations
 
 - User authorized implementation, local dependency installation, and updating the existing Zotero application; closed Zotero before installer execution.
 - Zotero updated 9.0.6 -> 10.0.1 with official digitally signed installer; silent install returned 0; executable, registry and the personal helper's start/status verified 10.0.1 and local API/Connector HTTP 200. No personal-library content was selected or changed by the agent. The application owns its normal version upgrade.
@@ -45,7 +59,7 @@ The sections below preserve earlier milestone history. Their old “pending” s
 - Initial npm resolution failed ERESOLVE because openapi-typescript requires TypeScript ^5.x. Pinning verified TypeScript 5.9.3 resolved it; no force/legacy-peer override. Original npm diagnostic logs remain in the user's npm cache with timestamp 2026-09-05T20_32_57_449Z.
 - winget lookup failed to update its source / find the initial queried package. Update used the independently verified official Zotero download, not winget. PowerShell utility/security modules were absent from autoload search; explicitly importing the installed Security module enabled signature validation. Hashing used Python hashlib.
 
-## Current files and verification
+## Historical — Current files and verification
 
 Task 1 commit `2759afbae9638e742bf96aa2174e26b2e3efbca8` adds the authenticated loopback engine, heartbeat, private one-use Windows handshake, versioned SQLite storage and persistent/idempotent notebooks. Nine permanent test functions collect 21 cases; all passed. Ruff and strict mypy passed on 16 source files. The upstream Starlette/AnyIO deprecation warning remains visible and documented.
 
@@ -65,7 +79,7 @@ Official target-source inspection found that unknown custom tab types can break 
 
 The user subsequently authorized installing a local model service for validation. Portable Ollama 0.33.3 and the public qwen3:4b / qwen3-embedding:0.6b models are installed under `.local/ollama`. The owned loopback server passed a synthetic live JSON-streaming/embedding smoke, both models fully on the RTX 5060 Ti GPU. This verifies the external local test environment; Evidra adapters and semantic retrieval are still later work. Exact models, digests, settings and receipts: LOCAL_MODEL_TEST_ENVIRONMENT.md. No paid API, personal-library content or model weights entered the release payload.
 
-## Next step
+## Historical — Next step
 
 Current boundary at12:25Z: Task5 source through `12b6aa71c2c8313c22ad5d38dbf6e12cdef98993` passed scoped review after correcting I1–I4 and N1. The final increment blocks cancellation during HTTP cleanup from delivering a final answer while retaining confirmed usage. The preceding134-case covering run and this increment's focused RED/GREEN plus static checks are recorded in TEST_REPORT.md; no unchanged suite was repeated. A live synthetic run on the exact source archive returned the expected JSON and finite normalized3x1024 embeddings, with both models on GPU. Receipt SHA256 `0cda3122c32a6295a6f3626acde810c0d4ce0733a3c8fa470e190408f64446ff`. Task6 now consumes these services for semantic retrieval, conversations, provider settings and native streaming. LM Studio/paid calls, actual Windows keyring, offline network isolation and native conversation acceptance remain unverified.
 
@@ -85,6 +99,6 @@ The additional native collection/filter check passed17observations on the same r
 
 Complete parser, providers, matrix/jobs/research, MCP, exports and distribution as recorded in the plan. NATIVE_VALIDATION_PLAN.md pins exact tested artifacts and isolated paths. The user explicitly authorized its isolated launch/install/preferences/API/DOM exception on2026-09-05. The personal profile remains outside native testing.
 
-## Public project repository
+## Historical — Public project repository
 
 The user requested `Evidra-zotero` on GitHub and corrected its visibility to public. The public repository https://github.com/Marcux777/Evidra-zotero now contains reviewed production24bc78c and controller evidence documentation at `9efa10c6fe0b78ffb03c79ea56203c0f2fa19dc7` on `main`; remote readback matched at03:04:35Z. Dirty Task4 files remained outside the pinned publication. The same repository hosts the separately authorized empty update feed, verified200/exact77bytes/SHA256 `901686d6fab93aba6f5b115b5002f7fa630af72c09a2d59402b15549c14bd96a`. No release binary or ignored local cache/database was published. Receipts: `.local/publication/first-publication.json` and `.local/publication/reviewed-source-20260906T030435Z.json`; scope: UPDATE_FEED_PROPOSAL.md.
