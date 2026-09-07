@@ -13977,6 +13977,2200 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/previews": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Preview",
+        "operationId": "preview_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_previews_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportOptions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Create",
+        "operationId": "create_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportArtifact"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/{identity}/validate": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Validate",
+        "operationId": "validate_v1_notebooks__notebook_id__snapshots__snapshot_id__exports__identity__validate_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/{identity}/data": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Data",
+        "operationId": "data_v1_notebooks__notebook_id__snapshots__snapshot_id__exports__identity__data_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 134217728,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportData"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/transfers/{identity}/discard": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Discard",
+        "operationId": "discard_v1_notebooks__notebook_id__snapshots__snapshot_id__transfers__identity__discard_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/uploads": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Upload",
+        "operationId": "upload_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_uploads_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/uploads/{identity}": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Part",
+        "operationId": "part_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_uploads__identity__post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadPart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadReceipt"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/uploads/{identity}/inspect": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Inspect",
+        "operationId": "inspect_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_uploads__identity__inspect_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Restore",
+        "operationId": "restore_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportCommit"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportedNotebook"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Imports",
+        "operationId": "imports_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/uploads/{identity}/sources": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Original Sources",
+        "operationId": "original_sources_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_uploads__identity__sources_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 20,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSourcePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/uploads/{identity}/mappings": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Mapping",
+        "operationId": "mapping_v1_notebooks__notebook_id__snapshots__snapshot_id__imports_uploads__identity__mappings_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportMappingPart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportMappingState"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/records": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Records",
+        "operationId": "records_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__records_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000000,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportedRecordPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/status": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Visibility",
+        "operationId": "visibility_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__status_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportVisibility"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/reference": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Reference",
+        "operationId": "reference_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__reference_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportReference"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportedRecordDetail"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/evidence/{evidence_id}": {
+      "get": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Evidence",
+        "operationId": "evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence__evidence_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "identity",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Identity"
+            }
+          },
+          {
+            "name": "evidence_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Evidence Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Evidence"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health",
@@ -14436,6 +16630,104 @@
           "total"
         ],
         "title": "ArtifactPage"
+      },
+      "ArtifactRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "artifact",
+            "title": "Kind",
+            "default": "artifact"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ArtifactVersion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ArtifactRecord"
       },
       "ArtifactReview": {
         "additionalProperties": false,
@@ -15471,35 +17763,34 @@
         "title": "ConnectionReceipt"
       },
       "ConnectionRecord": {
-        "additionalProperties": false,
         "properties": {
           "id": {
-            "title": "Id",
-            "type": "string"
+            "type": "string",
+            "title": "Id"
           },
           "label": {
-            "title": "Label",
-            "type": "string"
+            "type": "string",
+            "title": "Label"
           },
           "notebook_id": {
-            "title": "Notebook Id",
-            "type": "string"
+            "type": "string",
+            "title": "Notebook Id"
           },
           "snapshot_id": {
-            "title": "Snapshot Id",
-            "type": "string"
+            "type": "string",
+            "title": "Snapshot Id"
           },
           "allow_proposals": {
-            "title": "Allow Proposals",
-            "type": "boolean"
+            "type": "boolean",
+            "title": "Allow Proposals"
           },
           "created_at": {
-            "title": "Created At",
-            "type": "string"
+            "type": "string",
+            "title": "Created At"
           },
           "expires_at": {
-            "title": "Expires At",
-            "type": "string"
+            "type": "string",
+            "title": "Expires At"
           },
           "revoked_at": {
             "anyOf": [
@@ -15524,16 +17815,18 @@
             "title": "Last Used At"
           },
           "state": {
+            "type": "string",
             "enum": [
               "ACTIVE",
               "EXPIRED",
               "REVOKED",
               "SESSION_CLOSED"
             ],
-            "title": "State",
-            "type": "string"
+            "title": "State"
           }
         },
+        "additionalProperties": false,
+        "type": "object",
         "required": [
           "id",
           "label",
@@ -15546,8 +17839,7 @@
           "last_used_at",
           "state"
         ],
-        "title": "ConnectionRecord",
-        "type": "object"
+        "title": "ConnectionRecord"
       },
       "Consent": {
         "properties": {
@@ -15680,6 +17972,43 @@
           "kind"
         ],
         "title": "ContentIdentity"
+      },
+      "ContentRemap": {
+        "additionalProperties": false,
+        "properties": {
+          "original_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Original Key",
+            "type": "string"
+          },
+          "target_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Target Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original_key",
+          "target_key",
+          "kind"
+        ],
+        "title": "ContentRemap",
+        "type": "object"
       },
       "ContextEvidence": {
         "properties": {
@@ -15949,6 +18278,104 @@
         ],
         "title": "ConversationRecord"
       },
+      "ConversationRunRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "conversation_run",
+            "title": "Kind",
+            "default": "conversation_run"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RunRecord"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ConversationRunRecord"
+      },
       "Criterion": {
         "additionalProperties": false,
         "properties": {
@@ -16022,6 +18449,104 @@
           "total"
         ],
         "title": "DecisionPage"
+      },
+      "DecisionRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "decision",
+            "title": "Kind",
+            "default": "decision"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CellDecision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "DecisionRecord"
       },
       "DecisionWrite": {
         "additionalProperties": false,
@@ -16326,6 +18851,104 @@
         ],
         "title": "DocumentTargetRequest"
       },
+      "DocumentVersionRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "document_version",
+            "title": "Kind",
+            "default": "document_version"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PortableDocumentVersion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "DocumentVersionRecord"
+      },
       "EmptyArgs": {
         "properties": {},
         "additionalProperties": false,
@@ -16550,6 +19173,104 @@
         ],
         "title": "EvidenceFileCheck"
       },
+      "EvidenceRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "evidence",
+            "title": "Kind",
+            "default": "evidence"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Evidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "EvidenceRecord"
+      },
       "ExperimentalResult": {
         "additionalProperties": false,
         "properties": {
@@ -16640,6 +19361,228 @@
         ],
         "title": "ExperimentalResult",
         "type": "object"
+      },
+      "ExportArtifact": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "media_type": {
+            "type": "string",
+            "title": "Media Type"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "media_type",
+          "bytes",
+          "sha256"
+        ],
+        "title": "ExportArtifact"
+      },
+      "ExportCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "preview_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Preview Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "preview_id"
+        ],
+        "title": "ExportCreate",
+        "type": "object"
+      },
+      "ExportData": {
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "data_base64": {
+            "type": "string",
+            "title": "Data Base64"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "offset",
+          "total",
+          "data_base64"
+        ],
+        "title": "ExportData"
+      },
+      "ExportOptions": {
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "json",
+              "markdown",
+              "csv_studies",
+              "csv_results",
+              "backup",
+              "bibtex",
+              "ris",
+              "csl_json"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "excel": {
+            "default": false,
+            "title": "Excel",
+            "type": "boolean"
+          },
+          "include_pdfs": {
+            "default": false,
+            "title": "Include Pdfs",
+            "type": "boolean"
+          },
+          "source_ids": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Source Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "format"
+        ],
+        "title": "ExportOptions",
+        "type": "object"
+      },
+      "ExportPreview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Id"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "markdown",
+              "csv_studies",
+              "csv_results",
+              "backup",
+              "bibtex",
+              "ris",
+              "csl_json"
+            ],
+            "title": "Format"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes"
+          },
+          "pdf_bytes": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pdf Bytes"
+          },
+          "records": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Records"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "omitted_records": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Omitted Records"
+          },
+          "sensitivity": {
+            "type": "string",
+            "const": "EXCERPTS_AND_RESEARCH_MAY_BE_SENSITIVE",
+            "title": "Sensitivity",
+            "default": "EXCERPTS_AND_RESEARCH_MAY_BE_SENSITIVE"
+          },
+          "bibliography_scope": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "METADATA_ONLY_NO_ABSTRACT_NOTES_OR_ATTACHMENTS"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bibliography Scope"
+          },
+          "bibliography": {
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Bibliography"
+          },
+          "incomplete_sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 100,
+            "title": "Incomplete Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "format",
+          "bytes",
+          "pdf_bytes",
+          "records",
+          "counts",
+          "omitted_records"
+        ],
+        "title": "ExportPreview"
       },
       "ExternalExtraction": {
         "properties": {
@@ -16811,6 +19754,104 @@
           "total"
         ],
         "title": "ExternalNotePage"
+      },
+      "ExternalNoteRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "external_note",
+            "title": "Kind",
+            "default": "external_note"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExternalNote"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ExternalNoteRecord"
       },
       "ExternalNoteReview": {
         "additionalProperties": false,
@@ -17331,6 +20372,104 @@
         ],
         "title": "FormPage"
       },
+      "FormRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "form",
+            "title": "Kind",
+            "default": "form"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FormVersion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "FormRecord"
+      },
       "FormVersion": {
         "properties": {
           "id": {
@@ -17473,6 +20612,548 @@
           "total"
         ],
         "title": "IdentityPage"
+      },
+      "ImportCommit": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "preview_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "confirmed": {
+            "const": true,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "expected_mapping_revision": {
+            "minimum": 0,
+            "title": "Expected Mapping Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "preview_id",
+          "confirmed",
+          "expected_mapping_revision"
+        ],
+        "title": "ImportCommit",
+        "type": "object"
+      },
+      "ImportMappingPart": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "original": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "target": {
+            "$ref": "#/components/schemas/SourceIdentity"
+          },
+          "contents": {
+            "items": {
+              "$ref": "#/components/schemas/ContentRemap"
+            },
+            "maxItems": 50,
+            "title": "Contents",
+            "type": "array"
+          },
+          "offset": {
+            "maximum": 1000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "final": {
+            "title": "Final",
+            "type": "boolean"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "original",
+          "target",
+          "contents",
+          "offset",
+          "final",
+          "expected_revision"
+        ],
+        "title": "ImportMappingPart",
+        "type": "object"
+      },
+      "ImportMappingState": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "mapped_sources": {
+            "type": "integer",
+            "title": "Mapped Sources"
+          },
+          "total_sources": {
+            "type": "integer",
+            "title": "Total Sources"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "mapped_sources",
+          "total_sources"
+        ],
+        "title": "ImportMappingState"
+      },
+      "ImportPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedNotebook"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "ImportPage"
+      },
+      "ImportPreview": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "profile_instance_id": {
+            "type": "string",
+            "title": "Profile Instance Id"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "pdf_bytes": {
+            "type": "integer",
+            "title": "Pdf Bytes"
+          },
+          "source_count": {
+            "type": "integer",
+            "title": "Source Count"
+          },
+          "mapping_revision": {
+            "type": "integer",
+            "title": "Mapping Revision",
+            "default": 0
+          },
+          "authority": {
+            "type": "string",
+            "const": "IMPORTED_HISTORY_ONLY",
+            "title": "Authority",
+            "default": "IMPORTED_HISTORY_ONLY"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "profile_instance_id",
+          "records",
+          "pdf_bytes",
+          "source_count"
+        ],
+        "title": "ImportPreview"
+      },
+      "ImportReference": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "form",
+              "protocol",
+              "proposal",
+              "evidence",
+              "artifact"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "identity": {
+            "pattern": "^[a-f0-9]{32,64}$",
+            "title": "Identity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "identity"
+        ],
+        "title": "ImportReference",
+        "type": "object"
+      },
+      "ImportSourcePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "ImportSourcePage"
+      },
+      "ImportVisibility": {
+        "properties": {
+          "visible": {
+            "type": "boolean",
+            "title": "Visible"
+          },
+          "records": {
+            "type": "integer",
+            "title": "Records"
+          },
+          "omitted_records": {
+            "type": "integer",
+            "title": "Omitted Records"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "visible",
+          "records",
+          "omitted_records"
+        ],
+        "title": "ImportVisibility"
+      },
+      "ImportedNotebook": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "imported_at": {
+            "type": "string",
+            "title": "Imported At"
+          },
+          "record_count": {
+            "type": "integer",
+            "title": "Record Count"
+          },
+          "origin": {
+            "type": "string",
+            "const": "IMPORTED",
+            "title": "Origin",
+            "default": "IMPORTED"
+          },
+          "authority": {
+            "type": "string",
+            "const": "HISTORY_ONLY_NO_LOCAL_APPROVAL",
+            "title": "Authority",
+            "default": "HISTORY_ONLY_NO_LOCAL_APPROVAL"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "imported_at",
+          "record_count"
+        ],
+        "title": "ImportedNotebook"
+      },
+      "ImportedRecordDetail": {
+        "properties": {
+          "record": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SourceRecord"
+              },
+              {
+                "$ref": "#/components/schemas/SnapshotRecord"
+              },
+              {
+                "$ref": "#/components/schemas/DocumentVersionRecord"
+              },
+              {
+                "$ref": "#/components/schemas/PagePartRecord"
+              },
+              {
+                "$ref": "#/components/schemas/EvidenceRecord"
+              },
+              {
+                "$ref": "#/components/schemas/FormRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ProtocolRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ProposalRecord"
+              },
+              {
+                "$ref": "#/components/schemas/DecisionRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ScreeningRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ConversationRunRecord"
+              },
+              {
+                "$ref": "#/components/schemas/JobHistoryRecord"
+              },
+              {
+                "$ref": "#/components/schemas/UnitHistoryRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ResearchHistoryRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ResearchPreviewRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ArtifactRecord"
+              },
+              {
+                "$ref": "#/components/schemas/ExternalNoteRecord"
+              },
+              {
+                "$ref": "#/components/schemas/NotePreviewRecord"
+              },
+              {
+                "$ref": "#/components/schemas/OutboxHistoryRecord"
+              }
+            ],
+            "title": "Record",
+            "discriminator": {
+              "propertyName": "kind",
+              "mapping": {
+                "artifact": "#/components/schemas/ArtifactRecord",
+                "conversation_run": "#/components/schemas/ConversationRunRecord",
+                "decision": "#/components/schemas/DecisionRecord",
+                "document_version": "#/components/schemas/DocumentVersionRecord",
+                "evidence": "#/components/schemas/EvidenceRecord",
+                "external_note": "#/components/schemas/ExternalNoteRecord",
+                "form": "#/components/schemas/FormRecord",
+                "job": "#/components/schemas/JobHistoryRecord",
+                "note_preview": "#/components/schemas/NotePreviewRecord",
+                "outbox_history": "#/components/schemas/OutboxHistoryRecord",
+                "page_part": "#/components/schemas/PagePartRecord",
+                "proposal": "#/components/schemas/ProposalRecord",
+                "protocol": "#/components/schemas/ProtocolRecord",
+                "research_preview": "#/components/schemas/ResearchPreviewRecord",
+                "research_run": "#/components/schemas/ResearchHistoryRecord",
+                "screening": "#/components/schemas/ScreeningRecord",
+                "snapshot": "#/components/schemas/SnapshotRecord",
+                "source": "#/components/schemas/SourceRecord",
+                "unit": "#/components/schemas/UnitHistoryRecord"
+              }
+            }
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "record"
+        ],
+        "title": "ImportedRecordDetail"
+      },
+      "ImportedRecordPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SourceRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/SnapshotRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/DocumentVersionRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/PagePartRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/EvidenceRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/FormRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ProtocolRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ProposalRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ScreeningRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ConversationRunRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/JobHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/UnitHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ResearchHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ResearchPreviewRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ArtifactRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ExternalNoteRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/NotePreviewRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/OutboxHistoryRecord"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "kind",
+                "mapping": {
+                  "artifact": "#/components/schemas/ArtifactRecord",
+                  "conversation_run": "#/components/schemas/ConversationRunRecord",
+                  "decision": "#/components/schemas/DecisionRecord",
+                  "document_version": "#/components/schemas/DocumentVersionRecord",
+                  "evidence": "#/components/schemas/EvidenceRecord",
+                  "external_note": "#/components/schemas/ExternalNoteRecord",
+                  "form": "#/components/schemas/FormRecord",
+                  "job": "#/components/schemas/JobHistoryRecord",
+                  "note_preview": "#/components/schemas/NotePreviewRecord",
+                  "outbox_history": "#/components/schemas/OutboxHistoryRecord",
+                  "page_part": "#/components/schemas/PagePartRecord",
+                  "proposal": "#/components/schemas/ProposalRecord",
+                  "protocol": "#/components/schemas/ProtocolRecord",
+                  "research_preview": "#/components/schemas/ResearchPreviewRecord",
+                  "research_run": "#/components/schemas/ResearchHistoryRecord",
+                  "screening": "#/components/schemas/ScreeningRecord",
+                  "snapshot": "#/components/schemas/SnapshotRecord",
+                  "source": "#/components/schemas/SourceRecord",
+                  "unit": "#/components/schemas/UnitHistoryRecord"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "omitted_records": {
+            "type": "integer",
+            "title": "Omitted Records"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total",
+          "omitted_records"
+        ],
+        "title": "ImportedRecordPage"
       },
       "IngestRequest": {
         "properties": {
@@ -17625,6 +21306,104 @@
         ],
         "title": "JobControl",
         "type": "object"
+      },
+      "JobHistoryRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "job",
+            "title": "Kind",
+            "default": "job"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JobRecord"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "JobHistoryRecord"
       },
       "JobPage": {
         "properties": {
@@ -18330,6 +22109,104 @@
         ],
         "title": "NotePreview"
       },
+      "NotePreviewRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "note_preview",
+            "title": "Kind",
+            "default": "note_preview"
+          },
+          "data": {
+            "$ref": "#/components/schemas/NotePreview"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "NotePreviewRecord"
+      },
       "NotePreviewWrite": {
         "additionalProperties": false,
         "properties": {
@@ -18751,6 +22628,104 @@
         ],
         "title": "OutboxBegin"
       },
+      "OutboxHistoryRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "outbox_history",
+            "title": "Kind",
+            "default": "outbox_history"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ApprovedWriteOutbox"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "OutboxHistoryRecord"
+      },
       "OutboxPage": {
         "properties": {
           "items": {
@@ -18782,6 +22757,104 @@
           "total"
         ],
         "title": "OutboxPage"
+      },
+      "PagePartRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "page_part",
+            "title": "Kind",
+            "default": "page_part"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PortablePagePart"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "PagePartRecord"
       },
       "PagePreview": {
         "properties": {
@@ -18956,6 +23029,360 @@
         },
         "title": "ParserLimits",
         "type": "object"
+      },
+      "PortableDocumentVersion": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "content_key": {
+            "type": "string",
+            "title": "Content Key"
+          },
+          "content_version": {
+            "type": "string",
+            "title": "Content Version"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "abstract",
+              "human_note",
+              "human_annotation",
+              "ai_artifact",
+              "approved_data",
+              "text_attachment"
+            ],
+            "title": "Source Kind"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          },
+          "parser_version": {
+            "type": "string",
+            "title": "Parser Version"
+          },
+          "policy_version": {
+            "type": "string",
+            "title": "Policy Version"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "METADATA_ONLY",
+              "PARTIAL_TEXT",
+              "FULL_TEXT_PARSED",
+              "NEEDS_OCR",
+              "UNREADABLE",
+              "MISSING_FILE",
+              "STALE"
+            ],
+            "title": "Coverage"
+          },
+          "page_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Count"
+          },
+          "pages_processed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Pages Processed"
+          },
+          "bytes_processed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes Processed"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "document_id",
+          "source_id",
+          "content_key",
+          "content_version",
+          "source_kind",
+          "sha256",
+          "parser_version",
+          "policy_version",
+          "coverage",
+          "page_count",
+          "pages_processed",
+          "bytes_processed",
+          "created_at"
+        ],
+        "title": "PortableDocumentVersion"
+      },
+      "PortablePagePart": {
+        "properties": {
+          "document_version_id": {
+            "type": "string",
+            "title": "Document Version Id"
+          },
+          "page_index": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Page Index"
+          },
+          "page_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Label"
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Start"
+          },
+          "original_text": {
+            "type": "string",
+            "maxLength": 4000,
+            "title": "Original Text"
+          },
+          "final": {
+            "type": "boolean",
+            "title": "Final"
+          },
+          "quality": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "EMPTY",
+              "UNMAPPABLE",
+              "ERROR"
+            ],
+            "title": "Quality"
+          },
+          "diagnostic": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diagnostic"
+          },
+          "crop_box": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crop Box"
+          },
+          "media_box": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Box"
+          },
+          "bbox": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 4,
+                "minItems": 4
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bbox"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
+          },
+          "char_boxes": {
+            "items": {
+              "anyOf": [
+                {
+                  "prefixItems": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "number"
+                    }
+                  ],
+                  "type": "array",
+                  "maxItems": 4,
+                  "minItems": 4
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "maxItems": 4000,
+            "title": "Char Boxes"
+          },
+          "mapping_verified": {
+            "type": "boolean",
+            "title": "Mapping Verified"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_version_id",
+          "page_index",
+          "page_label",
+          "start",
+          "original_text",
+          "final",
+          "quality",
+          "diagnostic",
+          "crop_box",
+          "media_box",
+          "bbox",
+          "rotation",
+          "char_boxes",
+          "mapping_verified"
+        ],
+        "title": "PortablePagePart"
+      },
+      "PortableSnapshot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "member_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Member Ids"
+          },
+          "selection": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SelectionSpec"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "notebook_id",
+          "revision",
+          "created_at",
+          "member_ids",
+          "selection"
+        ],
+        "title": "PortableSnapshot"
       },
       "PreviewPage": {
         "properties": {
@@ -19394,6 +23821,104 @@
         ],
         "title": "ProposalPage"
       },
+      "ProposalRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "proposal",
+            "title": "Kind",
+            "default": "proposal"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExtractionProposal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ProposalRecord"
+      },
       "ProposalWrite": {
         "additionalProperties": false,
         "properties": {
@@ -19543,6 +24068,104 @@
           "total"
         ],
         "title": "ProtocolPage"
+      },
+      "ProtocolRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "protocol",
+            "title": "Kind",
+            "default": "protocol"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProtocolVersion"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ProtocolRecord"
       },
       "ProtocolVersion": {
         "properties": {
@@ -20091,6 +24714,104 @@
         ],
         "title": "ResearchCoverage"
       },
+      "ResearchHistoryRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "research_run",
+            "title": "Kind",
+            "default": "research_run"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchRun"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ResearchHistoryRecord"
+      },
       "ResearchInputs": {
         "properties": {
           "protocol": {
@@ -20302,6 +25023,104 @@
           "estimated_input_tokens"
         ],
         "title": "ResearchPreview"
+      },
+      "ResearchPreviewRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "research_preview",
+            "title": "Kind",
+            "default": "research_preview"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchPreview"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ResearchPreviewRecord"
       },
       "ResearchRun": {
         "properties": {
@@ -21161,6 +25980,104 @@
         ],
         "title": "ScreeningPage"
       },
+      "ScreeningRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "screening",
+            "title": "Kind",
+            "default": "screening"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScreeningDecision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "ScreeningRecord"
+      },
       "ScreeningRow": {
         "properties": {
           "source_id": {
@@ -21817,6 +26734,104 @@
         ],
         "title": "SnapshotPage"
       },
+      "SnapshotRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "snapshot",
+            "title": "Kind",
+            "default": "snapshot"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PortableSnapshot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "SnapshotRecord"
+      },
       "SnapshotSource": {
         "properties": {
           "source": {
@@ -22102,33 +27117,33 @@
         "title": "SourceContent"
       },
       "SourceIdentity": {
+        "additionalProperties": false,
         "properties": {
           "profile_instance_id": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Profile Instance Id"
+            "title": "Profile Instance Id",
+            "type": "string"
           },
           "library_id": {
-            "type": "integer",
-            "minimum": 1.0,
-            "title": "Library Id"
+            "minimum": 1,
+            "title": "Library Id",
+            "type": "integer"
           },
           "item_key": {
-            "type": "string",
             "maxLength": 200,
             "minLength": 1,
-            "title": "Item Key"
+            "title": "Item Key",
+            "type": "string"
           }
         },
-        "additionalProperties": false,
-        "type": "object",
         "required": [
           "profile_instance_id",
           "library_id",
           "item_key"
         ],
-        "title": "SourceIdentity"
+        "title": "SourceIdentity",
+        "type": "object"
       },
       "SourceInput": {
         "properties": {
@@ -22271,6 +27286,104 @@
           "stage_id"
         ],
         "title": "SourcePage"
+      },
+      "SourceRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "source",
+            "title": "Kind",
+            "default": "source"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Source"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "SourceRecord"
       },
       "SourceSync": {
         "properties": {
@@ -22527,6 +27640,104 @@
         ],
         "title": "TextStage"
       },
+      "UnitHistoryRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Id"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "LOCAL",
+              "IMPORTED"
+            ],
+            "title": "Origin",
+            "default": "LOCAL"
+          },
+          "origin_profile_id": {
+            "type": "string",
+            "title": "Origin Profile Id"
+          },
+          "origin_notebook_id": {
+            "type": "string",
+            "title": "Origin Notebook Id"
+          },
+          "snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Id"
+          },
+          "access": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccess"
+            },
+            "type": "array",
+            "title": "Access"
+          },
+          "import_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Imported At"
+          },
+          "original_record_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Record Id"
+          },
+          "kind": {
+            "type": "string",
+            "const": "unit",
+            "title": "Kind",
+            "default": "unit"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UnitRecord"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "origin_profile_id",
+          "origin_notebook_id",
+          "snapshot_id",
+          "access",
+          "data"
+        ],
+        "title": "UnitHistoryRecord"
+      },
       "UnitPage": {
         "properties": {
           "items": {
@@ -22666,6 +27877,76 @@
           "batches_total"
         ],
         "title": "UnitRecord"
+      },
+      "UploadCreate": {
+        "properties": {
+          "bytes": {
+            "type": "integer",
+            "maximum": 134217728.0,
+            "minimum": 1.0,
+            "title": "Bytes"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bytes",
+          "sha256"
+        ],
+        "title": "UploadCreate"
+      },
+      "UploadPart": {
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "maximum": 134217728.0,
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "data_base64": {
+            "type": "string",
+            "maxLength": 32000,
+            "minLength": 1,
+            "title": "Data Base64"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "offset",
+          "data_base64"
+        ],
+        "title": "UploadPart"
+      },
+      "UploadReceipt": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Id"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "bytes": {
+            "type": "integer",
+            "title": "Bytes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "offset",
+          "bytes"
+        ],
+        "title": "UploadReceipt"
       },
       "UsagePage": {
         "properties": {
@@ -23445,6 +28726,277 @@
           "executable"
         ],
         "title": "McpSetup",
+        "type": "object"
+      },
+      "Omission": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "maxLength": 80,
+            "title": "Kind",
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 300,
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "CURRENT_ACCESS_UNAVAILABLE",
+              "DEPENDENCY_OMITTED"
+            ],
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "reason"
+        ],
+        "title": "Omission",
+        "type": "object"
+      },
+      "PortableNotebook": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "profile_instance_id": {
+            "title": "Profile Instance Id",
+            "type": "string"
+          },
+          "notebook_id": {
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "title": "Name",
+            "type": "string"
+          },
+          "exported_at": {
+            "title": "Exported At",
+            "type": "string"
+          },
+          "records": {
+            "items": {
+              "discriminator": {
+                "mapping": {
+                  "artifact": "#/components/schemas/ArtifactRecord",
+                  "conversation_run": "#/components/schemas/ConversationRunRecord",
+                  "decision": "#/components/schemas/DecisionRecord",
+                  "document_version": "#/components/schemas/DocumentVersionRecord",
+                  "evidence": "#/components/schemas/EvidenceRecord",
+                  "external_note": "#/components/schemas/ExternalNoteRecord",
+                  "form": "#/components/schemas/FormRecord",
+                  "job": "#/components/schemas/JobHistoryRecord",
+                  "note_preview": "#/components/schemas/NotePreviewRecord",
+                  "outbox_history": "#/components/schemas/OutboxHistoryRecord",
+                  "page_part": "#/components/schemas/PagePartRecord",
+                  "proposal": "#/components/schemas/ProposalRecord",
+                  "protocol": "#/components/schemas/ProtocolRecord",
+                  "research_preview": "#/components/schemas/ResearchPreviewRecord",
+                  "research_run": "#/components/schemas/ResearchHistoryRecord",
+                  "screening": "#/components/schemas/ScreeningRecord",
+                  "snapshot": "#/components/schemas/SnapshotRecord",
+                  "source": "#/components/schemas/SourceRecord",
+                  "unit": "#/components/schemas/UnitHistoryRecord"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SourceRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/SnapshotRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/DocumentVersionRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/PagePartRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/EvidenceRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/FormRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ProtocolRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ProposalRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/DecisionRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ScreeningRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ConversationRunRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/JobHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/UnitHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ResearchHistoryRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ResearchPreviewRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ArtifactRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/ExternalNoteRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/NotePreviewRecord"
+                },
+                {
+                  "$ref": "#/components/schemas/OutboxHistoryRecord"
+                }
+              ]
+            },
+            "maxItems": 100000,
+            "title": "Records",
+            "type": "array"
+          },
+          "omissions": {
+            "items": {
+              "$ref": "#/components/schemas/Omission"
+            },
+            "maxItems": 100000,
+            "title": "Omissions",
+            "type": "array"
+          },
+          "conventions": {
+            "const": "evidra-portable-v1",
+            "default": "evidra-portable-v1",
+            "title": "Conventions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_instance_id",
+          "notebook_id",
+          "snapshot_id",
+          "name",
+          "exported_at",
+          "records",
+          "omissions"
+        ],
+        "title": "PortableNotebook",
+        "type": "object"
+      },
+      "ManifestFile": {
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "pattern": "^(?:notebook\\.json|pdfs/[a-f0-9]{64}\\.pdf)$",
+            "title": "Path",
+            "type": "string"
+          },
+          "bytes": {
+            "maximum": 134217728,
+            "minimum": 0,
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "source_identity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SourceIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "content_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Key"
+          },
+          "content_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Content Version"
+          }
+        },
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "title": "ManifestFile",
+        "type": "object"
+      },
+      "BackupManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": 1,
+            "default": 1,
+            "title": "Schema Version",
+            "type": "integer"
+          },
+          "format": {
+            "const": "evidra-notebook-backup",
+            "default": "evidra-notebook-backup",
+            "title": "Format",
+            "type": "string"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestFile"
+            },
+            "maxItems": 2001,
+            "minItems": 1,
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "BackupManifest",
         "type": "object"
       },
       "DocumentEvidenceCommand": {
@@ -26070,6 +31622,513 @@
           },
           {
             "$ref": "#/components/schemas/McpReviewCommand"
+          }
+        ]
+      },
+      "ExportCreateCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "exports.create",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ExportCreate"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "ExportCreateCommand",
+        "type": "object"
+      },
+      "ExportPreviewCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "exports.preview",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ExportOptions"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "ExportPreviewCommand",
+        "type": "object"
+      },
+      "ExportSaveCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "exports.save",
+            "title": "Op",
+            "type": "string"
+          },
+          "artifact_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Artifact Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "artifact_id"
+        ],
+        "title": "ExportSaveCommand",
+        "type": "object"
+      },
+      "ImportChooseCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.choose",
+            "title": "Op",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op"
+        ],
+        "title": "ImportChooseCommand",
+        "type": "object"
+      },
+      "ImportCommitCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.commit",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ImportCommit"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "ImportCommitCommand",
+        "type": "object"
+      },
+      "ImportListCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.list",
+            "title": "Op",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "offset"
+        ],
+        "title": "ImportListCommand",
+        "type": "object"
+      },
+      "ImportMapCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.map",
+            "title": "Op",
+            "type": "string"
+          },
+          "preview_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ImportMappingPart"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "preview_id",
+          "request"
+        ],
+        "title": "ImportMapCommand",
+        "type": "object"
+      },
+      "ImportOpenCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.open",
+            "title": "Op",
+            "type": "string"
+          },
+          "import_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "evidence_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "import_id",
+          "evidence_id"
+        ],
+        "title": "ImportOpenCommand",
+        "type": "object"
+      },
+      "ImportRecordsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.records",
+            "title": "Op",
+            "type": "string"
+          },
+          "import_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "import_id",
+          "offset"
+        ],
+        "title": "ImportRecordsCommand",
+        "type": "object"
+      },
+      "ImportReferenceCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.reference",
+            "title": "Op",
+            "type": "string"
+          },
+          "import_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Import Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ImportReference"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "import_id",
+          "request"
+        ],
+        "title": "ImportReferenceCommand",
+        "type": "object"
+      },
+      "ImportSourcesCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.sources",
+            "title": "Op",
+            "type": "string"
+          },
+          "preview_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Preview Id",
+            "type": "string"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "preview_id",
+          "offset"
+        ],
+        "title": "ImportSourcesCommand",
+        "type": "object"
+      },
+      "ImportStatusCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "imports.status",
+            "title": "Op",
+            "type": "string"
+          },
+          "import_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Import Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "import_id"
+        ],
+        "title": "ImportStatusCommand",
+        "type": "object"
+      },
+      "TransferDiscardCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "exports.discard",
+            "title": "Op",
+            "type": "string"
+          },
+          "transfer_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Transfer Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "transfer_id"
+        ],
+        "title": "TransferDiscardCommand",
+        "type": "object"
+      },
+      "ExportCommand": {
+        "discriminator": {
+          "mapping": {
+            "exports.create": "#/components/schemas/ExportCreateCommand",
+            "exports.discard": "#/components/schemas/TransferDiscardCommand",
+            "exports.preview": "#/components/schemas/ExportPreviewCommand",
+            "exports.save": "#/components/schemas/ExportSaveCommand",
+            "imports.choose": "#/components/schemas/ImportChooseCommand",
+            "imports.commit": "#/components/schemas/ImportCommitCommand",
+            "imports.list": "#/components/schemas/ImportListCommand",
+            "imports.map": "#/components/schemas/ImportMapCommand",
+            "imports.open": "#/components/schemas/ImportOpenCommand",
+            "imports.records": "#/components/schemas/ImportRecordsCommand",
+            "imports.reference": "#/components/schemas/ImportReferenceCommand",
+            "imports.sources": "#/components/schemas/ImportSourcesCommand",
+            "imports.status": "#/components/schemas/ImportStatusCommand"
+          },
+          "propertyName": "op"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ExportPreviewCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ExportCreateCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ExportSaveCommand"
+          },
+          {
+            "$ref": "#/components/schemas/TransferDiscardCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportChooseCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportCommitCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportListCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportRecordsCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportOpenCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportSourcesCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportMapCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportStatusCommand"
+          },
+          {
+            "$ref": "#/components/schemas/ImportReferenceCommand"
           }
         ]
       },

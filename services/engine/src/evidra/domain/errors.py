@@ -35,6 +35,7 @@ def public_error(error: EvidraError) -> ErrorResponse:
 
 
 STATUS_CODES = {
+    "INVALID_BACKUP": 422,
     "QUEUE_LIMIT": 409,
     "CONTEXT_LIMIT": 413,
     "OUTPUT_LIMIT": 413,
