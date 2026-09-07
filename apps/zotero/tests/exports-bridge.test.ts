@@ -75,4 +75,3 @@ test('picker-owned real file transfers verify checksums, bounded chunks, cancell
         expect(JSON.stringify(requests)).not.toContain(directory);
     } finally { if (dirname(resolve(directory)) !== owned) throw new Error('Unsafe test cleanup'); await rm(directory, { recursive: true }); }
 });
-
