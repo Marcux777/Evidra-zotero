@@ -28,6 +28,21 @@ export type MatrixCommand = components['schemas']['MatrixCommand'];
 export type JobCommand = components['schemas']['JobCommand'];
 export type ResearchCommand = components['schemas']['ResearchCommand'];
 export type McpCommand = components['schemas']['McpCommand'];
+export type ExportCommand = components['schemas']['ExportCommand'];
+export type ExportOptions = components['schemas']['ExportOptions'];
+export type ExportPreview = components['schemas']['ExportPreview'];
+export type ExportArtifact = components['schemas']['ExportArtifact'];
+export type ExportData = components['schemas']['ExportData'];
+export type UploadReceipt = components['schemas']['UploadReceipt'];
+export type ImportPreview = components['schemas']['ImportPreview'];
+export type ImportSourcePage = components['schemas']['ImportSourcePage'];
+export type ImportMappingState = components['schemas']['ImportMappingState'];
+export type ImportedNotebook = components['schemas']['ImportedNotebook'];
+export type ImportedRecordPage = components['schemas']['ImportedRecordPage'];
+export type ImportedRecord = ImportedRecordPage['items'][number];
+export type ImportedRecordDetail = components['schemas']['ImportedRecordDetail'];
+export type ImportVisibility = components['schemas']['ImportVisibility'];
+export type ImportPage = components['schemas']['ImportPage'];
 export type McpSetup = components['schemas']['McpSetup'];
 export type ConnectionPage = components['schemas']['ConnectionPage'];
 export type ExternalNote = components['schemas']['ExternalNote'];
@@ -152,7 +167,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand | ResearchCommand | McpCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand | ResearchCommand | McpCommand | ExportCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

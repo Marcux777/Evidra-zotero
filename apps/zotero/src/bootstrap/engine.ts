@@ -11,11 +11,23 @@ function allowedEngineRoute(method: string, path: string): boolean {
     if (/[\u0000-\u0020\u007f\\%#]/.test(path)) return false;
     const eventRoute = /^\/v1\/notebooks\/[a-f0-9-]{36}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9-]{36})\/runs\/[a-f0-9]{32}\/events\?cursor=(0|[1-9][0-9]{0,6})$/.exec(path);
     if (eventRoute) return method === 'GET' && Number(eventRoute[1]) <= 1000000;
+    const exportData = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/exports\/[a-f0-9]{32}\/data\?offset=(0|[1-9][0-9]{0,8})$/.exec(path);
+    if (exportData) return method === 'GET' && Number(exportData[1]) <= 134217728;
     const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|10|20|50|100)$/.exec(path);
     if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
+    if (documentPath && (method === 'POST' && !page && (
+        ['/exports/bibliography-access', '/exports/previews', '/exports', '/imports/uploads', '/imports'].includes(documentPath)
+        || /^\/exports\/[a-f0-9]{32}\/validate$/.test(documentPath)
+        || /^\/transfers\/[a-f0-9]{32}\/discard$/.test(documentPath)
+        || /^\/imports\/[a-f0-9]{32}\/(reference|evidence)$/.test(documentPath)
+        || /^\/imports\/uploads\/[a-f0-9]{32}(?:\/(inspect|mappings))?$/.test(documentPath))
+        || method === 'GET' && (limit === '20' && Number(page?.[2]) <= 1000000 && (
+            documentPath === '/imports' || /^\/imports\/[a-f0-9]{32}\/records$/.test(documentPath)
+            || /^\/imports\/uploads\/[a-f0-9]{32}\/sources$/.test(documentPath))
+            || !page && /^\/imports\/[a-f0-9]{32}\/status$/.test(documentPath)))) return true;
     if (documentPath && (method === 'POST' && !page && (
         documentPath === '/mcp/connections' || /^\/mcp\/connections\/[a-f0-9]{32}\/revoke$/.test(documentPath)
         || /^\/mcp\/notes\/[a-f0-9]{32}\/review$/.test(documentPath))

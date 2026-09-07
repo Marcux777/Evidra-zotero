@@ -331,6 +331,34 @@ export class SourceBridge {
             return result;
         });
     }
+    /** Bibliography observes only server-authorized parents, with no child/text traversal. */
+    async withBibliography<T>(access: () => Promise<SourceAccess[]>, expected: Source[],
+        action: (check: () => void) => Promise<T>): Promise<T> {
+        return this.#run(async epoch => {
+            const authorized = await access(); this.#assertEpoch(epoch);
+            if (!authorized.length || authorized.length > 100) throw new Error('INVALID_BIBLIOGRAPHY_SELECTION');
+            const observed: { item: NativeSourceItem; identity: SourceIdentity; version: string }[] = [];
+            for (const entry of authorized) {
+                const identity = entry.identity;
+                if (identity.profile_instance_id !== this.#profile || entry.contents.length || libraryAvailability(this.#api, identity.library_id)) throw new Error('SOURCE_REVOKED');
+                const item = await this.#api.Items.getByLibraryAndKeyAsync(identity.library_id, identity.item_key); this.#assertEpoch(epoch);
+                if (!item || item.deleted || !item.isRegularItem() || item.parentID || item.key !== identity.item_key || item.libraryID !== identity.library_id) throw new Error('SOURCE_REVOKED');
+                const version = `${item.version}:${item.getField('dateModified')}`;
+                const prior = expected.find(source => identityKey(source.identity) === identityKey(identity));
+                if (expected.length && (!prior || prior.version !== version)) throw new Error('SCOPE_STALE');
+                this.#known.set(identityKey(identity), identity); this.#observed.set(item.id, identity);
+                observed.push({ item, identity, version });
+            }
+            const check = () => {
+                this.#assertEpoch(epoch);
+                for (const value of observed) if (libraryAvailability(this.#api, value.identity.library_id) || value.item.deleted
+                    || value.item.libraryID !== value.identity.library_id || value.item.key !== value.identity.item_key
+                    || `${value.item.version}:${value.item.getField('dateModified')}` !== value.version) throw new Error('SCOPE_STALE');
+            };
+            check(); const result = await action(check); check();
+            serializeUiResponse('0'.repeat(80), result, null); return result;
+        });
+    }
     /** A native annotation-import timestamp may be acknowledged only across the
      * existing immutable-file verification. Rotation/deletion use the same timestamp.
      * No other prior observation is refreshed, and no notification is delayed.

@@ -14,7 +14,7 @@ from pydantic import TypeAdapter
 
 from evidra.documents.registry import open_verified
 from evidra.domain.errors import EvidraError
-from evidra.domain.sources import SourceAccess, content_version
+from evidra.domain.sources import ContentIdentity, Source, SourceAccess, content_version
 from evidra.evidence.service import EvidenceService
 from evidra.exports.backup import digest, make_backup, read_backup
 from evidra.exports.csv import render_csv
@@ -31,6 +31,8 @@ from evidra.exports.models import (
     ImportedNotebook,
     ImportedRecordDetail,
     ImportedRecordPage,
+    ImportEvent,
+    ImportEvidenceReference,
     ImportMappingPart,
     ImportMappingState,
     ImportPage,
@@ -41,6 +43,7 @@ from evidra.exports.models import (
     ManifestFile,
     Omission,
     PortableNotebook,
+    SourceRecord,
     SourceRemap,
     UploadCreate,
     UploadPart,
@@ -122,6 +125,8 @@ class ExportService:
         for record in prepared.notebook.records:
             if record.origin != "LOCAL" or record.kind != "document_version":
                 continue
+            if record.snapshot_id is None:
+                raise EvidraError("INVALID_REQUEST", "Document version has no original snapshot.")
             historical = self.scopes.resolve(
                 prepared.context.principal, prepared.context.notebook_id, record.snapshot_id
             )
@@ -129,47 +134,92 @@ class ExportService:
                 self.scopes._assert(conn, prepared.context, "read")
                 self.evidence.registry.require(conn, historical, record.data.document_id)
         # Revalidate imported dependencies before replaying cached bytes as well.
+        included_imports = {
+            r.import_id for r in prepared.notebook.records if r.origin == "IMPORTED"
+        }
+        if not included_imports:
+            return
         with self.scopes.guarded(prepared.context) as conn:
             for row in conn.execute(
-                "SELECT access FROM imported_records WHERE import_id IN (SELECT id "
+                "SELECT import_id,access FROM imported_records WHERE import_id IN (SELECT id "
                 "FROM imported_notebooks WHERE notebook_id=? AND snapshot_id=?)",
                 (prepared.context.notebook_id, prepared.context.snapshot_id),
             ):
-                if not self._allowed(conn, prepared.context, ACCESS.validate_json(row[0])):
-                    if any(r.origin == "IMPORTED" for r in prepared.notebook.records):
-                        raise EvidraError(
-                            "SCOPE_STALE", "Imported history access changed after preview."
-                        )
+                if row["import_id"] in included_imports and not self._allowed(
+                    conn, prepared.context, ACCESS.validate_json(row["access"])
+                ):
+                    raise EvidraError(
+                        "SCOPE_STALE", "Imported history access changed after preview."
+                    )
+
+    def bibliography_access(
+        self, context: ScopeContext, options: ExportOptions
+    ) -> list[SourceAccess]:
+        if options.format not in BIBLIOGRAPHY:
+            raise EvidraError("INVALID_REQUEST", "Bibliography selection is required.")
+        result = []
+        with self.scopes.guarded(context) as conn:
+            for identity in options.source_ids:
+                if identity not in context.source_ids:
+                    raise EvidraError(
+                        "SOURCE_REVOKED", "Bibliography selection is outside current access."
+                    )
+                row = conn.execute(
+                    "SELECT json_extract(payload,'$.identity') FROM snapshot_members "
+                    "WHERE snapshot_id=? AND source_id=?",
+                    (context.snapshot_id, identity),
+                ).fetchone()
+                result.append(SourceAccess(identity=json.loads(row[0]), contents=[]))
+        return result
 
     def preview(self, context: ScopeContext, options: ExportOptions) -> ExportPreview:
         self.scopes.authorize(context.principal, "manage")
-        notebook = collect(self.evidence, context)
-        imported, omitted = self._history(context)
-        notebook = notebook.model_copy(
-            update={
-                "records": notebook.records + imported,
-                "omissions": notebook.omissions + omitted,
-            }
-        )
         pdfs: list[tuple[ManifestFile, str, str]] = []
         bibliography = []
         if options.format in BIBLIOGRAPHY:
-            # Bibliography always uses the actual selected current snapshot, independent
-            # of imported history. Imported IDs are never native lookup authority.
-            native_sources = collect(self.evidence, context)
-            sources = {
-                r.data.id: r.data
-                for r in native_sources.records
-                if r.kind == "source" and r.snapshot_id == context.snapshot_id
-            }
-            if any(identity not in sources for identity in options.source_ids):
-                raise EvidraError(
-                    "SOURCE_REVOKED", "A bibliography study is outside current access."
-                )
-            bibliography = [
-                sources[identity].model_copy(update={"contents": []})
-                for identity in options.source_ids
-            ]
+            # Select only the requested native metadata. No research tables, imported
+            # histories or extracted text are needed to export a bibliography.
+            with self.scopes.guarded(context) as conn:
+                name = self.scopes.notebook(conn, context.principal, context.notebook_id)["name"]
+                for identity in options.source_ids:
+                    if identity not in context.source_ids:
+                        raise EvidraError(
+                            "SOURCE_REVOKED", "A bibliography study is outside current access."
+                        )
+                    row = conn.execute(
+                        "SELECT json_remove(payload,'$.contents','$.tags') FROM snapshot_members "
+                        "WHERE snapshot_id=? AND source_id=?",
+                        (context.snapshot_id, identity),
+                    ).fetchone()
+                    bibliography.append(Source.model_validate_json(row[0]))
+            notebook = PortableNotebook(
+                profile_instance_id=context.principal.profile_instance_id,
+                notebook_id=context.notebook_id,
+                snapshot_id=context.snapshot_id,
+                name=name,
+                exported_at=now(),
+                omissions=[],
+                records=[
+                    SourceRecord(
+                        id=f"source:{source.id}",
+                        origin_profile_id=context.principal.profile_instance_id,
+                        origin_notebook_id=context.notebook_id,
+                        snapshot_id=context.snapshot_id,
+                        access=[SourceAccess(identity=source.identity, contents=[])],
+                        data=source,
+                    )
+                    for source in bibliography
+                ],
+            )
+        else:
+            notebook = collect(self.evidence, context)
+            imported, omitted = self._history(context)
+            notebook = notebook.model_copy(
+                update={
+                    "records": notebook.records + imported,
+                    "omissions": notebook.omissions + omitted,
+                }
+            )
         if options.include_pdfs:
             for record in notebook.records:
                 if (
@@ -178,6 +228,10 @@ class ExportService:
                     or record.data.source_kind != "pdf"
                 ):
                     continue
+                if record.snapshot_id is None:
+                    raise EvidraError(
+                        "INVALID_REQUEST", "Document version has no original snapshot."
+                    )
                 historical = self.scopes.resolve(
                     context.principal, context.notebook_id, record.snapshot_id
                 )
@@ -452,7 +506,7 @@ class ExportService:
                 )
             target_access = SourceAccess(
                 identity=body.target,
-                contents=[{"key": c.target_key, "kind": c.kind} for c in contents],
+                contents=[ContentIdentity(key=c.target_key, kind=c.kind) for c in contents],
             )
             with self.scopes.guarded(context) as conn:
                 if not self._allowed(conn, context, [target_access]):
@@ -513,6 +567,10 @@ class ExportService:
                 raise EvidraError(
                     "INVALID_BACKUP", "Inspect the complete backup before confirming remapping."
                 )
+            if any(len(record.import_chain) >= 32 for record in stage.notebook.records):
+                raise EvidraError(
+                    "INVALID_BACKUP", "Imported history exceeds 32 import generations."
+                )
             original = archive_access(stage.notebook)
             remaps = stage.mappings
             mappings = list(remaps.values())
@@ -544,7 +602,9 @@ class ExportService:
                 mapped.append(
                     SourceAccess(
                         identity=remap.target,
-                        contents=[{"key": c.target_key, "kind": c.kind} for c in remap.contents],
+                        contents=[
+                            ContentIdentity(key=c.target_key, kind=c.kind) for c in remap.contents
+                        ],
                     )
                 )
             request = json.dumps(
@@ -601,6 +661,18 @@ class ExportService:
                             "import_id": result.id,
                             "imported_at": result.imported_at,
                             "original_record_id": record.original_record_id or record.id,
+                            "origin_group_id": digest(
+                                json.dumps(
+                                    [
+                                        result.id,
+                                        record.origin_profile_id,
+                                        record.origin_notebook_id,
+                                        record.origin_group_id,
+                                    ]
+                                ).encode()
+                            ),
+                            "import_chain": record.import_chain
+                            + [ImportEvent(import_id=result.id, imported_at=result.imported_at)],
                         }
                     )
                     conn.execute(
@@ -739,8 +811,9 @@ class ExportService:
             self._import(conn, context, identity)
             rows = conn.execute(
                 "SELECT ordinal,access FROM imported_records WHERE import_id=? AND "
-                "kind=? AND json_extract(payload,'$.data.id')=? ORDER BY ordinal",
-                (identity, body.kind, body.identity),
+                "kind=? AND json_extract(payload,'$.data.id')=? "
+                "AND json_extract(payload,'$.origin_group_id')=? ORDER BY ordinal",
+                (identity, body.kind, body.identity, body.origin_group_id),
             ).fetchall()
             if not rows:
                 raise EvidraError(
@@ -765,10 +838,17 @@ class ExportService:
                 )
             return result
 
-    def mapped_evidence(self, context: ScopeContext, identity: str, evidence_id: str):
+    def mapped_evidence(self, context: ScopeContext, identity: str, body: ImportEvidenceReference):
         records, _ = self._history(context, identity)
         item = next(
-            (r.data for r in records if r.kind == "evidence" and r.data.id == evidence_id), None
+            (
+                r.data
+                for r in records
+                if r.kind == "evidence"
+                and r.data.id == body.evidence_id
+                and r.origin_group_id == body.origin_group_id
+            ),
+            None,
         )
         if item is None:
             raise EvidraError(

@@ -13977,6 +13977,141 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/bibliography-access": {
+      "post": {
+        "tags": [
+          "exports"
+        ],
+        "summary": "Bibliography Access",
+        "operationId": "bibliography_access_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_bibliography_access_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportOptions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceAccess"
+                  },
+                  "title": "Response Bibliography Access V1 Notebooks  Notebook Id  Snapshots  Snapshot Id  Exports Bibliography Access Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/previews": {
       "post": {
         "tags": [
@@ -16032,13 +16167,13 @@
         }
       }
     },
-    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/evidence/{evidence_id}": {
-      "get": {
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/evidence": {
+      "post": {
         "tags": [
           "exports"
         ],
         "summary": "Evidence",
-        "operationId": "evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence__evidence_id__get",
+        "operationId": "evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence_post",
         "parameters": [
           {
             "name": "notebook_id",
@@ -16066,17 +16201,18 @@
               "type": "string",
               "title": "Identity"
             }
-          },
-          {
-            "name": "evidence_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Evidence Id"
-            }
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportEvidenceReference"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -16706,6 +16842,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -18354,6 +18510,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "conversation_run",
@@ -18525,6 +18701,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -18927,6 +19123,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "document_version",
@@ -19248,6 +19464,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -19830,6 +20066,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -20448,6 +20704,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "form",
@@ -20647,6 +20923,47 @@
         "title": "ImportCommit",
         "type": "object"
       },
+      "ImportEvent": {
+        "properties": {
+          "import_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Import Id"
+          },
+          "imported_at": {
+            "type": "string",
+            "title": "Imported At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "import_id",
+          "imported_at"
+        ],
+        "title": "ImportEvent"
+      },
+      "ImportEvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "origin_group_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Origin Group Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "origin_group_id"
+        ],
+        "title": "ImportEvidenceReference",
+        "type": "object"
+      },
       "ImportMappingPart": {
         "additionalProperties": false,
         "properties": {
@@ -20823,11 +21140,17 @@
             "pattern": "^[a-f0-9]{32,64}$",
             "title": "Identity",
             "type": "string"
+          },
+          "origin_group_id": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Origin Group Id",
+            "type": "string"
           }
         },
         "required": [
           "kind",
-          "identity"
+          "identity",
+          "origin_group_id"
         ],
         "title": "ImportReference",
         "type": "object"
@@ -21382,6 +21705,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -22185,6 +22528,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "note_preview",
@@ -22704,6 +23067,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "outbox_history",
@@ -22833,6 +23216,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -23897,6 +24300,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "proposal",
@@ -24144,6 +24567,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -24790,6 +25233,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "research_run",
@@ -25099,6 +25562,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -26056,6 +26539,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "screening",
@@ -26810,6 +27313,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "snapshot",
@@ -27363,6 +27886,26 @@
             ],
             "title": "Original Record Id"
           },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
+          },
           "kind": {
             "type": "string",
             "const": "source",
@@ -27715,6 +28258,26 @@
               }
             ],
             "title": "Original Record Id"
+          },
+          "origin_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin Group Id"
+          },
+          "import_chain": {
+            "items": {
+              "$ref": "#/components/schemas/ImportEvent"
+            },
+            "type": "array",
+            "maxItems": 32,
+            "title": "Import Chain"
           },
           "kind": {
             "type": "string",
@@ -31872,10 +32435,8 @@
             "title": "Import Id",
             "type": "string"
           },
-          "evidence_id": {
-            "pattern": "^[a-f0-9]{64}$",
-            "title": "Evidence Id",
-            "type": "string"
+          "request": {
+            "$ref": "#/components/schemas/ImportEvidenceReference"
           }
         },
         "required": [
@@ -31883,7 +32444,7 @@
           "snapshot_id",
           "op",
           "import_id",
-          "evidence_id"
+          "request"
         ],
         "title": "ImportOpenCommand",
         "type": "object"

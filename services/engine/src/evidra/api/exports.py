@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, Request
 
 from evidra.api.documents import services
 from evidra.domain.documents import Evidence
+from evidra.domain.sources import SourceAccess
 from evidra.exports.models import (
     ExportArtifact,
     ExportCreate,
@@ -12,6 +13,7 @@ from evidra.exports.models import (
     ImportedNotebook,
     ImportedRecordDetail,
     ImportedRecordPage,
+    ImportEvidenceReference,
     ImportMappingPart,
     ImportMappingState,
     ImportPage,
@@ -25,6 +27,14 @@ from evidra.exports.models import (
 )
 
 router = APIRouter(prefix="/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}", tags=["exports"])
+
+
+@router.post("/exports/bibliography-access", response_model=list[SourceAccess])
+def bibliography_access(
+    notebook_id: str, snapshot_id: str, body: ExportOptions, request: Request
+) -> list[SourceAccess]:
+    engine, context = services(request, notebook_id, snapshot_id)
+    return engine.exports.bibliography_access(context, body)
 
 
 @router.post("/exports/previews", response_model=ExportPreview, status_code=201)
@@ -159,9 +169,13 @@ def reference(
     return engine.exports.reference(context, identity, body)
 
 
-@router.get("/imports/{identity}/evidence/{evidence_id}", response_model=Evidence)
+@router.post("/imports/{identity}/evidence", response_model=Evidence)
 def evidence(
-    notebook_id: str, snapshot_id: str, identity: str, evidence_id: str, request: Request
+    notebook_id: str,
+    snapshot_id: str,
+    identity: str,
+    body: ImportEvidenceReference,
+    request: Request,
 ) -> Evidence:
     engine, context = services(request, notebook_id, snapshot_id)
-    return engine.exports.mapped_evidence(context, identity, evidence_id)
+    return engine.exports.mapped_evidence(context, identity, body)

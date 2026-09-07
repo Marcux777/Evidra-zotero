@@ -289,6 +289,27 @@
       "title": "ImportCommitCommand",
       "type": "object"
     },
+    "ImportEvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "origin_group_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Origin Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "origin_group_id"
+      ],
+      "title": "ImportEvidenceReference",
+      "type": "object"
+    },
     "ImportListCommand": {
       "additionalProperties": false,
       "properties": {
@@ -434,10 +455,8 @@
           "title": "Import Id",
           "type": "string"
         },
-        "evidence_id": {
-          "pattern": "^[a-f0-9]{64}$",
-          "title": "Evidence Id",
-          "type": "string"
+        "request": {
+          "$ref": "#/$defs/ImportEvidenceReference"
         }
       },
       "required": [
@@ -445,7 +464,7 @@
         "snapshot_id",
         "op",
         "import_id",
-        "evidence_id"
+        "request"
       ],
       "title": "ImportOpenCommand",
       "type": "object"
@@ -508,11 +527,17 @@
           "pattern": "^[a-f0-9]{32,64}$",
           "title": "Identity",
           "type": "string"
+        },
+        "origin_group_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Origin Group Id",
+          "type": "string"
         }
       },
       "required": [
         "kind",
-        "identity"
+        "identity",
+        "origin_group_id"
       ],
       "title": "ImportReference",
       "type": "object"

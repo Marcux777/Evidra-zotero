@@ -98,6 +98,15 @@ test('controller requires current consent, validates receipt, hides credential, 
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
     const requiredRoutes: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
+        ['POST', `${snapshot}/exports/previews`], ['POST', `${snapshot}/exports/bibliography-access`], ['POST', `${snapshot}/exports`],
+        ['POST', `${snapshot}/exports/${'f'.repeat(32)}/validate`], ['GET', `${snapshot}/exports/${'f'.repeat(32)}/data?offset=24000`],
+        ['POST', `${snapshot}/transfers/${'f'.repeat(32)}/discard`],
+        ['POST', `${snapshot}/imports/uploads`], ['POST', `${snapshot}/imports/uploads/${'f'.repeat(32)}`],
+        ['POST', `${snapshot}/imports/uploads/${'f'.repeat(32)}/inspect`],
+        ['GET', `${snapshot}/imports/uploads/${'f'.repeat(32)}/sources?offset=0&limit=20`],
+        ['POST', `${snapshot}/imports/uploads/${'f'.repeat(32)}/mappings`], ['POST', `${snapshot}/imports`],
+        ['GET', `${snapshot}/imports?offset=0&limit=20`], ['GET', `${snapshot}/imports/${'f'.repeat(32)}/records?offset=0&limit=20`],
+        ['GET', `${snapshot}/imports/${'f'.repeat(32)}/status`], ['POST', `${snapshot}/imports/${'f'.repeat(32)}/reference`], ['POST', `${snapshot}/imports/${'f'.repeat(32)}/evidence`],
         ['POST', `${snapshot}/mcp/connections`], ['GET', `${snapshot}/mcp/connections?offset=0&limit=20`],
         ['POST', `${snapshot}/mcp/connections/${'f'.repeat(32)}/revoke`],
         ['GET', `${snapshot}/mcp/notes?offset=0&limit=1`], ['POST', `${snapshot}/mcp/notes/${'f'.repeat(32)}/review`],

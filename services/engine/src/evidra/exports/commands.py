@@ -7,10 +7,11 @@ from evidra.exports.models import (
     ExportCreate,
     ExportOptions,
     ImportCommit,
+    ImportEvidenceReference,
     ImportMappingPart,
     ImportReference,
 )
-from evidra.extraction.models import Id, SourceId
+from evidra.extraction.models import Id
 
 
 class ExportPreviewCommand(DocumentCommandScope):
@@ -68,7 +69,7 @@ class ImportRecordsCommand(DocumentCommandScope):
 class ImportOpenCommand(DocumentCommandScope):
     op: Literal["imports.open"]
     import_id: Id
-    evidence_id: SourceId
+    request: ImportEvidenceReference
 
 
 class ImportStatusCommand(DocumentCommandScope):

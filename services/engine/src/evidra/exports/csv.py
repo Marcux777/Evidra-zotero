@@ -37,12 +37,16 @@ def csv_cell(value: object, *, kind: Literal["text", "number", "boolean"] = "tex
 
 def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    domains = {(r.origin_profile_id, r.origin_notebook_id, r.origin) for r in notebook.records}
-    for profile, book, origin in sorted(domains):
+    domains = {
+        (r.origin_profile_id, r.origin_notebook_id, r.origin, r.origin_group_id or "")
+        for r in notebook.records
+    }
+    for profile, book, origin, group in sorted(domains):
         records = [
             r
             for r in notebook.records
-            if (r.origin_profile_id, r.origin_notebook_id, r.origin) == (profile, book, origin)
+            if (r.origin_profile_id, r.origin_notebook_id, r.origin, r.origin_group_id or "")
+            == (profile, book, origin, group)
         ]
         forms = [r.data for r in records if r.kind == "form"]
         if not forms:
@@ -91,6 +95,7 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
                     "doi": source.doi or "",
                     "year": source.year,
                     "origin": origin,
+                    "import_group": group,
                     "form_version": form.id,
                     "field": field.key,
                     "field_label": field.label,
@@ -144,7 +149,14 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
                     elif isinstance(result, NumericValue):
                         row.update(value=result.normalized, original=result.original)
                     elif isinstance(result, list):
-                        row.update(value="; ".join(result))
+                        parts = []
+                        for part in result:
+                            if not isinstance(part, str):
+                                raise EvidraError(
+                                    "INVALID_REQUEST", "CSV list cell requires text values."
+                                )
+                            parts.append(part)
+                        row.update(value="; ".join(parts))
                     elif result is not None:
                         row.update(value=result)
                     rows.append(row)
@@ -160,6 +172,7 @@ RESULT_COLUMNS = [
     "doi",
     "year",
     "origin",
+    "import_group",
     "form_version",
     "field",
     "field_label",
@@ -187,8 +200,8 @@ def render_csv(notebook: PortableNotebook, *, per_study: bool, excel: bool) -> b
     rows = result_rows(notebook)
     columns = RESULT_COLUMNS
     if per_study:
-        identity_columns = RESULT_COLUMNS[:9]
-        detail_columns = RESULT_COLUMNS[11:]
+        identity_columns = RESULT_COLUMNS[:10]
+        detail_columns = RESULT_COLUMNS[12:]
         combined: dict[tuple[object, ...], dict[str, Any]] = {}
         fields = sorted({r["field"] for r in rows})
         # Multiple experimental results remain separately named within a study row;

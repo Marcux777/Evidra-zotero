@@ -31,6 +31,8 @@ export interface NativeSubprocess {
     }): Promise<NativeProcess>;
 }
 export interface NativeIO {
+    read(path: string, options?: { offset?: number; maxBytes?: number }): Promise<Uint8Array<ArrayBuffer>>;
+    write(path: string, data: Uint8Array<ArrayBuffer>, options: { mode: 'create' | 'overwrite'; tmpPath?: string }): Promise<number>;
     readJSON(path: string): Promise<unknown>;
     writeJSON(path: string, value: unknown, options: {
         tmpPath: string;
@@ -62,13 +64,36 @@ export interface NativePicker {
     file: string;
     modeOpen: number;
     returnOK: number;
+    modeSave: number;
+    returnReplace: number;
+    defaultString: string;
+}
+export interface NativeCreator {
+    firstName?: string;
+    lastName: string;
+    fieldMode: number;
+    creatorTypeID: number;
+}
+export interface NativeExportTranslation {
+    getTranslators(): Promise<{ translatorID: string }[]>;
+    setItems(items: NativeSourceItem[]): void;
+    setTranslator(id: string): boolean;
+    setDisplayOptions(options: { exportNotes: false; exportFileData: false; exportTags: false; includeAnnotations: false; exportCharset: 'UTF-8' }): void;
+    setHandler(type: 'itemDone' | 'error', handler: (translation: NativeExportTranslation, value: unknown) => void): void;
+    translate(): Promise<unknown>;
+    string: string;
 }
 export interface NativeZotero {
-    Item: new (type: 'note') => NativeSourceItem & {
+    Item: new (type: string) => NativeSourceItem & {
+        setField(field: string | number, value: string | number): boolean;
+        setCreators(creators: NativeCreator[]): void;
         setNote(html: string): void;
         addTag(tag: string): void;
         saveTx(): Promise<number | boolean>;
     };
+    ItemFields: { getName(id: number): string };
+    URI: { getItemURI(item: NativeSourceItem): string };
+    Translate: { Export: new () => NativeExportTranslation };
     EditorInstanceUtilities: {
         _transformTextToHTML(text: string): string;
     };
@@ -161,7 +186,9 @@ export interface NativeSourceItem {
     isAnnotation(): boolean;
     isFileAttachment(): boolean;
     isPDFAttachment(): boolean;
-    getField(name: string, unformatted?: boolean): string | number;
+    getField(name: string | number, unformatted?: boolean): string | number;
+    getUsedFields(): number[];
+    getCreators(): NativeCreator[];
     getTags(): { tag: string }[];
     getAttachments(includeTrashed?: boolean): number[];
     getNotes(includeTrashed?: boolean): number[];

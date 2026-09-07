@@ -4,6 +4,7 @@ import { SourceBridge } from './sources';
 import { DocumentBridge } from './documents';
 import { NoteBridge } from './notes';
 import { McpCredentials } from './mcp';
+import { ExportBridge } from './exports';
 import type { McpSetup } from './types';
 import { providerCommand } from './conversations';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
@@ -19,6 +20,7 @@ export class ZoteroBridge {
     #sources: SourceBridge | null = null;
     #notes: NoteBridge | null = null;
     #mcpCredentials: McpCredentials | null = null;
+    #exports: ExportBridge | null = null;
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
@@ -67,6 +69,10 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
+        if (message.op.startsWith('exports.') || message.op.startsWith('imports.')) {
+            this.#exports ??= new ExportBridge(this.#g, sources(), engine, this.#profile);
+            return this.#exports.dispatch(message as import('./types').ExportCommand, window, this.locale);
+        }
         if (message.op.startsWith('mcp.')) {
             const command = message as import('./types').McpCommand;
             const token = command.op === 'mcp.create'
@@ -124,7 +130,7 @@ export class ZoteroBridge {
             }
             case 'engine.verify': return engine.verify();
             case 'engine.start':
-                this.#sources?.shutdown(); this.#sources = null; this.#notes = null;
+                this.#sources?.shutdown(); this.#sources = null; this.#notes = null; this.#exports = null;
                 this.#mcpCredentials?.clear();
                 await engine.start(message.fingerprint, message.consent);
                 this.#setupError = null;

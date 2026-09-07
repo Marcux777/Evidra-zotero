@@ -5,6 +5,7 @@ import { catalog } from './i18n';
 import { Documents } from './Documents';
 import { Conversation } from './Conversation';
 import { Matrix } from './Matrix';
+import { Exports } from './Exports';
 import { Jobs } from './Jobs';
 import { Research } from './Research';
 import { Mcp } from './Mcp';
@@ -189,6 +190,7 @@ export function Sources({ bridge, notebook, locale, onRevision, profilesEpoch = 
             <Jobs key={`jobs:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch}/>
             <Matrix key={`matrix:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/>
             <Research key={`research:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch}/>
-            <Mcp key={`mcp:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
+            <Mcp key={`mcp:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/>
+            <Exports key={`exports:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
     </section>;
 }

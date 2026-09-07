@@ -13,7 +13,13 @@ from collections.abc import Callable
 from pydantic import TypeAdapter
 
 from evidra.domain.documents import ParsedPage
-from evidra.domain.sources import Source, SourceAccess, SourceContent, content_version
+from evidra.domain.sources import (
+    ContentIdentity,
+    Source,
+    SourceAccess,
+    SourceContent,
+    content_version,
+)
 from evidra.evidence.service import EvidenceService
 from evidra.exports.models import (
     Omission,
@@ -23,7 +29,7 @@ from evidra.exports.models import (
 from evidra.extraction.forms import now
 from evidra.scope.service import ScopeContext
 
-RECORD = TypeAdapter(PortableRecord)
+RECORD: TypeAdapter[PortableRecord] = TypeAdapter(PortableRecord)
 
 
 def collect(evidence: EvidenceService, context: ScopeContext) -> PortableNotebook:
@@ -139,9 +145,12 @@ def collect(evidence: EvidenceService, context: ScopeContext) -> PortableNoteboo
                     contents.append(content)
                 source = Source.model_validate({**json.loads(header), "contents": contents})
                 sources_by_snapshot[snapshot, sid] = source
-                access = SourceAccess(identity=source.identity, contents=contents)
-                access_by_snapshot[snapshot].append(access)
-                add("source", sid + ":" + version, snapshot, [access], source)
+                source_access = SourceAccess(
+                    identity=source.identity,
+                    contents=[ContentIdentity(key=c.key, kind=c.kind) for c in contents],
+                )
+                access_by_snapshot[snapshot].append(source_access)
+                add("source", sid + ":" + version, snapshot, [source_access], source)
                 if not source_complete:
                     complete[snapshot] = False
             selection = None
@@ -375,4 +384,16 @@ def merge_access(items: list[SourceAccess]) -> list[SourceAccess]:
 
 
 def archive_access(notebook: PortableNotebook) -> list[SourceAccess]:
-    return merge_access([a for r in notebook.records for a in r.access])
+    # Access envelopes in an external archive are untrusted declarations. Source
+    # records themselves also require remapping, even if every envelope was erased.
+    return merge_access(
+        [a for r in notebook.records for a in r.access]
+        + [
+            SourceAccess(
+                identity=r.data.identity,
+                contents=[ContentIdentity(key=c.key, kind=c.kind) for c in r.data.contents],
+            )
+            for r in notebook.records
+            if r.kind == "source"
+        ]
+    )

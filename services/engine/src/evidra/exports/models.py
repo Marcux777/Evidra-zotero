@@ -68,6 +68,11 @@ class PortablePagePart(StrictModel):
         return self
 
 
+class ImportEvent(StrictModel):
+    import_id: Id
+    imported_at: str
+
+
 class PortableRecordBase(StrictModel):
     id: str = Field(min_length=1, max_length=300)
     origin: Literal["LOCAL", "IMPORTED"] = "LOCAL"
@@ -78,6 +83,16 @@ class PortableRecordBase(StrictModel):
     import_id: str | None = None
     imported_at: str | None = None
     original_record_id: str | None = None
+    origin_group_id: Hash | None = None
+    import_chain: list[ImportEvent] = Field(default_factory=list, max_length=32)
+
+    @model_validator(mode="after")
+    def imported_lineage(self) -> Self:
+        if self.origin == "IMPORTED" and (self.origin_group_id is None or not self.import_chain):
+            raise ValueError("Imported history requires its original group and import chain")
+        if self.origin == "LOCAL" and (self.origin_group_id is not None or self.import_chain):
+            raise ValueError("Local history cannot claim an import chain")
+        return self
 
 
 class SourceRecord(PortableRecordBase):
@@ -400,6 +415,12 @@ class ImportVisibility(StrictModel):
 class ImportReference(StrictModel):
     kind: Literal["form", "protocol", "proposal", "evidence", "artifact"]
     identity: str = Field(pattern=r"^[a-f0-9]{32,64}$")
+    origin_group_id: Hash
+
+
+class ImportEvidenceReference(StrictModel):
+    evidence_id: Hash
+    origin_group_id: Hash
 
 
 class ImportedRecordDetail(StrictModel):

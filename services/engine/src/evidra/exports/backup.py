@@ -7,9 +7,11 @@ import re
 import stat
 import zipfile
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
+from evidra.domain.documents import Evidence
 from evidra.domain.errors import EvidraError
+from evidra.domain.sources import SourceIdentity
 from evidra.exports.models import (
     MAX_ARCHIVE_BYTES,
     MAX_DATA_BYTES,
@@ -108,49 +110,53 @@ def read_backup(value: bytes) -> tuple[PortableNotebook, list[tuple[ManifestFile
                 raise ValueError("Manifest entry set differs")
             files = []
             notebook = None
-            for entry in manifest.files:
-                info = archive.getinfo(entry.path)
-                if info.file_size != entry.bytes:
+            for declared_file in manifest.files:
+                info = archive.getinfo(declared_file.path)
+                if info.file_size != declared_file.bytes:
                     raise ValueError("Manifest size differs")
                 # Reading is bounded by both validated central-directory sizes and a
                 # hard streaming limit; no filesystem paths are ever materialized.
                 output = bytearray()
                 with archive.open(info) as stream:
-                    while part := stream.read(min(1024 * 1024, entry.bytes - len(output) + 1)):
+                    while part := stream.read(
+                        min(1024 * 1024, declared_file.bytes - len(output) + 1)
+                    ):
                         output.extend(part)
-                        if len(output) > entry.bytes:
-                            raise ValueError("Expanded entry size differs")
+                        if len(output) > declared_file.bytes:
+                            raise ValueError("Expanded declared_file size differs")
                 content = bytes(output)
-                if len(content) != entry.bytes or digest(content) != entry.sha256:
+                if len(content) != declared_file.bytes or digest(content) != declared_file.sha256:
                     raise ValueError("Manifest checksum differs")
-                if entry.path == "notebook.json":
+                if declared_file.path == "notebook.json":
                     if (
-                        entry.source_identity is not None
-                        or entry.content_key is not None
-                        or entry.content_version is not None
+                        declared_file.source_identity is not None
+                        or declared_file.content_key is not None
+                        or declared_file.content_version is not None
                     ):
                         raise ValueError("Notebook manifest identity is invalid")
                     notebook = PortableNotebook.model_validate(strict_json(content))
                 else:
                     if (
                         not content.startswith(b"%PDF-")
-                        or entry.source_identity is None
-                        or not entry.content_key
-                        or not entry.content_version
+                        or declared_file.source_identity is None
+                        or not declared_file.content_key
+                        or not declared_file.content_version
                     ):
                         raise ValueError("PDF provenance or signature missing")
-                    files.append((entry, content))
+                    files.append((declared_file, content))
             if notebook is None:
                 raise ValueError("Notebook missing")
             validate_references(notebook)
-            for entry, _ in files:
+            for declared_file, _ in files:
+                if declared_file.source_identity is None:
+                    raise ValueError("PDF source identity missing")
                 if not any(
                     r.kind == "document_version"
-                    and r.data.sha256 == entry.sha256
-                    and r.data.bytes_processed == entry.bytes
-                    and r.data.source_id == entry.source_identity.source_id
-                    and r.data.content_key == entry.content_key
-                    and r.data.content_version == entry.content_version
+                    and r.data.sha256 == declared_file.sha256
+                    and r.data.bytes_processed == declared_file.bytes
+                    and r.data.source_id == declared_file.source_identity.source_id
+                    and r.data.content_key == declared_file.content_key
+                    and r.data.content_version == declared_file.content_version
                     for r in notebook.records
                 ):
                     raise ValueError("PDF does not match a portable document version")
@@ -176,7 +182,7 @@ def validate_references(notebook: PortableNotebook) -> None:
     groups: dict[tuple[str, str, str | None], list] = {}
     for record in notebook.records:
         groups.setdefault(
-            (record.origin_profile_id, record.origin_notebook_id, record.import_id), []
+            (record.origin_profile_id, record.origin_notebook_id, record.origin_group_id), []
         ).append(record)
     for (profile, book, _), records in groups.items():
         sources = {r.data.id: r.data for r in records if r.kind == "source"}
@@ -186,7 +192,50 @@ def validate_references(notebook: PortableNotebook) -> None:
         documents = {r.data.id: r.data for r in records if r.kind == "document_version"}
         evidences = {r.data.id: r.data for r in records if r.kind == "evidence"}
         pages: dict[tuple[str, int], list] = {}
+
+        def nested(
+            value: object, sources=sources, evidences=evidences, forms=forms, protocols=protocols
+        ) -> None:
+            # Embedded external-note/research-input evidence is just as original as
+            # top-level evidence. A syntactically valid nested quotation is not proof.
+            if isinstance(value, Evidence):
+                original = evidences.get(value.id)
+                if original is None or value.model_dump(
+                    exclude={"historical"}
+                ) != original.model_dump(exclude={"historical"}):
+                    raise ValueError("Nested original evidence differs from its immutable record")
+            elif isinstance(value, SourceIdentity):
+                if value.source_id not in sources or sources[value.source_id].identity != value:
+                    raise ValueError("Nested compound source has no portable source record")
+            if isinstance(value, BaseModel):
+                for name in type(value).model_fields:
+                    child = getattr(value, name)
+                    if name == "source_id" and child is not None and child not in sources:
+                        raise ValueError("Nested source reference is absent")
+                    if name == "evidence_ids" and any(
+                        identity not in evidences for identity in child
+                    ):
+                        raise ValueError("Nested evidence reference is absent")
+                    if (
+                        name
+                        in {
+                            "form_version_id",
+                            "field_origin_form_version_id",
+                            "decision_form_version_id",
+                        }
+                        and child is not None
+                        and child not in forms
+                    ):
+                        raise ValueError("Nested immutable form reference is absent")
+                    if name == "protocol_version_id" and child not in protocols:
+                        raise ValueError("Nested immutable protocol reference is absent")
+                    nested(child)
+            elif isinstance(value, (list, tuple)):
+                for child in value:
+                    nested(child)
+
         for record in records:
+            nested(record.data)
             for access in record.access:
                 if (
                     access.identity.source_id not in sources
@@ -239,13 +288,13 @@ def validate_references(notebook: PortableNotebook) -> None:
         original = {}
         for key, parts in pages.items():
             parts.sort(key=lambda p: p.start)
-            offset, text = 0, []
+            offset, text_parts = 0, []
             for index, part in enumerate(parts):
                 if part.start != offset or part.final != (index == len(parts) - 1):
                     raise ValueError("Original page parts are not contiguous")
-                text.append(part.original_text)
+                text_parts.append(part.original_text)
                 offset += len(part.original_text)
-            original[key] = "".join(text)
+            original[key] = "".join(text_parts)
         for item in evidences.values():
             version = documents.get(item.document_version_id)
             text = original.get((item.document_version_id, item.page_index or 0))

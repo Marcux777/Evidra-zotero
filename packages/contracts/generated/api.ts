@@ -1610,6 +1610,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/bibliography-access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bibliography Access */
+        post: operations["bibliography_access_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_bibliography_access_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/exports/previews": {
         parameters: {
             query?: never;
@@ -1849,17 +1866,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/evidence/{evidence_id}": {
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/imports/{identity}/evidence": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Evidence */
-        get: operations["evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence__evidence_id__get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Evidence */
+        post: operations["evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2004,6 +2021,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2578,6 +2599,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2637,6 +2662,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2760,6 +2789,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -2865,6 +2898,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3060,6 +3097,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3234,6 +3275,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3311,6 +3356,20 @@ export interface components {
             /** Expected Mapping Revision */
             expected_mapping_revision: number;
         };
+        /** ImportEvent */
+        ImportEvent: {
+            /** Import Id */
+            import_id: string;
+            /** Imported At */
+            imported_at: string;
+        };
+        /** ImportEvidenceReference */
+        ImportEvidenceReference: {
+            /** Evidence Id */
+            evidence_id: string;
+            /** Origin Group Id */
+            origin_group_id: string;
+        };
         /** ImportMappingPart */
         ImportMappingPart: {
             /** Idempotency Key */
@@ -3381,6 +3440,8 @@ export interface components {
             kind: "form" | "protocol" | "proposal" | "evidence" | "artifact";
             /** Identity */
             identity: string;
+            /** Origin Group Id */
+            origin_group_id: string;
         };
         /** ImportSourcePage */
         ImportSourcePage: {
@@ -3522,6 +3583,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -3806,6 +3871,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4006,6 +4075,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4048,6 +4121,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4421,6 +4498,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4490,6 +4571,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4729,6 +4814,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -4845,6 +4934,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -5181,6 +5274,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -5470,6 +5567,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -5651,6 +5752,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -5758,6 +5863,10 @@ export interface components {
             imported_at?: string | null;
             /** Original Record Id */
             original_record_id?: string | null;
+            /** Origin Group Id */
+            origin_group_id?: string | null;
+            /** Import Chain */
+            import_chain?: components["schemas"]["ImportEvent"][];
             /**
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
@@ -7247,8 +7356,7 @@ export interface components {
             op: "imports.open";
             /** Import Id */
             import_id: string;
-            /** Evidence Id */
-            evidence_id: string;
+            request: components["schemas"]["ImportEvidenceReference"];
         };
         /** ImportRecordsCommand */
         ImportRecordsCommand: {
@@ -17813,6 +17921,105 @@ export interface operations {
             };
         };
     };
+    bibliography_access_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_bibliography_access_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExportOptions"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceAccess"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     preview_v1_notebooks__notebook_id__snapshots__snapshot_id__exports_previews_post: {
         parameters: {
             query?: never;
@@ -19287,7 +19494,7 @@ export interface operations {
             };
         };
     };
-    evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence__evidence_id__get: {
+    evidence_v1_notebooks__notebook_id__snapshots__snapshot_id__imports__identity__evidence_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -19295,11 +19502,14 @@ export interface operations {
                 notebook_id: string;
                 snapshot_id: string;
                 identity: string;
-                evidence_id: string;
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportEvidenceReference"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
