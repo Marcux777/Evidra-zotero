@@ -265,11 +265,19 @@ def test_memory_secret_and_failed_keyring_do_not_enter_sqlite_or_backup(tmp_path
             def set_password(self, *args):
                 raise RuntimeError("sensitive-keyring-diagnostic")
 
-        secrets = SecretStore("synthetic-profile", backend=LockedKeyring())
+        secrets = SecretStore("synthetic-profile", services.database, backend=LockedKeyring())
         receipt = secrets.set("fixture-profile", "super-sensitive-key")
         assert receipt.storage == "MEMORY_ONLY" and receipt.code == "KEYRING_UNAVAILABLE"
         assert secrets.get("fixture-profile") == "super-sensitive-key"
         assert "super-sensitive-key" not in repr(receipt)
+        with services.database.transaction() as db:
+            assert (
+                db.execute(
+                    "SELECT receipt FROM provider_secrets WHERE owner=? AND profile_id=?",
+                    ("synthetic-profile", "fixture-profile"),
+                ).fetchone()[0]
+                == receipt.model_dump_json()
+            )
         services.database.backup(tmp_path / "clean-backup.sqlite3")
         assert b"super-sensitive-key" not in (tmp_path / "clean-backup.sqlite3").read_bytes()
         secrets.clear()
