@@ -111,7 +111,12 @@ export interface VerifiedPackage {
     fingerprint: string;
 }
 export async function verifyPackage(root: string, io: PackageIO): Promise<VerifiedPackage> {
-    const manifest = await io.readJson(io.join(root, 'engine-manifest.json'));
+    let manifest: unknown;
+    try { manifest = await io.readJson(io.join(root, 'engine-manifest.json')); }
+    catch (cause) {
+        if (cause instanceof SyntaxError) throw new Error('INVALID_ENGINE_MANIFEST', { cause });
+        throw cause;
+    }
     if (!validateManifest(manifest))
         throw new Error('INVALID_ENGINE_MANIFEST');
     const names = new Set<string>();

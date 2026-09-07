@@ -1,0 +1,17 @@
+{
+  "INVALID_ENGINE_MANIFEST": "The manifest is invalid or incompatible. Extract the Evidra Windows x64 package again and select engine-manifest.json.",
+  "ENGINE_NOT_CHOSEN": "Choose engine-manifest.json in the extracted engine folder.",
+  "ENGINE_NOT_RUNNING": "The engine is stopped. Verify its package and authorize startup.",
+  "MISSING_ENTRYPOINT": "The package does not contain evidra-engine.exe. Extract the complete ZIP and keep all files together.",
+  "PAYLOAD_HASH_MISMATCH": "A file differs from the manifest. Check SHA256SUMS.txt and extract the complete package again.",
+  "PAYLOAD_FILE_SET_MISMATCH": "Engine files are missing or extra files were added. Extract the package into a new folder.",
+  "PAYLOAD_CHANGED": "The package changed after verification. Verify the files and review the new fingerprint before authorizing it.",
+  "INVALID_CONNECTION_RECEIPT": "The engine returned an incompatible port, profile or protocol. Use the package corresponding to this plugin version.",
+  "PROTOCOL_MISMATCH": "The engine protocol is incompatible. Use both artifacts from the same Evidra distribution.",
+  "ACL_ERROR": "Private permissions could not be verified. Use a local folder belonging to your account and inspect the engine diagnostic.",
+  "UNSAFE_NATIVE_PATH": "The path contains a forbidden link or redirect. Extract the package into a regular local folder.",
+  "NATIVE_COMMAND_FAILED": "Local path or permission verification failed. Inspect the native diagnostic and use a local folder belonging to your account.",
+  "ENGINE_EXITED": "The engine exited during startup. Inspect the local diagnostic, permissions and package integrity.",
+  "HEARTBEAT_FAILED": "The engine connection expired or failed. Reopen the workspace and check its state before restarting.",
+  "MODEL_NOT_FOUND": "The configured model is unavailable in the selected service. Check its name and installed models; nothing will be downloaded automatically."
+}

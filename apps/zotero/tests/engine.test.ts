@@ -71,6 +71,8 @@ test('verifies every real payload file and rejects changed, extra and unsafe man
         manifest.files[1]!.path = 'Lorem ipsum.txt';
         await writeFile(join(dir, 'engine-manifest.json'), JSON.stringify(manifest));
         expect((await verifyPackage(dir, io)).manifest.files[1]!.path).toBe('Lorem ipsum.txt');
+        await writeFile(join(dir, 'engine-manifest.json'), '{broken');
+        await expect(verifyPackage(dir, io)).rejects.toMatchObject({ message: 'INVALID_ENGINE_MANIFEST', cause: expect.any(SyntaxError) });
     }
     finally {
         await rm(dir, { recursive: true, force: true });

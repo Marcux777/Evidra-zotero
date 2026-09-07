@@ -56,7 +56,7 @@ export function Mcp(props: ResearchScope) {
         });
     }
     if (!open) return <button type="button" onClick={() => { setOpen(true); load(); }}>{t.title}</button>;
-    return <section aria-label={t.title}><h2>{t.title}</h2><p>{t.help}</p><ResearchFeedback actions={actions} locale={locale}/>
+    return <section className="mcp" aria-label={t.title}><h2>{t.title}</h2><p>{t.help}</p><ResearchFeedback actions={actions} locale={locale}/>
         <fieldset disabled={actions.locked}><legend>{t.create}</legend>
             <label>{t.label}<input name="mcp_label" maxLength={100} value={label} onChange={e => setLabel(e.target.value)} onKeyDown={e => {
                 if (e.key !== 'Enter' || e.repeat || e.ctrlKey || e.altKey || e.shiftKey || e.metaKey || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;

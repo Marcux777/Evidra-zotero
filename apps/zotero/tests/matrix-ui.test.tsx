@@ -35,6 +35,8 @@ test('matrix review uses explicit actions, preserves uncertain decision keys and
     try {
         await act(async()=>root.render(<Matrix bridge={bridge} {...scope} locale="en-US"/>));
         await click('Open extraction matrix');
+        expect(host.querySelector('.matrix-cell-field')?.textContent).toBe('Problem');
+        expect(host.textContent).toContain('1–1 / 1');
         await click('Study 1 · Problem');
         expect(messages.filter(m=>m.op==='matrix.decide')).toHaveLength(0);
         await click('Review proposal');
@@ -144,12 +146,13 @@ test('windowed cells stay bounded and keyboard End reaches a previously unmounte
     const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
     let selected=-1;
     try{
-        await act(async()=>root.render(<WindowedList items={Array.from({length:50},(_,i)=>i)} label="Cells" rowKey={String} render={i=><button type="button" onClick={()=>{selected=i;}}>{i}</button>}/>));
+        await act(async()=>root.render(<WindowedList items={Array.from({length:50000},(_,i)=>i)} label="Cells" rowKey={String} render={i=><button type="button" onClick={()=>{selected=i;}}>{i}</button>}/>));
         expect(host.querySelectorAll('[role=listitem]').length).toBeLessThan(12);expect(host.textContent).not.toContain('49');
         await act(async()=>{host.querySelector('[role=list]')!.dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true}));});
         await act(async()=>new Promise<void>(resolve=>requestAnimationFrame(()=>resolve())));
-        expect(document.activeElement?.textContent).toBe('49');
-        await act(async()=>(document.activeElement as HTMLButtonElement).click());expect(selected).toBe(49);
+        expect(document.activeElement?.textContent).toBe('49999');
+        expect(document.activeElement?.closest('[role=listitem]')?.getAttribute('aria-posinset')).toBe('50000');
+        await act(async()=>(document.activeElement as HTMLButtonElement).click());expect(selected).toBe(49999);
         expect(host.querySelectorAll('[role=listitem]').length).toBeLessThan(12);
     }finally{await act(async()=>root.unmount());host.remove();}
 });
