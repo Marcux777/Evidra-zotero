@@ -45,7 +45,11 @@ function fixture() {
             setNote(value: string) { this.html = value; }
             addTag(tag: string) { this.tags.push({ tag }); }
             getNote() { return this.html; } getTags() { return this.tags; } isNote() { return true; }
-            async loadAllData() {}
+            async loadAllData() {
+                // Zotero 10 reloads the stored body without its storage-only wrapper.
+                const wrapper = '<div class="zotero-note znv1">';
+                if (this.html.startsWith(wrapper)) this.html = this.html.slice(wrapper.length, -6);
+            }
             async saveTx() {
                 if (!library.editable) throw new Error('NATIVE_LIBRARY_READ_ONLY');
                 this.id = 10 + ++saves; this.key = `NOTE000${saves}`; items.set(this.id, this);

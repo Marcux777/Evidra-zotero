@@ -66,7 +66,9 @@ export class NoteBridge {
         check();
         if (!note.isNote() || note.deleted || note.libraryID !== intent.destination.library_id
             || note.parentKey !== intent.destination.item_key || !/^[A-Z0-9]{8}$/.test(note.key)) throw new Error('OUTBOX_NOTE_CHANGED');
-        const html = note.getNote(), tags = note.getTags().map(tag => tag.tag);
+        // Zotero's note loader omits its storage wrapper from getNote(). Restore
+        // that exact representation before comparing the approved preview hash.
+        const html = `<div class="zotero-note znv1">${note.getNote()}</div>`, tags = note.getTags().map(tag => tag.tag);
         if (!html.includes('data-evidra-origin="ai"') || !html.includes(`data-evidra-outbox="${intent.uuid}"`)
             || !tags.includes('evidra:ai') || !tags.includes(`evidra:outbox:${intent.uuid}`)) throw new Error('OUTBOX_NOTE_CHANGED');
         const digest = Array.from(new Uint8Array(await this.crypto.subtle.digest('SHA-256', new TextEncoder().encode(html))),
