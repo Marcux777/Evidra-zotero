@@ -13,6 +13,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from evidra.domain.errors import STATUS_CODES, EvidraError, public_error
+from evidra.storage.cache import CacheLimits
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class RuntimeSettings:
     session_token: SecretStr = field(repr=False)
     port: int
     monotonic_clock: Callable[[], float] = field(default=time.monotonic, repr=False)
+    cache_limits: CacheLimits = field(default_factory=CacheLimits)
 
     def __post_init__(self) -> None:
         if not self.data_dir.is_absolute():

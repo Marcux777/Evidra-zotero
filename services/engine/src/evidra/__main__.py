@@ -29,6 +29,7 @@ from evidra.security.handshake import (
     write_connection_receipt,
 )
 from evidra.security.runtime import RuntimeSettings
+from evidra.storage.cache import load_cache_limits
 
 
 def startup_diagnostic(operation: str, error: BaseException) -> dict[str, Any]:
@@ -118,6 +119,7 @@ async def serve(handshake: Handshake) -> None:
             profile_instance_id=handshake.profile_instance_id,
             session_token=handshake.session_token,
             port=port,
+            cache_limits=load_cache_limits(handshake.data_dir),
         )
         app = create_app(settings)
         receipt_identity: tuple[int, int] | None = None

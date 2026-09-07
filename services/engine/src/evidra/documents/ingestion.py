@@ -24,6 +24,7 @@ from evidra.domain.documents import (
 )
 from evidra.domain.errors import EvidraError
 from evidra.scope.service import ScopeContext
+from evidra.storage.cache import prune_derived, remember_preview
 
 logger = logging.getLogger(__name__)
 TERMINAL = {"COMPLETE", "PAUSED", "CANCELLED", "FAILED"}
@@ -537,6 +538,8 @@ class IngestionService:
                             "UPDATE document_operations SET preview=? WHERE id=?",
                             (image.model_dump_json(), operation.id),
                         )
+                        remember_preview(connection, operation.id, image.model_dump_json())
+                        prune_derived(connection, self.scopes.session.settings.cache_limits)
             operation.state = "COMPLETE"
             operation.page_count = version["page_count"]
             operation.pages_processed = 1
@@ -565,9 +568,13 @@ class IngestionService:
                 current = self.registry.require(connection, context, operation.document_id)
                 if current["revision"] != document["revision"]:
                     raise EvidraError("DOCUMENT_STALE", "The registered attachment changed.")
-                return PagePreview.model_validate_json(
-                    connection.execute(
-                        "SELECT preview FROM document_operations WHERE id=?",
-                        (operation_id,),
-                    ).fetchone()[0]
-                )
+                payload = connection.execute(
+                    "SELECT preview FROM document_operations WHERE id=?", (operation_id,)
+                ).fetchone()[0]
+                if payload is None:
+                    raise EvidraError(
+                        "PREVIEW_EVICTED", "The derived preview was evicted; render it again."
+                    )
+                remember_preview(connection, operation_id, payload)
+                prune_derived(connection, self.scopes.session.settings.cache_limits)
+                return PagePreview.model_validate_json(payload)

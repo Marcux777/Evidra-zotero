@@ -7,6 +7,7 @@ from evidra.extraction.forms import now
 from evidra.extraction.runner import ExtractionRunner
 from evidra.jobs.models import JobRecord, UnitRecord
 from evidra.scope.service import ScopeContext
+from evidra.storage.cache import prune_derived
 
 
 class ExtractionCache:
@@ -64,8 +65,9 @@ class ExtractionCache:
             }
         )
 
-    @staticmethod
-    def write(conn: sqlite3.Connection, context: ScopeContext, unit: UnitRecord, key: str) -> None:
+    def write(
+        self, conn: sqlite3.Connection, context: ScopeContext, unit: UnitRecord, key: str
+    ) -> None:
         row = conn.execute(
             "SELECT id FROM extraction_results WHERE unit_id=?", (unit.id,)
         ).fetchone()
@@ -79,6 +81,7 @@ class ExtractionCache:
                 "DELETE FROM extraction_cache WHERE key IN "
                 "(SELECT key FROM extraction_cache ORDER BY used_at DESC LIMIT -1 OFFSET 10000)"
             )
+            prune_derived(conn, self.runner.scopes.session.settings.cache_limits)
 
     def clear(self, context: ScopeContext) -> int:
         with self.runner.scopes.guarded(context, capability="commit") as conn:

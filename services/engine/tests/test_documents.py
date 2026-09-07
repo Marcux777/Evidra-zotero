@@ -269,6 +269,17 @@ def test_text_staging_and_version_verified_preview(tmp_path: Path):
             json={"evidence_id": pdf_hits["items"][0]["evidence_id"], "path": str(path)},
         )
         assert verified.status_code == 200, verified.text
+        with client.app.state.services.database.transaction() as connection:
+            connection.execute(
+                "UPDATE document_operations SET preview=NULL WHERE id=?", (operation["id"],)
+            )
+            connection.execute(
+                "DELETE FROM preview_cache_access WHERE operation_id=?", (operation["id"],)
+            )
+        evicted = client.get(
+            prefix + "/operations/" + operation["id"] + "/preview", headers=HEADERS
+        )
+        assert evicted.status_code == 410 and evicted.json()["code"] == "PREVIEW_EVICTED"
         write_pdf(path, "other bytes")
         assert (
             client.get(
