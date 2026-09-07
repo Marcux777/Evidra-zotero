@@ -1,5 +1,13 @@
 # Modelos, consentimento e custos
 
+## Estado atual — 2026-09-07
+
+Os seis adaptadores abaixo e as telas nativas de perfis, consentimento e conversa estão implementados. Ollama teve smoke real pelos serviços do Evidra com os modelos fixados `qwen3:4b` e `qwen3-embedding:0.6b`; LM Studio, OpenAI, Anthropic, Gemini e outros hosts OpenAI-compatible continuam sem smoke real declarado. A geração/embedding sintética bem-sucedida não valida todos os fluxos: as três execuções nativas posteriores de triagem, síntese e auditoria terminaram em `GENERATION_INCOMPLETE`, sem artefato aceito. Consulte [o relatório de testes](TEST_REPORT.md), [o ambiente exato](LOCAL_MODEL_TEST_ENVIRONMENT.md) e [a matriz de aceitação](ACCEPTANCE_MATRIX.md).
+
+O registro técnico abaixo preserva o estado da Task5 e suas instruções de integração então futuras para a Task6. Essas referências temporais são históricas; os resultados atuais acima e no relatório de testes têm precedência. Os contratos de privacidade, consentimento, proveniência e custos descritos continuam vinculantes.
+
+## Registro técnico da Task5
+
 O backend M3 seleciona um perfil explícito. Não escolhe outro provedor, chave ou modelo quando uma operação falha. Nenhum perfil nem preço é criado automaticamente. A interface de configuração e conversa pertence à Task6; a configuração abaixo ainda não constitui uma interface nativa Zotero concluída.
 
 ## Contratos verificados
