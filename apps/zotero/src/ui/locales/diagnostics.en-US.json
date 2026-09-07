@@ -1,4 +1,5 @@
 {
+  "INVALID_BACKUP": "Backup content, references or integrity validation failed. Check the package and version; no records were imported. Inspect the local diagnostic before retrying.",
   "INVALID_ENGINE_MANIFEST": "The manifest is invalid or incompatible. Extract the Evidra Windows x64 package again and select engine-manifest.json.",
   "ENGINE_NOT_CHOSEN": "Choose engine-manifest.json in the extracted engine folder.",
   "ENGINE_NOT_RUNNING": "The engine is stopped. Verify its package and authorize startup.",

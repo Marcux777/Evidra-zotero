@@ -1,4 +1,5 @@
 {
+  "INVALID_BACKUP": "O backup falhou na validação de conteúdo, referências ou integridade. Confira o pacote e sua versão; nenhum registro foi importado. Consulte o diagnóstico local antes de tentar novamente.",
   "INVALID_ENGINE_MANIFEST": "O manifesto está inválido ou é incompatível. Extraia novamente o pacote Windows x64 do Evidra e selecione engine-manifest.json.",
   "ENGINE_NOT_CHOSEN": "Escolha engine-manifest.json na pasta extraída do engine.",
   "ENGINE_NOT_RUNNING": "O engine está parado. Confira o pacote e autorize sua inicialização.",
