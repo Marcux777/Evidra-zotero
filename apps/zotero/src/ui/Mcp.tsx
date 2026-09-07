@@ -20,14 +20,25 @@ export function Mcp(props: ResearchScope) {
     const [open, setOpen] = useState(false), [connections, setConnections] = useState<ConnectionPage | null>(null);
     const [notes, setNotes] = useState<ExternalNotePage | null>(null), [setup, setSetup] = useState<McpSetup | null>(null);
     const [label, setLabel] = useState(''), [expires, setExpires] = useState(3600), [propose, setPropose] = useState(false);
-    const config = useRef<HTMLTextAreaElement>(null);
-    const actions = useResearchActions(bridge, () => { setConnections(null); setNotes(null); setSetup(null); });
+    const config = useRef<HTMLTextAreaElement>(null), authorization = useRef(0);
+    function invalidateLifecycle() { ++authorization.current; setConnections(null); setNotes(null); setSetup(null); }
+    const actions = useResearchActions(bridge, invalidateLifecycle);
+    const proposalActions = useResearchActions(bridge, () => setNotes(null));
     function load(connectionOffset = connections?.offset ?? 0, noteOffset = notes?.offset ?? 0) {
         actions.read(async current => {
             const page = await bridge.request({ op: 'mcp.connections', ...scope, offset: connectionOffset }) as ConnectionPage;
             if (!current()) return; setConnections(page);
-            const proposals = await bridge.request({ op: 'mcp.notes', ...scope, offset: noteOffset }) as ExternalNotePage;
-            if (current()) setNotes(proposals);
+            proposalActions.read(async proposalCurrent => {
+                const authorized = authorization.current;
+                try {
+                    const proposals = await bridge.request({ op: 'mcp.notes', ...scope, offset: noteOffset }) as ExternalNotePage;
+                    if (proposalCurrent() && authorized === authorization.current) setNotes(proposals);
+                } catch (failure) {
+                    if (proposalCurrent() && authorized === authorization.current && failure instanceof Error
+                        && ['FORBIDDEN', 'BRIDGE_EXPIRED', 'UNAUTHENTICATED'].includes(failure.message)) invalidateLifecycle();
+                    throw failure;
+                }
+            });
         });
     }
     useEffect(() => {
@@ -68,10 +79,10 @@ export function Mcp(props: ResearchScope) {
             })}>{t.revoke}</button></li>)}</ul>
         {connections && <nav aria-label={t.title}><button type="button" disabled={actions.locked || connections.offset === 0} onClick={() => load(Math.max(0, connections.offset - connections.limit))}>{catalog(locale).previous}</button>
             <button type="button" disabled={actions.locked || connections.offset + connections.limit >= connections.total} onClick={() => load(connections.offset + connections.limit)}>{catalog(locale).next}</button></nav>}
-        <h3>{t.proposals}</h3><p>{t.matrix}</p>{notes?.items.length === 0 && <p>{t.empty}</p>}
+        <h3>{t.proposals}</h3><ResearchFeedback actions={proposalActions} locale={locale}/><p>{t.matrix}</p>{notes?.items.length === 0 && <p>{t.empty}</p>}
         {notes?.items.map(note => <ExternalProposal key={note.id} {...props} note={note} onChange={value => setNotes(old => old && ({ ...old, items: [value] }))}/>)}
-        {notes && <nav aria-label={t.proposals}><button type="button" disabled={actions.locked || notes.offset === 0} onClick={() => load(connections?.offset ?? 0, Math.max(0, notes.offset - notes.limit))}>{catalog(locale).previous}</button>
-            <button type="button" disabled={actions.locked || notes.offset + notes.limit >= notes.total} onClick={() => load(connections?.offset ?? 0, notes.offset + notes.limit)}>{catalog(locale).next}</button></nav>}
+        {notes && <nav aria-label={t.proposals}><button type="button" disabled={actions.locked || proposalActions.locked || notes.offset === 0} onClick={() => load(connections?.offset ?? 0, Math.max(0, notes.offset - notes.limit))}>{catalog(locale).previous}</button>
+            <button type="button" disabled={actions.locked || proposalActions.locked || notes.offset + notes.limit >= notes.total} onClick={() => load(connections?.offset ?? 0, notes.offset + notes.limit)}>{catalog(locale).next}</button></nav>}
         <NoteOutbox {...props}/>
     </section>;
 }
