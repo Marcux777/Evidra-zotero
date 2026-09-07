@@ -4,6 +4,7 @@ import { catalog } from './i18n';
 import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope } from './research-actions';
 import { NotePreview } from './NotePreview';
 import { ResearchCells, ResearchEvidence } from './ResearchAssociations';
+import { auditReferencesValid, ResearchReference } from './ResearchReferences';
 
 export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVersion; preview: ResearchPreview; onChange: (value: ArtifactVersion) => void }) {
     const { artifact, preview, onChange, bridge, notebook_id, snapshot_id, locale } = props;
@@ -17,6 +18,9 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
         : output.kind === 'SYNTHESIS' ? output.sections.flatMap(section => section.evidence_ids) : output.claims.flatMap(claim => claim.evidence_ids));
     const openEvidence = (id: string) => actions.read(async () => { await bridge.request({ op: 'documents.open', ...scope, evidence_id: id }); });
     const references = (ids: string[]) => <ResearchEvidence evidence={preview.inputs.evidence.filter(value => ids.includes(value.id))} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence}/>;
+    const correctionValid = draft.kind === 'AUDIT' ? draft.claims.every(claim => auditReferencesValid(claim, preview.inputs))
+        : draft.kind === 'SYNTHESIS' ? draft.sections.every(section => section.cell_ids.length > 0)
+        : draft.criterion_ids.length > 0 && (draft.decision === 'UNCERTAIN' || draft.evidence_ids.length > 0);
     if (!visible) return <ResearchFeedback actions={actions} locale={locale}/>;
     async function versions(offset: number, current: () => boolean) {
         const page = await bridge.request({ op: 'research.versions', ...scope, version_id: artifact.id, offset }) as ArtifactPage;
@@ -46,18 +50,36 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
             <label>{t.rationale}<textarea maxLength={2000} value={rationale} onChange={e => setRationale(e.target.value)}/></label>
             {draft.kind === 'SCREENING' && <><label>{t.decision}<select value={draft.decision} onChange={e => setDraft({ ...draft, decision: e.target.value as typeof draft.decision })}>{(['INCLUDE', 'EXCLUDE', 'UNCERTAIN'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>
                 <label>{t.rationale}<textarea maxLength={2000} value={draft.rationale} onChange={e => setDraft({ ...draft, rationale: e.target.value })}/></label>
+                <ResearchEvidence evidence={preview.inputs.evidence} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence} selected={draft.evidence_ids} onChange={evidence_ids => setDraft({ ...draft, evidence_ids })}/>
                 {preview.inputs.protocol.criteria.map(c => <label key={c.id}><input type="checkbox" checked={draft.criterion_ids.includes(c.id)} onChange={e => setDraft({ ...draft, criterion_ids: e.target.checked ? [...draft.criterion_ids, c.id] : draft.criterion_ids.filter(id => id !== c.id) })}/>{c.id}: {c.text}</label>)}</>}
             {draft.kind === 'SYNTHESIS' && <>{draft.sections.map((section, i) => <fieldset key={i}><legend>{t.text} {i + 1}</legend>
-                {(['heading', 'text', 'comparability'] as const).map(field => <label key={field}>{field === 'comparability' ? t.comparison : t[field]}<textarea maxLength={2000} value={section[field]} onChange={e => setDraft({ ...draft, sections: draft.sections.map((v, j) => j === i ? { ...v, [field]: e.target.value } : v) })}/></label>)}</fieldset>)}
+                {(['heading', 'text', 'comparability'] as const).map(field => <label key={field}>{field === 'comparability' ? t.comparison : t[field]}<textarea maxLength={2000} value={section[field]} onChange={e => setDraft({ ...draft, sections: draft.sections.map((v, j) => j === i ? { ...v, [field]: e.target.value } : v) })}/></label>)}
+                <ResearchCells cells={preview.inputs.cells} studies={preview.inputs.studies} locale={locale} selected={section.cell_ids} onChange={cell_ids => {
+                    const cells = preview.inputs.cells.filter(cell => cell_ids.includes(cell.id)), basis = new Set(cells.map(cell => cell.basis));
+                    const allowed = new Set(cells.flatMap(cell => cell.evidence_ids));
+                    setDraft({ ...draft, sections: draft.sections.map((value, index) => index === i ? { ...value, cell_ids,
+                        basis: basis.size > 1 ? 'MIXED' : cells[0]?.basis ?? value.basis, evidence_ids: value.evidence_ids.filter(id => allowed.has(id)) } : value) });
+                }}/>
+                <p>{t.basis}: {t[section.basis]}</p>
+                <ResearchEvidence evidence={preview.inputs.evidence.filter(value => preview.inputs.cells.some(cell => section.cell_ids.includes(cell.id) && cell.evidence_ids.includes(value.id)))}
+                    studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence} selected={section.evidence_ids}
+                    onChange={evidence_ids => setDraft({ ...draft, sections: draft.sections.map((value, index) => index === i ? { ...value, evidence_ids } : value) })}/>
+            </fieldset>)}
                 {draft.limitations.map((value, i) => <label key={i}>{t.limitations} {i + 1}<textarea maxLength={2000} value={value} onChange={e => setDraft({ ...draft, limitations: draft.limitations.map((v, j) => j === i ? e.target.value : v) })}/></label>)}</>}
             {draft.kind === 'AUDIT' && <>{draft.claims.map((claim, i) => <fieldset key={i}><legend>{claim.text}</legend>
                 <label>{t.decision}<select value={claim.support} onChange={e => setDraft({ ...draft, claims: draft.claims.map((v, j) => j === i ? { ...v, support: e.target.value as typeof v.support } : v) })}>
                     {(['SUPPORTED_PROPOSAL', 'PARTIALLY_SUPPORTED_PROPOSAL', 'CONTRADICTED_PROPOSAL', 'INSUFFICIENT_EVIDENCE'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>
                 <label>{t.rationale}<textarea maxLength={2000} value={claim.explanation} onChange={e => setDraft({ ...draft, claims: draft.claims.map((v, j) => j === i ? { ...v, explanation: e.target.value } : v) })}/></label>
-                {claim.references.map((ref, r) => <label key={r}>{ref.citation}<select value={ref.relationship} onChange={e => setDraft({ ...draft, claims: draft.claims.map((v, j) => j === i ? { ...v, references: v.references.map((value, k) => k === r ? { ...value, relationship: e.target.value as typeof value.relationship } : value) } : v) })}>
-                    {(['DIRECT', 'INDIRECT_MENTION', 'NOT_IN_NOTEBOOK'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>)}</fieldset>)}
+                <ResearchEvidence evidence={preview.inputs.evidence} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence} selected={claim.evidence_ids}
+                    onChange={evidence_ids => setDraft({ ...draft, claims: draft.claims.map((value, index) => index === i ? { ...value, evidence_ids } : value) })}/>
+                {claim.references.map((reference, r) => <ResearchReference key={r} reference={reference} inputs={preview.inputs} evidenceIds={claim.evidence_ids} locale={locale}
+                    onChange={changed => setDraft({ ...draft, claims: draft.claims.map((value, index) => index === i ? { ...value, references: value.references.map((ref, k) => k === r ? changed : ref) } : value) })}
+                    onRemove={() => setDraft({ ...draft, claims: draft.claims.map((value, index) => index === i ? { ...value, references: value.references.filter((_, k) => k !== r) } : value) })}/>)}
+                <button type="button" disabled={claim.references.length >= 12} onClick={() => setDraft({ ...draft, claims: draft.claims.map((value, index) => index === i ? { ...value,
+                    references: [...value.references, { citation: '', source_id: null, relationship: 'INDIRECT_MENTION' }] } : value) })}>{t.addReference}</button>
+            </fieldset>)}
                 <label>{t.limitations}<textarea maxLength={2000} value={draft.collection_limitations} onChange={e => setDraft({ ...draft, collection_limitations: e.target.value })}/></label></>}
-        </fieldset><div className="actions">{(['APPROVED', 'CORRECTED', 'REJECTED'] as const).map(v => <button type="button" key={v} disabled={actions.locked || !rationale.trim()} onClick={() => review(v)}>{v === 'APPROVED' ? t.approve : v === 'CORRECTED' ? t.correct : t.reject}</button>)}</div></details>
+        </fieldset>{!correctionValid && <p role="status">{t.correctionReferencesHelp}</p>}<div className="actions">{(['APPROVED', 'CORRECTED', 'REJECTED'] as const).map(v => <button type="button" key={v} disabled={actions.locked || !rationale.trim() || (v === 'CORRECTED' && !correctionValid)} onClick={() => review(v)}>{v === 'APPROVED' ? t.approve : v === 'CORRECTED' ? t.correct : t.reject}</button>)}</div></details>
         <details><summary>{t.version}</summary><button type="button" disabled={actions.locked} onClick={() => actions.read(c => versions(0, c))}>{t.refresh}</button>
             {history?.items.map(value => <p key={value.id}><button type="button" disabled={actions.locked} onClick={() => onChange(value)}>{t.version} {value.revision} · {label(value.review_state)}</button></p>)}
             {history && <div className="actions"><button type="button" disabled={actions.locked || history.offset === 0} onClick={() => actions.read(c => versions(Math.max(0, history.offset - 1), c))}>{t.previous}</button>

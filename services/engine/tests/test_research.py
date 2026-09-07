@@ -507,6 +507,113 @@ def test_note_preserves_per_result_anchors_cells_and_excludes_unused_preparation
             assert conn.execute("SELECT count(*) FROM provider_calls").fetchone()[0] == 0
 
 
+def test_human_audit_correction_persists_selected_anchor_and_reference_without_editing_original(
+    tmp_path,
+):
+    from copy import deepcopy
+
+    from evidra.research.execution import ArtifactVersion, ResearchPreview
+
+    app = make_app(tmp_path, [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, form, manual = setup(client)
+        _, version = protocol(client, prefix, form)
+        profile(client)
+        run = prepare_research(client, prefix, version["id"], "AUDIT", manual["source_id"])
+        preview = ResearchPreview.model_validate(
+            client.get(prefix + "/research/runs/" + run["id"] + "/preview", headers=HEADERS).json()
+        )
+        evidence = preview.inputs.evidence[0]
+        output = {
+            "kind": "AUDIT",
+            "claims": [
+                {
+                    "text": "The reported result",
+                    "start": 0,
+                    "end": 19,
+                    "support": "INSUFFICIENT_EVIDENCE",
+                    "evidence_ids": [],
+                    "explanation": "Anchor missed",
+                    "references": [
+                        {
+                            "citation": "Study reference",
+                            "source_id": None,
+                            "relationship": "INDIRECT_MENTION",
+                        }
+                    ],
+                },
+                {
+                    "text": "is 42 percent.",
+                    "start": 20,
+                    "end": 34,
+                    "support": "SUPPORTED_PROPOSAL",
+                    "evidence_ids": [evidence.id],
+                    "explanation": "Check citation",
+                    "references": [
+                        {
+                            "citation": "Erroneous reference",
+                            "source_id": evidence.source_id,
+                            "relationship": "DIRECT",
+                        }
+                    ],
+                },
+            ],
+            "collection_limitations": "Collection only",
+        }
+        artifact = ArtifactVersion(
+            id="a" * 32,
+            artifact_id="b" * 32,
+            revision=1,
+            previous_version_id=None,
+            run_id=run["id"],
+            output=output,
+            coverage=preview.inputs.coverage,
+            review_state="UNREVIEWED",
+            rationale=None,
+            author="fixture",
+            created_at="2026-09-01T00:00:00Z",
+        )
+        # Seed only an original proposal fixture; actual scoped review uses HTTP/SQLite.
+        with app.state.services.database.transaction() as conn:
+            conn.execute(
+                "INSERT INTO artifact_versions VALUES(?,?,?,?,?)",
+                (artifact.id, artifact.artifact_id, 1, run["id"], artifact.model_dump_json()),
+            )
+        request = {
+            "action": "CORRECTED",
+            "expected_revision": 1,
+            "rationale": "Selected original excerpt and corrected attribution",
+            "corrected_output": deepcopy(output),
+            "idempotency_key": "correction",
+        }
+        request["corrected_output"]["claims"][0]["support"] = "SUPPORTED_PROPOSAL"
+        route = prefix + "/artifacts/" + artifact.id + "/review"
+        invalid = client.post(route, headers=HEADERS, json=request)
+        assert invalid.status_code == 422 and invalid.json()["code"] == "INVALID_OUTPUT"
+        first, second = request["corrected_output"]["claims"]
+        first["evidence_ids"] = [evidence.id]
+        first["references"][0].update(source_id=evidence.source_id, relationship="DIRECT")
+        second["references"][0]["relationship"] = "NOT_IN_NOTEBOOK"
+        invalid = client.post(route, headers=HEADERS, json=request)
+        assert invalid.status_code == 422 and invalid.json()["code"] == "INVALID_OUTPUT"
+        second["references"][0]["source_id"] = None
+        response = client.post(route, headers=HEADERS, json=request)
+        assert response.status_code == 201, response.text
+        corrected = response.json()
+        assert corrected["revision"] == 2 and corrected["review_state"] == "CORRECTED"
+        assert corrected["previous_version_id"] == artifact.id
+        assert corrected["output"] == request["corrected_output"]
+        assert client.post(route, headers=HEADERS, json=request).json() == corrected
+        assert client.get(
+            prefix + "/artifacts/" + artifact.id, headers=HEADERS
+        ).json() == artifact.model_dump(mode="json")
+        with app.state.services.database.transaction() as conn:
+            assert conn.execute("SELECT count(*) FROM artifact_versions").fetchone()[0] == 2
+            assert conn.execute("SELECT count(*) FROM artifact_reviews").fetchone()[0] == 1
+            assert conn.execute("SELECT count(*) FROM provider_calls").fetchone()[0] == 0
+            assert conn.execute("SELECT count(*) FROM screening_decisions").fetchone()[0] == 0
+
+
 def crash_research(directory, after_checkpoint):
     """Child uses production SQLite/provider accounting; only HTTP is controlled."""
     import os

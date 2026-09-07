@@ -7,6 +7,7 @@ import { Screening } from '../src/ui/Screening';
 import { Research } from '../src/ui/Research';
 import { NotePreview } from '../src/ui/NotePreview';
 import { ResearchArtifact } from '../src/ui/ResearchArtifact';
+import { parseUiMessage } from '../src/security/messages';
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let unmount = () => {};
 afterEach(() => { act(unmount); document.body.replaceChildren(); });
@@ -29,10 +30,10 @@ function researchFixture() {
 }
 
 test('research results expose their own anchors and cells while unused preparation evidence stays separate', async () => {
-    const { artifact, preview } = researchFixture();
+    const { artifact, preview } = researchFixture(), original = structuredClone(artifact), commands: any[] = [];
     const node = document.createElement('div'); document.body.append(node); const root = createRoot(node); unmount = () => root.unmount();
-    await act(async () => root.render(<ResearchArtifact bridge={{ request: async () => { throw new Error('Unexpected request'); } } as any}
-        notebook_id="n" snapshot_id="s" locale="en-US" artifact={artifact} preview={preview} onChange={() => {}}/>));
+    await act(async () => root.render(<ResearchArtifact bridge={{ request: async (command: any) => { parseUiMessage(command); commands.push(command); return artifact; } } as any}
+        notebook_id="11111111-1111-1111-1111-111111111111" snapshot_id={'d'.repeat(32)} locale="en-US" artifact={artifact} preview={preview} onChange={() => {}}/>));
     const result = (heading: string) => [...node.querySelectorAll('h4')].find(h => h.textContent === heading)!.closest('article')!;
     expect(result('Result 1').textContent).toContain('Alpha original quotation');
     expect(result('Result 1').textContent).toContain('Alpha cell value');
@@ -46,6 +47,65 @@ test('research results expose their own anchors and cells while unused preparati
     const unused = [...node.querySelectorAll('details')].find(d => d.querySelector('summary')?.textContent === 'Other preparation excerpts — not linked to these results')!;
     expect(unused.textContent).toContain('Unused original quotation');
     expect(unused.textContent).not.toContain('Alpha original quotation');
+    const editor = [...node.querySelectorAll('fieldset')].find(field => field.querySelector(':scope > legend')?.textContent === 'Text 1')!;
+    const checkbox = (text: string) => [...editor.querySelectorAll('label')].find(label => label.textContent === text)!.querySelector('input[type=checkbox]') as HTMLInputElement;
+    await act(async () => checkbox('Alpha · result_0').click());
+    await act(async () => checkbox('Beta · result_1').click());
+    await act(async () => checkbox('Beta original quotation').click());
+    await act(async () => {
+        const reason = [...node.querySelectorAll('fieldset')].find(field => field.querySelector(':scope > legend')?.textContent === 'Human review')!.querySelector(':scope > label textarea')!;
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(reason, 'Select the relevant cell'); reason.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => [...node.querySelectorAll('button')].find(button => button.textContent === 'Save correction')!.click());
+    expect(commands).toHaveLength(1);
+    expect(commands[0].request.corrected_output.sections[0]).toMatchObject({ cell_ids: ['cell-1'], evidence_ids: [preview.inputs.evidence[1].id], basis: 'UNREVIEWED' });
+    expect(artifact).toEqual(original);
+});
+
+test('human audit corrections select prepared anchors and compatible sources without changing the proposal', async () => {
+    const { artifact, preview } = researchFixture();
+    artifact.output = { kind: 'AUDIT', claims: [
+        { text: 'The reported result', start: 0, end: 19, support: 'INSUFFICIENT_EVIDENCE', evidence_ids: [], explanation: 'Anchor was missed',
+            references: [{ citation: 'Study reference', source_id: null, relationship: 'INDIRECT_MENTION' }] },
+        { text: 'is 42 percent.', start: 20, end: 34, support: 'SUPPORTED_PROPOSAL', evidence_ids: [preview.inputs.evidence[1].id], explanation: 'Check citation',
+            references: [{ citation: 'Erroneous reference', source_id: preview.inputs.studies[1].source_id, relationship: 'DIRECT' }] }
+    ], collection_limitations: 'Collection only' };
+    const original = structuredClone(artifact), commands: any[] = []; let corrected: any;
+    const bridge: any = { request: async (command: any) => {
+        expect(parseUiMessage(command)).toEqual(command); commands.push(command);
+        return { ...artifact, id: 'c'.repeat(32), previous_version_id: artifact.id, revision: 2, review_state: 'CORRECTED', output: command.request.corrected_output };
+    } };
+    const node = document.createElement('div'); document.body.append(node); const root = createRoot(node); unmount = () => root.unmount();
+    await act(async () => root.render(<ResearchArtifact bridge={bridge} notebook_id="11111111-1111-1111-1111-111111111111" snapshot_id={'d'.repeat(32)}
+        locale="en-US" artifact={artifact} preview={preview} onChange={value => { corrected = value; }}/>));
+    const fieldset = (legend: string) => [...node.querySelectorAll('fieldset')].find(f => f.querySelector(':scope > legend')?.textContent === legend)!;
+    const claim = fieldset('The reported result');
+    function choose(select: HTMLSelectElement, value: string) { select.value = value; select.dispatchEvent(new Event('change', { bubbles: true })); }
+    await act(async () => choose(claim.querySelector('select')!, 'SUPPORTED_PROPOSAL'));
+    const anchor = [...claim.querySelectorAll('label')].find(l => l.textContent?.includes('Alpha original quotation'))?.querySelector('input[type=checkbox]');
+    expect(anchor).not.toBeNull(); expect(anchor).not.toBeUndefined();
+    await act(async () => (anchor as HTMLInputElement).click());
+    const firstReference = fieldset('Study reference');
+    await act(async () => choose(firstReference.querySelector('select')!, 'DIRECT'));
+    const source = firstReference.querySelector('select[aria-label="Reference source"]') as HTMLSelectElement;
+    expect([...source.options].some(option => option.value === preview.inputs.studies[1].source_id)).toBe(false);
+    await act(async () => choose(source, preview.inputs.studies[0].source_id));
+    await act(async () => choose(fieldset('Erroneous reference').querySelector('select')!, 'NOT_IN_NOTEBOOK'));
+    await act(async () => {
+        const reason = fieldset('Human review').querySelector(':scope > label textarea')!;
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(reason, 'Selected original excerpt and corrected attribution');
+        reason.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const save = [...node.querySelectorAll('button')].find(button => button.textContent === 'Save correction')!;
+    expect(save.disabled).toBe(false);
+    await act(async () => save.click());
+    expect(commands).toHaveLength(1);
+    expect(commands[0].request).toMatchObject({ action: 'CORRECTED', expected_revision: 1 });
+    expect(corrected).toMatchObject({ revision: 2, review_state: 'CORRECTED', previous_version_id: original.id });
+    expect(corrected.output.claims[0]).toMatchObject({ support: 'SUPPORTED_PROPOSAL', evidence_ids: [preview.inputs.evidence[0].id],
+        references: [{ citation: 'Study reference', source_id: preview.inputs.studies[0].source_id, relationship: 'DIRECT' }] });
+    expect(corrected.output.claims[1].references[0]).toEqual({ citation: 'Erroneous reference', relationship: 'NOT_IN_NOTEBOOK', source_id: null });
+    expect(artifact).toEqual(original);
 });
 test('protocol explicit save preserves uncertain command and shows immutable revision after identical retry', async () => {
     const requests: any[] = []; let lost = true;
