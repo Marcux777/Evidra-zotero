@@ -1,8 +1,22 @@
 # Evidra implementation state
 
-Updated: 2026-09-06. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
+Updated: 2026-09-07. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
 
-The full v1 implementation is in progress, not complete. Tasks1–5 have passed their scoped source reviews. M2 now has executed native evidence for PDF parsing/search, exact and page-only Reader navigation, local preview, annotation text, material-change invalidation and changed-file/cached-Reader refusal. Tasks6–12 and final release acceptance remain outstanding. The supplied SPEC.md is preserved unchanged and IMPLEMENTATION_PLAN.md decomposes M0–M7 into twelve tasks.
+The full v1 implementation is in progress, not complete. Tasks 1–9 have passed their scoped source reviews. Task 10 (MCP) is implemented and has fixture verification; its one interface review finding has a verified correction undergoing scoped re-review. Tasks 11–12 (exports/restore and final distribution/acceptance) remain outstanding. The supplied SPEC.md is preserved unchanged.
+
+## Current checkpoint — 2026-09-07
+
+- Task 6 source `9bd75f4` has bounded native conversation acceptance: a real local answer returned the expected 87.5% with an original citation; restart reopened the same result and its PDF evidence; a separate cancellation retained unknown usage. Receipt: `.local/native-smoke/task6-native-controller-summary.json`.
+- Task 7 source `eed17a6` has native manual matrix and restart evidence: 27 and 18 observations passed, including preserved values, contexts, history and original evidence. Receipt: `.local/native-smoke/task7-native-controller-summary.json`.
+- Task 8 source through cancellation fix `810a564` is reviewed, but native extraction and cancellation acceptance failed on the preceding installed package. The model reached output limits without trusted results; the cancellation run returned `REVISION_CONFLICT` and admitted two calls instead of the planned one. These failures remain failures; native validation of the reviewed cancellation fix is pending. Receipt: `.local/native-smoke/workflow-runs/task8-native-controller-summary-88d428d045a14b6aae3c648147b4ff72/artifacts/task8-native-controller-summary.json`.
+- Task 9 reviewed revision `a512421` is installed in the isolated profile. Its 28-check native preparation run preserved two protocol versions, four manual screening decisions and three unstarted research runs. No screening/synthesis/audit model output or native note publication is established by this run. Receipt: `.local/native-smoke/task9-native-ready-receipt.json`.
+- Task 10 source `bfe7f3f` implements the eight-tool MCP gateway, scoped connections and external proposals. Actual SDK stdio/HTTP/SQLite checks and covering UI checks passed. Independent review found that a denied proposal read can hide otherwise authorized connection-revocation controls. Fix `fe4fea1` preserves those controls, clears denied proposals and retains authentication invalidation; seven covering UI tests and TypeScript passed. Report commit `28d36c2` and its byte-bound XPI have been handed to scoped re-review. See `.superpowers/sdd/IMPLEMENTATION_PLAN/task-10-report.md` and `task-10-review.md`.
+- The latest generation preflight observed an occupied GPU (51%, 10252 MiB) and unrelated Docker compute. No new inference was started. Observation: `.local/native-smoke/task9-generation-compute-observation-20260907T035630Z.json`. Continue independent source work and recheck ownership before model execution.
+- Final native UI work must correct observed Portuguese mojibake, narrow matrix field-label truncation, zero-based displayed pagination and sticky-header obstruction. Exact locale evidence: `.local/task12-locale-encoding-observation.json`.
+
+Next: finish the MCP review correction, implement scoped export/backup/restore, then distribution, measured benchmark and reconciliation of all 36 acceptance rows. A complete-v1 claim remains blocked by those unfinished features and acceptance gaps. Native tests use only the separately authorized synthetic Zotero profile. The personal library remains outside test scope.
+
+The sections below preserve earlier milestone history. Their old “pending” statements are historical; the current checkpoint above takes precedence.
 
 ## Environment and authorizations
 
