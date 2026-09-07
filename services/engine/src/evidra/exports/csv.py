@@ -38,10 +38,11 @@ def csv_cell(value: object, *, kind: Literal["text", "number", "boolean"] = "tex
 def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     domains = {
-        (r.origin_profile_id, r.origin_notebook_id, r.origin, r.origin_group_id or "")
+        (r.origin_profile_id, r.origin_notebook_id, r.origin, r.origin_group_id or "", r.data.id)
         for r in notebook.records
+        if r.kind == "snapshot" and (r.origin == "IMPORTED" or r.data.id == notebook.snapshot_id)
     }
-    for profile, book, origin, group in sorted(domains):
+    for profile, book, origin, group, snapshot in sorted(domains):
         records = [
             r
             for r in notebook.records
@@ -52,10 +53,33 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
         if not forms:
             continue
         form = max(forms, key=lambda f: f.revision)
-        sources = {r.data.id: r.data for r in records if r.kind == "source"}
+        membership = next(r.data for r in records if r.kind == "snapshot" and r.data.id == snapshot)
+        sources = {}
+        for sid in membership.member_ids:
+            versions = {
+                r.data.version_id: r.data
+                for r in records
+                if r.kind == "source" and r.data.id == sid and r.snapshot_id == snapshot
+            }
+            if not versions:
+                # Older portable archives deduplicated identical source versions.
+                # A sole immutable version is unambiguous; multiple versions are not.
+                versions = {
+                    r.data.version_id: r.data
+                    for r in records
+                    if r.kind == "source" and r.data.id == sid
+                }
+            if len(versions) != 1:
+                raise EvidraError(
+                    "CSV_SOURCE_VERSION_AMBIGUOUS",
+                    "The snapshot does not identify one original source version.",
+                )
+            sources[sid] = next(iter(versions.values()))
         evidence = {r.data.id: r.data for r in records if r.kind == "evidence"}
-        proposals = {r.data.id: r.data for r in records if r.kind == "proposal"}
-        decisions = [r.data for r in records if r.kind == "decision"]
+        proposals = {
+            r.data.id: r.data for r in records if r.kind == "proposal" and r.snapshot_id == snapshot
+        }
+        decisions = [r.data for r in records if r.kind == "decision" and r.snapshot_id == snapshot]
         for sid, source in sorted(sources.items()):
             for field in form.fields:
                 candidates = [
@@ -91,6 +115,8 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
                     "library": source.identity.library_id,
                     "item_key": source.identity.item_key,
                     "source_id": sid,
+                    "source_version": source.version_id,
+                    "snapshot_id": snapshot,
                     "title": source.title,
                     "doi": source.doi or "",
                     "year": source.year,
@@ -170,6 +196,8 @@ RESULT_COLUMNS = [
     "library",
     "item_key",
     "source_id",
+    "source_version",
+    "snapshot_id",
     "title",
     "doi",
     "year",
@@ -203,8 +231,8 @@ def render_csv(notebook: PortableNotebook, *, per_study: bool, excel: bool) -> b
     rows = result_rows(notebook)
     columns = RESULT_COLUMNS
     if per_study:
-        identity_columns = RESULT_COLUMNS[:10]
-        detail_columns = RESULT_COLUMNS[12:]
+        identity_columns = RESULT_COLUMNS[: RESULT_COLUMNS.index("field")]
+        detail_columns = RESULT_COLUMNS[RESULT_COLUMNS.index("value") :]
         combined: dict[tuple[object, ...], dict[str, Any]] = {}
         fields = sorted({r["field"] for r in rows})
         # Multiple experimental results remain separately named within a study row;

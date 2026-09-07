@@ -127,7 +127,8 @@ def test_export_current_cell_survives_rejection_of_a_competing_proposal(tmp_path
             notebook, _ = read_backup(data)
             portable = notebook.model_dump(mode="json")
             retained = next(
-                r["data"] for r in portable["records"]
+                r["data"]
+                for r in portable["records"]
                 if r["kind"] == "decision" and r["data"]["id"] == rejected["id"]
             )
             assert retained["new"]["proposal_id"] == accepted["id"]
@@ -142,6 +143,79 @@ def test_export_current_cell_survives_rejection_of_a_competing_proposal(tmp_path
         assert float(row[column + "value"]) == 42 and row[column + "revision"] == "2"
         assert row[column + "decision_id"] == rejected["id"]
         assert row[column + "decision_action"] == "REJECTED"
+
+        # Revisions belong to one snapshot: revision 2 above must never outrank
+        # a reviewed revision 1 in the newly selected snapshot.
+        from test_scopes import capture, source
+
+        notebook_id = prefix.split("/")[3]
+        item = source(version="2") | {"title": "Selected source version"}
+        item["contents"] = [{"key": "SAMEKEY1", "kind": "abstract", "version": "1"}]
+        snapshot, _, _ = capture(client, notebook_id, [item], key="new-snapshot", revision=2)
+        selected = f"/v1/notebooks/{notebook_id}/snapshots/{snapshot['id']}"
+        proposal = post(
+            client,
+            selected + "/matrix/proposals",
+            {
+                "form_version_id": form["id"],
+                "source_id": accepted["source_id"],
+                "field_key": accepted["field_key"],
+                "value": {"original": "99", "normalized": 99},
+                "value_state": "FOUND",
+                "evidence_ids": accepted["evidence_ids"],
+                "rationale": "Review in selected snapshot",
+                "idempotency_key": "selected-proposal",
+            },
+        )
+        selected_decision = post(
+            client,
+            selected + "/matrix/decisions",
+            {
+                "proposal_id": proposal["id"],
+                "expected_revision": 0,
+                "action": "APPROVED",
+                "idempotency_key": "selected-decision",
+            },
+        )
+        data, _, _ = export(client, selected, format)
+        rows = list(csv.DictReader(io.StringIO(data.decode("utf-8"))))
+        assert len(rows) == 1
+        assert float(rows[0][column + "value"]) == 99
+        assert rows[0][column + "revision"] == "1"
+        assert rows[0][column + "decision_id"] == selected_decision["id"]
+        assert rows[0]["snapshot_id"] == snapshot["id"]
+        assert rows[0]["title"] == "Selected source version"
+        assert rows[0]["source_version"]
+        # Flat projection must leave both original decision histories portable.
+        data, _, _ = export(client, selected)
+        decisions = [r for r in json.loads(data)["records"] if r["kind"] == "decision"]
+        assert {rejected["id"], selected_decision["id"]} <= {r["data"]["id"] for r in decisions}
+        from evidra.exports.backup import validate_references
+        from evidra.exports.csv import render_csv
+        from evidra.exports.models import PortableNotebook
+
+        imported = json.loads(data)
+        for record in imported["records"]:
+            record.update(
+                origin="IMPORTED",
+                origin_group_id="a" * 64,
+                import_chain=[{"import_id": "b" * 32, "imported_at": imported["exported_at"]}],
+            )
+        imported = PortableNotebook.model_validate(imported)
+        validate_references(imported)
+        rows = list(
+            csv.DictReader(
+                io.StringIO(
+                    render_csv(imported, per_study=format == "csv_studies", excel=False).decode()
+                )
+            )
+        )
+        assert len(rows) == 2
+        assert {
+            (r["snapshot_id"], float(r[column + "value"]), r[column + "revision"]) for r in rows
+        } == {(prefix.rsplit("/", 1)[1], 42, "2"), (snapshot["id"], 99, "1")}
+        assert {r["import_group"] for r in rows} == {"a" * 64}
+        assert len({r["source_version"] for r in rows}) == 2
 
 
 def test_versioned_roundtrip_has_typed_imported_history_without_local_authority(tmp_path):

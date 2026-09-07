@@ -150,7 +150,15 @@ def collect(evidence: EvidenceService, context: ScopeContext) -> PortableNoteboo
                     contents=[ContentIdentity(key=c.key, kind=c.kind) for c in contents],
                 )
                 access_by_snapshot[snapshot].append(source_access)
-                add("source", sid + ":" + version, snapshot, [source_access], source)
+                # Membership in each snapshot is needed to select the exact source
+                # version in flat exports, even when the payload is unchanged.
+                add(
+                    "source",
+                    sid + ":" + version + ":" + snapshot,
+                    snapshot,
+                    [source_access],
+                    source,
+                )
                 if not source_complete:
                     complete[snapshot] = False
             selection = None

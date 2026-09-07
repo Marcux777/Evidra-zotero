@@ -8,6 +8,8 @@ Migration 015 tracks last access and bytes for reconstructible preview material.
 
 Portable decisions preserve two separate concepts: the latest review event and the retained cell state. Rejecting a competing proposal can leave a previously approved value and proposal intact. CSV derives the displayed value/state/proposal from `decision.new` and retains the event in `decision_action`; backup validation resolves the event target plus old/new proposal references independently. Neither export nor import promotes imported history into local write authority.
 
+Both CSV orientations project local cells only from the selected snapshot. Revisions are compared within that snapshot and field lineage. `snapshot_id` and `source_version` identify the original snapshot and immutable source metadata version. Imported history retains separate rows per original snapshot and import group; it is never treated as a local decision. Source records retain each snapshot association even when their immutable payload is unchanged. A portable archive with a deduplicated source still identifies that source when only one original version exists; ambiguous multi-version associations fail with `CSV_SOURCE_VERSION_AMBIGUOUS`. JSON/backup retain authorized history from every snapshot; CSV selection does not delete that history.
+
 ## Components and ownership
 
 | Component | Responsibility | Current implementation state |
