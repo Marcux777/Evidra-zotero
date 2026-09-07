@@ -64,8 +64,12 @@ class ReadArgs(StrictModel):
     evidence_id: SourceId
 
 
+class ExternalProposalWrite(ProposalWrite):
+    run_id: None = None
+
+
 class ExternalExtraction(StrictModel):
-    proposal: ProposalWrite
+    proposal: ExternalProposalWrite
     declared_model: str | None = Field(default=None, min_length=1, max_length=200)
 
 
@@ -107,7 +111,7 @@ class ExternalNotePage(StrictModel):
 
 
 TOOL_INPUTS: dict[str, type[BaseModel]] = {
-    "get_notebook_status": EmptyArgs,
+    "get_notebook_status": SourceArgs,
     "list_sources": SourceArgs,
     "search_evidence": SearchRequest,
     "read_evidence": ReadArgs,

@@ -13,6 +13,7 @@ import uvicorn
 from fastapi.testclient import TestClient
 from mcp.client import Client
 from mcp.client.stdio import StdioServerParameters
+from test_conversations import indexed
 from test_matrix import setup
 from test_runtime_notebooks import HEADERS, make_app
 
@@ -52,6 +53,15 @@ def test_official_stdio_real_http_sqlite_scope_lifecycle(tmp_path, monkeypatch, 
             assert server.started
             with httpx.Client(base_url=f"http://127.0.0.1:{port}", trust_env=False) as http:
                 prefix, form, proposal = setup(http)
+                _, _, foreign_prefix = indexed(
+                    http,
+                    key="foreign",
+                    item_key="FOREIGN1",
+                    text="reported foreign private evidence",
+                )
+                foreign = http.post(
+                    foreign_prefix + "/search", headers=HEADERS, json={"query": "foreign"}
+                ).json()["items"][0]
                 token = secrets.token_hex(32)
                 created = http.post(
                     prefix + "/mcp/connections",
@@ -95,6 +105,24 @@ def test_official_stdio_real_http_sqlite_scope_lifecycle(tmp_path, monkeypatch, 
                         ).is_error
                         assert not (
                             await client.call_tool("search_evidence", {"query": "reported"})
+                        ).is_error
+                        assert (
+                            await client.call_tool("search_evidence", {"query": "foreign"})
+                        ).structured_content["items"] == []
+                        assert (
+                            await client.call_tool(
+                                "read_evidence", {"evidence_id": foreign["evidence_id"]}
+                            )
+                        ).is_error
+                        assert (
+                            await client.call_tool(
+                                "propose_note",
+                                {
+                                    "text": "Foreign draft",
+                                    "evidence_ids": [foreign["evidence_id"]],
+                                    "idempotency_key": "foreign",
+                                },
+                            )
                         ).is_error
                         assert not (
                             await client.call_tool(
@@ -231,6 +259,10 @@ def test_official_stdio_real_http_sqlite_scope_lifecycle(tmp_path, monkeypatch, 
                 captured = capfd.readouterr()
                 assert token not in captured.out + captured.err + json.dumps(frames)
                 assert TOKEN not in captured.out + captured.err + json.dumps(frames)
+                (tmp_path / "stdio-wire.json").write_text(
+                    json.dumps(frames, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+                (tmp_path / "stdio-diagnostics.txt").write_text(captured.err, encoding="utf-8")
         finally:
             server.should_exit = True
             thread.join(timeout=10)

@@ -27,6 +27,11 @@ export type ConversationCommand = components['schemas']['ConversationCommand'];
 export type MatrixCommand = components['schemas']['MatrixCommand'];
 export type JobCommand = components['schemas']['JobCommand'];
 export type ResearchCommand = components['schemas']['ResearchCommand'];
+export type McpCommand = components['schemas']['McpCommand'];
+export type McpSetup = components['schemas']['McpSetup'];
+export type ConnectionPage = components['schemas']['ConnectionPage'];
+export type ExternalNote = components['schemas']['ExternalNote'];
+export type ExternalNotePage = components['schemas']['ExternalNotePage'];
 export type ProtocolVersion = components['schemas']['ProtocolVersion'];
 export type ProtocolWrite = components['schemas']['ProtocolWrite'];
 export type ProtocolPage = components['schemas']['ProtocolPage'];
@@ -147,7 +152,7 @@ export type UiMessage = {
     op: 'sources.create'; notebook_id: string; request: SnapshotCreate;
 } | {
     op: 'sources.revoke'; notebook_id: string; source_id: string; expected_revision: number;
-} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand | ResearchCommand;
+} | DocumentCommand | ConversationCommand | ProviderCommand | MatrixCommand | JobCommand | ResearchCommand | McpCommand;
 export interface UiBridge {
     request(message: UiMessage): Promise<unknown>;
 }

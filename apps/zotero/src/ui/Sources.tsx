@@ -7,6 +7,7 @@ import { Conversation } from './Conversation';
 import { Matrix } from './Matrix';
 import { Jobs } from './Jobs';
 import { Research } from './Research';
+import { Mcp } from './Mcp';
 import type { QuestionTarget, VisualSelection } from './Conversation';
 
 const sameIdentity = (a: SourceIdentity, b: SourceIdentity) => a.profile_instance_id === b.profile_instance_id && a.library_id === b.library_id && a.item_key === b.item_key;
@@ -187,6 +188,7 @@ export function Sources({ bridge, notebook, locale, onRevision, profilesEpoch = 
             <Conversation key={`conversation:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch} target={questionTarget} preview={visualSelection}/>
             <Jobs key={`jobs:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch}/>
             <Matrix key={`matrix:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/>
-            <Research key={`research:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch}/></div>}
+            <Research key={`research:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale} profilesEpoch={profilesEpoch}/>
+            <Mcp key={`mcp:${snapshot.id}:${documentEpoch}`} bridge={bridge} notebook_id={notebook.id} snapshot_id={snapshot.id} locale={locale}/></div>}
     </section>;
 }

@@ -17,6 +17,11 @@ function allowedEngineRoute(method: string, path: string): boolean {
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
     const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
     if (documentPath && (method === 'POST' && !page && (
+        documentPath === '/mcp/connections' || /^\/mcp\/connections\/[a-f0-9]{32}\/revoke$/.test(documentPath)
+        || /^\/mcp\/notes\/[a-f0-9]{32}\/review$/.test(documentPath))
+        || method === 'GET' && (documentPath === '/mcp/connections' && limit === '20'
+            || documentPath === '/mcp/notes' && limit === '1'))) return true;
+    if (documentPath && (method === 'POST' && !page && (
         ['/protocols', '/screening/decisions', '/research/runs', '/notes/previews', '/notes/approve'].includes(documentPath)
         || /^\/research\/runs\/[a-f0-9]{32}\/control$/.test(documentPath)
         || /^\/artifacts\/[a-f0-9]{32}\/review$/.test(documentPath)
@@ -145,6 +150,10 @@ export class EngineController {
     #startTask: Promise<void> | null = null;
     constructor(platform: EnginePlatform, profile: string) { this.#platform = platform; this.#profile = profile; }
     view() { return { state: this.#state, engine: this.#preview, error: this.#error }; }
+    mcpExecutable() {
+        if (this.#state !== 'running' || !this.#root) throw new Error('ENGINE_NOT_RUNNING');
+        return this.#root.replace(/[\\/]$/, '') + '\\evidra-engine.exe';
+    }
     async choose(root: string) { if (this.#state === 'starting' || this.#state === 'running')
         throw new Error('ENGINE_ALREADY_RUNNING'); this.#root = root; return this.verify(); }
     async verify() { if (!this.#root)

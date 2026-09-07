@@ -28,7 +28,7 @@ from evidra.storage.note_html import note_html
 
 class OutboxService:
     def __init__(
-        self, research: ResearchService, external: ExternalNoteService | None = None
+        self, research: ResearchService, external: ExternalNoteService
     ) -> None:
         self.research, self.scopes = research, research.scopes
         self.external = external
@@ -36,10 +36,7 @@ class OutboxService:
     def artifact(
         self, conn: sqlite3.Connection, context: ScopeContext, identity: str
     ) -> ArtifactVersion | ExternalNote:
-        if (
-            self.external is not None
-            and conn.execute("SELECT 1 FROM external_notes WHERE id=?", (identity,)).fetchone()
-        ):
+        if conn.execute("SELECT 1 FROM external_notes WHERE id=?", (identity,)).fetchone():
             return self.external.from_connection(conn, context, identity)
         return self.research.artifact_from_connection(conn, context, identity)
 

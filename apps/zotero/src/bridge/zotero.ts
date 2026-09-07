@@ -3,6 +3,8 @@ import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
 import { DocumentBridge } from './documents';
 import { NoteBridge } from './notes';
+import { McpCredentials } from './mcp';
+import type { McpSetup } from './types';
 import { providerCommand } from './conversations';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
@@ -16,6 +18,7 @@ export class ZoteroBridge {
     #engine: EngineController | null = null;
     #sources: SourceBridge | null = null;
     #notes: NoteBridge | null = null;
+    #mcpCredentials: McpCredentials | null = null;
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
@@ -64,6 +67,15 @@ export class ZoteroBridge {
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
+        if (message.op.startsWith('mcp.')) {
+            const command = message as import('./types').McpCommand;
+            const token = command.op === 'mcp.create'
+                ? (this.#mcpCredentials ??= new McpCredentials(this.#g.crypto)).forCommand(command) : null;
+            const transport = { stop: () => engine.stop(), request: (method: 'GET' | 'POST', path: string, body?: unknown) => engine.request(method, path,
+                token && method === 'POST' && path.endsWith('/mcp/connections') ? { ...(body as object), token } : body) };
+            const result = await new DocumentBridge(this.#g.Zotero, sources(), transport, this.#g.crypto, this.#g.plainText).dispatch(command);
+            return command.op === 'mcp.create' ? { ...(result as Omit<McpSetup, 'executable'>), executable: engine.mcpExecutable() } satisfies McpSetup : result;
+        }
         if (message.op === 'research.notes.publish') {
             const sourceBridge = sources();
             this.#notes ??= new NoteBridge(this.#g.Zotero, sourceBridge, engine, this.#g.crypto,
@@ -113,6 +125,7 @@ export class ZoteroBridge {
             case 'engine.verify': return engine.verify();
             case 'engine.start':
                 this.#sources?.shutdown(); this.#sources = null; this.#notes = null;
+                this.#mcpCredentials?.clear();
                 await engine.start(message.fingerprint, message.consent);
                 this.#setupError = null;
                 return engine.view();
@@ -216,6 +229,6 @@ export class ZoteroBridge {
         return cleanup;
     }
     async shutdown() { for (const cleanup of this.#frames)
-        cleanup(); this.#sources?.shutdown(); this.#sources = null; await this.#engine?.stop(); this.#engine = null; }
+        cleanup(); this.#sources?.shutdown(); this.#sources = null; this.#mcpCredentials?.clear(); await this.#engine?.stop(); this.#engine = null; }
 }
 export function publicCode(error: unknown): string { return error instanceof Error && /^[A-Z_]{1,80}$/.test(error.message) ? error.message : 'OPERATION_FAILED'; }

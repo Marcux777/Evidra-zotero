@@ -5,6 +5,8 @@ import { conversationCommand } from './conversations';
 import { matrixCommand } from './matrix';
 import { jobCommand } from './jobs';
 import { researchCommand } from './research';
+import { mcpCommand } from './mcp';
+import type { McpCommand } from './types';
 import type { ResearchCommand } from './types';
 import type { JobCommand, MatrixCommand } from './types';
 import { identityKey } from '../sources/resolver';
@@ -27,8 +29,10 @@ export class DocumentBridge {
         return item;
     }
 
-    async dispatch(message: DocumentCommand | ConversationCommand | MatrixCommand | JobCommand | Exclude<ResearchCommand, { op: 'research.notes.publish' }>): Promise<unknown> {
+    async dispatch(message: DocumentCommand | ConversationCommand | MatrixCommand | JobCommand | McpCommand | Exclude<ResearchCommand, { op: 'research.notes.publish' }>): Promise<unknown> {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
+        if (message.op === 'mcp.revoke' || message.op === 'mcp.connections')
+            return mcpCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
         if (message.op === 'research.run' || message.op === 'research.runs'
             || message.op === 'research.control' && message.request.action !== 'start')
             return researchCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
@@ -63,6 +67,7 @@ export class DocumentBridge {
             if (message.op.startsWith('conversation.')) return conversationCommand(message as ConversationCommand, request);
             if (message.op.startsWith('matrix.')) return matrixCommand(message as MatrixCommand, request);
             if (message.op.startsWith('jobs.')) return jobCommand(message as JobCommand, request);
+            if (message.op.startsWith('mcp.')) return mcpCommand(message as McpCommand, request);
             if (message.op.startsWith('research.')) return researchCommand(message as Exclude<ResearchCommand, { op: 'research.notes.publish' }>, request);
             switch (message.op) {
                 case 'documents.list': return request('GET', `/documents?offset=${message.offset}&limit=50`);

@@ -98,6 +98,9 @@ test('controller requires current consent, validates receipt, hides credential, 
     const notebook = '/v1/notebooks/11111111-1111-4111-8111-111111111111';
     const snapshot = `${notebook}/snapshots/${'a'.repeat(32)}`;
     const requiredRoutes: ['GET' | 'POST' | 'PUT' | 'DELETE', string][] = [
+        ['POST', `${snapshot}/mcp/connections`], ['GET', `${snapshot}/mcp/connections?offset=0&limit=20`],
+        ['POST', `${snapshot}/mcp/connections/${'f'.repeat(32)}/revoke`],
+        ['GET', `${snapshot}/mcp/notes?offset=0&limit=1`], ['POST', `${snapshot}/mcp/notes/${'f'.repeat(32)}/review`],
         ['GET', `${snapshot}/protocols?offset=0&limit=1`], ['POST', `${snapshot}/protocols`],
         ['GET', `${snapshot}/protocols/${'f'.repeat(32)}`], ['GET', `${snapshot}/screening/${'f'.repeat(32)}?offset=0&limit=20`],
         ['POST', `${snapshot}/screening/decisions`], ['GET', `${snapshot}/research/runs?offset=0&limit=20`],
@@ -158,6 +161,8 @@ test('controller requires current consent, validates receipt, hides credential, 
         expect(new Headers(sent.init.headers).get('X-Evidra-Client')).toBe('bridge');
     }
     const rejectedRoutes: [string, string][] = [
+        ['POST', '/v1/mcp/gateway/propose_note'], ['GET', `${snapshot}/mcp/connections?offset=0&limit=100`],
+        ['GET', `${snapshot}/mcp/connections/${'f'.repeat(32)}/token`], ['POST', `${snapshot}/mcp/notes/${'f'.repeat(32)}/apply`],
         ['GET', `${snapshot}/notes/outbox?offset=0&limit=20`], ['GET', `${snapshot}/research/runs?offset=0&limit=50`],
         ['GET', `${snapshot}/notes/outbox/${'f'.repeat(32)}/begin`], ['POST', `${snapshot}/artifacts/${'f'.repeat(32)}`],
         ['POST', `${snapshot}/notes/outbox/${'f'.repeat(32)}/delete`], ['POST', `${snapshot}/research/runs/${'f'.repeat(32)}/control?offset=0&limit=20`],

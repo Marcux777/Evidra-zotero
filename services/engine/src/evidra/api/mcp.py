@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 from fastapi import APIRouter, Query, Request
 
 from evidra.api.documents import services
-from evidra.domain.documents import Evidence, SearchPage, SearchRequest
+from evidra.domain.documents import DocumentPage, Evidence, SearchPage, SearchRequest
+from evidra.domain.errors import EvidraError
 from evidra.domain.sources import SnapshotSourcePage
 from evidra.extraction.models import ExtractionProposal, FormVersion, MatrixPage, MatrixQuery, Write
 from evidra.mcp.models import (
@@ -46,7 +47,8 @@ class McpNotebookStatus(StrictModel):
     available_sources: int
     snapshot_members: int
     capabilities: list[str]
-    evidence_max_characters: int = 4000
+    coverage: DocumentPage
+    evidence_max_characters: int = 2400
     request_max_bytes: int = 65536
 
 
@@ -103,9 +105,10 @@ def context_for(request: Request, commit: bool = False) -> ScopeContext:
 
 
 @router.post(GATEWAY + "/get_notebook_status", response_model=McpNotebookStatus)
-def status(body: EmptyArgs, request: Request) -> McpNotebookStatus:
+def status(body: SourceArgs, request: Request) -> McpNotebookStatus:
     context = context_for(request)
     scopes = engine(request).scopes
+    coverage = engine(request).evidence.documents(context, body.offset, body.limit)
     with scopes.guarded(context) as conn:
         notebook = scopes.notebook(conn, context.principal, context.notebook_id)
         count = conn.execute(
@@ -122,6 +125,7 @@ def status(body: EmptyArgs, request: Request) -> McpNotebookStatus:
                 "read",
                 *(["propose"] if "commit" in context.principal.capabilities else []),
             ],
+            coverage=coverage,
         )
 
 
@@ -140,7 +144,10 @@ def search(body: SearchRequest, request: Request) -> SearchPage:
 
 @router.post(GATEWAY + "/read_evidence", response_model=Evidence)
 def read(body: ReadArgs, request: Request) -> Evidence:
-    return engine(request).evidence.read(context_for(request), body.evidence_id)
+    evidence = engine(request).evidence.read(context_for(request), body.evidence_id)
+    if len(evidence.excerpt) > 2400:
+        raise EvidraError("BODY_TOO_LARGE", "Evidence exceeds the bounded excerpt limit.")
+    return evidence
 
 
 @router.post(GATEWAY + "/get_protocol", response_model=McpProtocol)

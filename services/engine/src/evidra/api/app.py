@@ -98,6 +98,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             job_worker = JobWorker(jobs)
             protocols = ProtocolService(forms)
             research = ResearchService(ResearchPlanner(protocols, matrix, lexical), providers)
+            external_notes = ExternalNoteService(evidence)
             app.state.services = Services(
                 database,
                 session,
@@ -119,9 +120,9 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 protocols,
                 ScreeningService(protocols),
                 research,
-                OutboxService(research, ExternalNoteService(evidence)),
+                OutboxService(research, external_notes),
                 ConnectionService(scopes),
-                ExternalNoteService(evidence),
+                external_notes,
             )
             yield
         finally:

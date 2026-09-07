@@ -10,6 +10,7 @@ from evidra.conversations.commands import ConversationCommand, ProviderCommand
 from evidra.extraction.commands import MatrixCommand
 from evidra.jobs.models import JobCommand
 from evidra.research.commands import ResearchCommand
+from evidra.mcp.commands import McpCommand, McpSetup
 from evidra.conversations.models import EventPage
 from evidra.providers.models import EmbeddingBatch, GenerationEvent, GenerationRequest
 from evidra.security.runtime import RuntimeSettings
@@ -24,7 +25,7 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
-for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, EventPage):
+for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, EventPage, McpSetup):
     provider_schema = provider_model.model_json_schema()
     schema["components"]["schemas"].update(provider_schema.pop("$defs", {}))
     schema["components"]["schemas"][provider_model.__name__] = provider_schema
@@ -32,7 +33,7 @@ documents = TypeAdapter(DocumentCommand).json_schema()
 (destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
 schema["components"]["schemas"].update(documents.pop("$defs"))
 schema["components"]["schemas"]["DocumentCommand"] = documents
-for name, command in [("conversation", ConversationCommand), ("provider", ProviderCommand), ("matrix", MatrixCommand), ("job", JobCommand), ("research", ResearchCommand)]:
+for name, command in [("conversation", ConversationCommand), ("provider", ProviderCommand), ("matrix", MatrixCommand), ("job", JobCommand), ("research", ResearchCommand), ("mcp", McpCommand)]:
     commands = TypeAdapter(command).json_schema()
     (destination / f"{name}-command.schema.json").write_text(json.dumps(commands, indent=2) + "\n", encoding="utf-8")
     schema["components"]["schemas"].update(commands.pop("$defs"))

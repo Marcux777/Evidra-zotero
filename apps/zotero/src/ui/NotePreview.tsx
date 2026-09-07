@@ -4,7 +4,7 @@ import type { ApprovedWriteOutbox, ArtifactVersion, NotePreview as Preview, Outb
 import { catalog } from './i18n';
 import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope } from './research-actions';
 
-export function NotePreview(props: ResearchScope & { artifact: ArtifactVersion; preview: ResearchPreview }) {
+export function NotePreview(props: ResearchScope & { artifact: Pick<ArtifactVersion, 'id' | 'revision'>; preview: { inputs: Pick<ResearchPreview['inputs'], 'studies'> } }) {
     const { bridge, notebook_id, snapshot_id, locale, artifact, preview } = props, scope = { notebook_id, snapshot_id }, t = catalog(locale).research;
     const [title, setTitle] = useState(''), [source, setSource] = useState(preview.inputs.studies[0]?.source_id ?? ''), [offset, setOffset] = useState(0);
     const [note, setNote] = useState<Preview | null>(null), [intent, setIntent] = useState<ApprovedWriteOutbox | null>(null);
