@@ -1,5 +1,13 @@
 # Authorized local model test environment
 
+## Final authorized configuration and outcomes — 2026-09-07
+
+After explicit user approval, the final native attempts used think=true, temperature0, seed7, max_output_tokens16384 and num_ctx32768 (extraction/screening) or40960 (synthesis/audit). Models, digests, prompts, evidence and validators stayed fixed. The portable loopback service and full NVIDIA placement were checked before generation; no precision/model substitution or paid provider was used.
+
+Both extraction units completed (accuracy87.5; repetitions=null/NOT_REPORTED_CANDIDATE) and remained unreviewed. Synthesis and audit yielded partial, unreviewed artifacts. Screening remained FAILED/INVALID_OUTPUT: exact diagnostic JSON parsed successfully, but the model proposed EXCLUDE with no abstract, violating the required uncertainty guard. Usage for each native call was CONFIRMED; cost stayed null. Earlier think=false and4096-token failures remain failures. See the final checkpoint in [TEST_REPORT.md](TEST_REPORT.md) for call counts, actual tokens and causal receipts.
+
+The last separately approved screening diagnostic ran once and performed no ledger writes. The subsequent note recovery/restart required no model calls. No additional model run is pending. Recheck current service identity and compute ownership before any future reuse; saved PIDs are historical observations. Full external-network isolation remains unverified. The original installation/smoke record below is historical.
+
 The user authorized installing a local model service for integration validation on 2026-09-05. The root installed the official portable Ollama distribution and two public models. This authorization covers synthetic local integration tests; it does not authorize paid APIs, discovering credentials, or processing the personal Zotero library.
 
 ## Installation and ownership

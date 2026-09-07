@@ -1,6 +1,20 @@
 # Evidra implementation state
 
-## Current package-4 native checkpoint — 2026-09-07
+## Current package-5 handoff — 2026-09-07 23:42Z
+
+All currently feasible authorized host work is finished. Full v1 acceptance remains incomplete: **27 VERIFIED_WITH_FIXTURES, six bounded VERIFIED_LIVE, three PARTIAL**. The remaining gates are A25 execution with external networking blocked, A29 an actual Windows file symlink (WinError1314), and A33 a clean Windows host without development runtimes. The user has only this host; no security/privilege changes or VM were authorized. See [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md).
+
+Package5 at `.local/task12/package-5/` contains source `1b7c3f822175e7eac79da7f6ec3321f6aebf0f3a`. The native note bridge now accounts for Zotero's removal of the stored outer note wrapper when computing the approved checksum. Existing regression coverage reproduced the failure, then passed all three cases; TypeScript passed. Actual recovery and a second normal restart passed 32 checks, retaining the same note56/ZGFGJQIR and COMPLETE outbox without another note or generation. The controller reviewed this bounded correction; it is not a new independent whole-branch review.
+
+XPI SHA-256: `9a513efb403294ee1de7e358d8988b97334cd780310143cbe716f56305a15d25`. Engine ZIP: `5787c7b229a2da1f960afc6f8c57f6ae03d3067edf77c90a684f857caa6881e6`. The engine is reused byte-for-byte from package4: only the note bridge and its existing test changed among all 299 declared inputs; all 597 engine entries were verified. Source and binary manifests retain their build revision; the final documentation snapshot is bound separately. Follow [INSTALL_WINDOWS.md](INSTALL_WINDOWS.md).
+
+The explicitly authorized think=true runs completed both extraction units: accuracy87.5 with original evidence and repetitions=null/NOT_REPORTED_CANDIDATE. They remained UNREVIEWED and did not replace the approved matrix. The real JSON export, restarted persisted results and original PDF Reader were verified, closing bounded A36. Synthesis and audit produced PARTIAL, UNREVIEWED artifacts. Screening correctly rejected the model's EXCLUDE proposal because the abstract was absent; the exact diagnostic confirmed the domain guard, with no validator relaxation or retry. A corrected synthesis version removed unsupported adequacy/generalization assertions before the explicitly approved synthetic note was created. Original failed calls and original artifacts remain intact.
+
+The synthetic Zotero host40424 closed normally at23:41:50Z. Its engine is absent; probe0.1.83 is preserved outside the profile, exact package5 remains installed, and preferences were preserved. The personal profile was not modified. No new push or publication was performed. Full receipts, model limits and helper failures are in [TEST_REPORT.md](TEST_REPORT.md).
+
+Everything below is historical, including its earlier current/next/pending statements.
+
+## Historical package-4 native checkpoint — 2026-09-07
 
 Source `032ec82` and `c2ae541` implements verified original HTML/EPUB structure and passive embedded images, exact XML/plain/source text, and citation-based EPUB resource navigation. Independent scoped review closed F2 with no remaining Critical/Important finding in that increment. Package4 was built from clean `c2ae5413512755f9ad7b4fd1701c8b5a14702a23`; `.local/task12/package-4-source-binding.json` binds 299 source inputs and 597 engine entries. XPI SHA-256 `46c8050175ce72b18450b7086eb1fcd432e57327f77c116073131bb06962cd7e`; Windows engine ZIP SHA-256 `5787c7b229a2da1f960afc6f8c57f6ae03d3067edf77c90a684f857caa6881e6`.
 

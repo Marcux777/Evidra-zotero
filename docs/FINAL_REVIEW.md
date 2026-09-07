@@ -1,4 +1,18 @@
-# Current original-view source and native review — 2026-09-07
+# Final source and native review — 2026-09-07
+
+## Final host review and package-5 handoff — 2026-09-07
+
+**All feasible work on the authorized development host is complete; full v1 acceptance is still blocked by A25/A29/A33.** The final classification is27 fixture-verified, six bounded live and three partial. A36 now has successful native extraction, persisted unreviewed proposals, unchanged approved matrix, original PDF evidence and a real saved JSON export. This is a bounded synthetic flow; no scientific endorsement of model output is implied.
+
+Source `1b7c3f8` fixes the last observed product defect: Zotero's getNote removes the stored wrapper, causing an intact approved note to be refused as OUTBOX_NOTE_CHANGED. The bridge reconstructs the exact known wrapper for comparison, retaining the existing identity, parent, tags and hash checks. The existing native bridge regression failed before the fix (two failures), then passed3/3; TypeScript passed. Package5 source binding verifies299 inputs and597 engine entries. Its engine is byte-identical to package4. Controller source review: `.superpowers/sdd/IMPLEMENTATION_PLAN/note-wrapper-controller-review.md` (SHA-256 `c7df61724fe0a5a8cb3d9de86b19721573ae935b930e0ed79f805067a7930c10`). This bounded correction has controller review, not another independent review.
+
+Actual package5 recovery and restart each passed16 checks: the same note56/ZGFGJQIR, exact approved HTML, COMPLETE outbox and idempotent reconciliation survived normal restart without duplication. Summary SHA-256 `6f7e19c5fa33cde26c0e6affa1c312252e4b87bfbd6d5b8452ed0dcdb6140805`. Both hosts closed normally with no owned engine remaining. The controller inspected both saved native completed-note captures.
+
+The authorized think=true runs also produced synthesis/audit artifacts with explicit partial coverage and human-review requirements. The original screening remains FAILED: its proposal violated missing-abstract uncertainty and was correctly rejected. The synthesis was corrected before synthetic note approval; the audit remains unreviewed. All original generation/helper failures are preserved in [TEST_REPORT.md](TEST_REPORT.md). No complete-v1 approval, blocked-network test, file-symlink success or clean-Windows result is claimed.
+
+All review/checkpoint text below is historical and is superseded by this handoff where outcomes changed.
+
+## Historical original-view source and native review
 
 **F1 and F2 are addressed; full specification v1 acceptance remains incomplete.** F1's actual-controller route correction is in `4fbc836`. Commits `032ec82` and `c2ae541` implement F2 with verified original structure, passive figures, exact source text and citation-based EPUB resource selection. The independent report `.superpowers/sdd/IMPLEMENTATION_PLAN/original-rendering-final-review.md` (SHA-256 `95985b0baddb8f3d46b94331b142a2fc5005aa2839b8533022ec41f2eae6b5ea`) approved the scoped source after inspecting its complete verification evidence. The source binding lists all 33 changed inputs.
 

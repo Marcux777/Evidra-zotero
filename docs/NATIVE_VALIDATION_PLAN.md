@@ -1,5 +1,13 @@
 # Authorized native validation operation
 
+## Final executed checkpoint — 2026-09-07 23:42Z
+
+The authorized synthetic host work is complete. Package5 at `.local/task12/package-5/`, source1b7c3f8, is the final installed test artifact; XPI SHA-256 `9a513efb403294ee1de7e358d8988b97334cd780310143cbe716f56305a15d25`. Its engine is byte-identical to package4. The exact package/source binding, model outcomes, original failed helpers and bounded native acceptance are in [TEST_REPORT.md](TEST_REPORT.md).
+
+Successful extraction/readback/original-PDF/export closes bounded A36. Corrected-note recovery and restart passed32 checks with no duplication. Last owned host40424 exited normally at23:41:50Z and its engine is absent. Probe0.1.83 was preserved outside the isolated profile; preferences are unchanged and the personal profile was not modified. The authoritative final chain is `resumed-native-note-complete-restart-{preparation,receipt,close-receipt,probe-disabled,engines-after-close}.json` under `.local/native-smoke/`.
+
+A25 external-network-blocked execution, A29 actual Windows file symlink and A33 clean Windows remain unavailable in the authorized environment. They must not be marked verified by another ordinary run on this development host. No repeat model/native work is currently pending; future execution needs a concrete changed input or available prerequisite. Everything below describes historical preparation and execution.
+
 The user explicitly authorized this isolated test on2026-09-05: “Autorizo esse teste isolado”. The first attempt with revision `4240646b318ad2b2a4306f85c4f00b6bbb549b35` failed before bootstrap because the XPI omitted Zotero's mandatory HTTPS update metadata; see `.local/native-smoke/task2-install-failure.json`. The test instance was closed normally. A corrected artifact must pass source review and have its exact hash pinned before the next attempt. The original preparation receipt is `.local/task-2/native-smoke-preparation.json`.
 
 ## Exact target and isolation
