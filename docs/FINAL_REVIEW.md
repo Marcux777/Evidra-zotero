@@ -1,4 +1,12 @@
-# Resumed source review — 2026-09-07
+# Current original-view source and native review — 2026-09-07
+
+**F1 and F2 are addressed; full specification v1 acceptance remains incomplete.** F1's actual-controller route correction is in `4fbc836`. Commits `032ec82` and `c2ae541` implement F2 with verified original structure, passive figures, exact source text and citation-based EPUB resource selection. The independent report `.superpowers/sdd/IMPLEMENTATION_PLAN/original-rendering-final-review.md` (SHA-256 `95985b0baddb8f3d46b94331b142a2fc5005aa2839b8533022ec41f2eae6b5ea`) approved the scoped source after inspecting its complete verification evidence. The source binding lists all 33 changed inputs.
+
+Package4 from exact `c2ae5413512755f9ad7b4fd1701c8b5a14702a23` then passed 57 actual native original-view/layout checks and composed plugin lifecycle acceptance. The controller verified complete receipts, artifact hashes, native images and teardown. Original-view summary SHA-256 `ba8cd17d64e7b84bf3b9787a461d8370f291cde78bc1232b329b777d9c727e90`; lifecycle summary SHA-256 `22aee653bea24d4caf36e67354434cf6ade52ad347e068e5f9418897b2de7fef`. These close the original-document implementation gap and bounded A01/A12 validation. They do not reproduce publisher CSS layout or establish successful native model extraction, external-network isolation, clean Windows or complete accessibility. See [TEST_REPORT.md](TEST_REPORT.md), [TEXT_ATTACHMENTS.md](TEXT_ATTACHMENTS.md) and the seven partial rows in [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md).
+
+The reviews below retain their original findings as historical evidence; their old open-F2 statements have been superseded.
+
+# Historical resumed source review — 2026-09-07
 
 **Specification v1 remains incomplete.** The 21-file review at 63b52f3 found F1 (EngineController route omission) and F2 (the extracted-text inspector does not open the original HTML/XML/EPUB representation). F1 is corrected in 4fbc836 with an actual-controller RED/GREEN regression. F2 remains Important; its implementation is the next source increment. The inspector and scoped CSS have no other established quality finding, but no new native acceptance or package approval is inferred.
 
