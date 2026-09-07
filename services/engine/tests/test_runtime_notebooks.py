@@ -235,11 +235,12 @@ def test_database_backup_rollback_future_schema_and_close(
                 ),
             )
         }
+    target_version = storage.SCHEMA_VERSION
     database = storage.Database(path)
     with database.transaction() as connection:
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == target_version
         initial = connection.execute("SELECT initial_snapshot_id FROM notebooks WHERE id='legacy'")
         assert initial.fetchone()[0] == "old"
         for table, expected in preserved.items():
@@ -263,29 +264,29 @@ def test_database_backup_rollback_future_schema_and_close(
         assert (
             connection.execute("SELECT COUNT(*) FROM sources WHERE available=1").fetchone()[0] == 0
         )
-    with sqlite3.connect(tmp_path / "db.before-v5.sqlite3") as before:
+    with sqlite3.connect(tmp_path / f"db.before-v{target_version}.sqlite3") as before:
         assert before.execute("PRAGMA user_version").fetchone()[0] == legacy_version
         assert before.execute("SELECT COUNT(*) FROM notebooks").fetchone()[0] == 1
     with pytest.raises(sqlite3.IntegrityError), database.transaction() as connection:
         connection.execute("INSERT INTO snapshots VALUES ('s','p','missing','now',1)")
     database.backup(tmp_path / "copy.sqlite3")
     with sqlite3.connect(tmp_path / "copy.sqlite3") as backup:
-        assert backup.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == target_version
     database.close()
     with pytest.raises(EvidraError, match="closed"), database.transaction():
         pass
     migration_dir = tmp_path / "migrations"
     migration_dir.mkdir()
-    (migration_dir / "006_initial.sql").write_text(
+    (migration_dir / f"{target_version + 1:03d}_initial.sql").write_text(
         "CREATE TABLE should_rollback (id TEXT);\nINVALID SQL;\n", encoding="utf-8"
     )
     with monkeypatch.context() as patch:
-        patch.setattr(storage, "SCHEMA_VERSION", 6)
+        patch.setattr(storage, "SCHEMA_VERSION", target_version + 1)
         patch.setattr(storage, "files", lambda package: migration_dir)
         with pytest.raises(sqlite3.OperationalError):
             storage.Database(path)
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == target_version
         assert (
             connection.execute(
                 "SELECT name FROM sqlite_master WHERE name='should_rollback'"
@@ -293,7 +294,7 @@ def test_database_backup_rollback_future_schema_and_close(
             is None
         )
         connection.execute("PRAGMA user_version=999")
-    assert (tmp_path / "db.before-v5.sqlite3").exists()
+    assert (tmp_path / f"db.before-v{target_version}.sqlite3").exists()
     with pytest.raises(EvidraError, match="newer engine"):
         storage.Database(path)
 

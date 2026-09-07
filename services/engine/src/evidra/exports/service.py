@@ -6,6 +6,7 @@ import json
 import secrets
 import sqlite3
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
@@ -13,6 +14,7 @@ from threading import RLock
 from pydantic import TypeAdapter
 
 from evidra.documents.registry import open_verified
+from evidra.domain.documents import Evidence
 from evidra.domain.errors import EvidraError
 from evidra.domain.sources import ContentIdentity, Source, SourceAccess, content_version
 from evidra.evidence.service import EvidenceService
@@ -43,6 +45,7 @@ from evidra.exports.models import (
     ManifestFile,
     Omission,
     PortableNotebook,
+    PortableRecord,
     SourceRecord,
     SourceRemap,
     UploadCreate,
@@ -98,7 +101,7 @@ class ExportService:
         self._uploads: dict[str, Upload] = {}
         self._lock = RLock()
 
-    def _reserve(self, mapping: dict) -> None:
+    def _reserve(self, mapping: Mapping[str, object]) -> None:
         # Bounded per-engine staging, with explicit discard UI; do not evict a pending
         # idempotent operation silently. Restart drops these ephemeral bytes.
         if len(mapping) >= 8:
@@ -106,7 +109,9 @@ class ExportService:
                 "BODY_TOO_LARGE", "Discard an existing transfer before starting another (limit 8)."
             )
 
-    def _lookup(self, mapping: dict, identity: str, context: ScopeContext):
+    def _lookup[T: (PreparedExport, Upload)](
+        self, mapping: dict[str, T], identity: str, context: ScopeContext
+    ) -> T:
         value = mapping.get(identity)
         if (
             value is None
@@ -328,6 +333,7 @@ class ExportService:
                     raise EvidraError(
                         "IDEMPOTENCY_CONFLICT", "This preview already has an export operation."
                     )
+                assert prepared.artifact is not None
                 return prepared.artifact
             if prepared.options.format in BIBLIOGRAPHY:
                 raise EvidraError(
@@ -700,7 +706,9 @@ class ExportService:
                 )
                 return result
 
-    def _history(self, context: ScopeContext, identity: str | None = None):
+    def _history(
+        self, context: ScopeContext, identity: str | None = None
+    ) -> tuple[list[PortableRecord], list[Omission]]:
         records, omissions = [], []
         with self.scopes.guarded(context) as conn:
             query = (
@@ -708,7 +716,7 @@ class ExportService:
                 "FROM imported_records r JOIN imported_notebooks i ON i.id=r.import_id "
                 "WHERE i.notebook_id=? AND i.snapshot_id=?"
             )
-            args: tuple = (context.notebook_id, context.snapshot_id)
+            args: tuple[str, ...] = (context.notebook_id, context.snapshot_id)
             if identity is not None:
                 self._import(conn, context, identity)
                 query += " AND i.id=?"
@@ -750,7 +758,7 @@ class ExportService:
                 )
         return records, omissions
 
-    def _imported_files(self, context: ScopeContext):
+    def _imported_files(self, context: ScopeContext) -> list[tuple[ManifestFile, bytes]]:
         files = []
         with self.scopes.guarded(context) as conn:
             for row in conn.execute(
@@ -767,8 +775,10 @@ class ExportService:
                     files.append((ManifestFile.model_validate_json(value[0]), value[1]))
         return files
 
-    def _import(self, conn: sqlite3.Connection, context: ScopeContext, identity: str):
-        row = conn.execute(
+    def _import(
+        self, conn: sqlite3.Connection, context: ScopeContext, identity: str
+    ) -> sqlite3.Row:
+        row: sqlite3.Row | None = conn.execute(
             "SELECT payload,mappings FROM imported_notebooks WHERE id=? AND "
             "notebook_id=? AND snapshot_id=?",
             (identity, context.notebook_id, context.snapshot_id),
@@ -860,7 +870,9 @@ class ExportService:
                 )
             return result
 
-    def mapped_evidence(self, context: ScopeContext, identity: str, body: ImportEvidenceReference):
+    def mapped_evidence(
+        self, context: ScopeContext, identity: str, body: ImportEvidenceReference
+    ) -> Evidence:
         records, _ = self._history(context, identity)
         item = next(
             (

@@ -2,6 +2,12 @@
 
 The approved design is implemented in sequential vertical layers. This document describes the boundaries and records which layers currently exist; it is not a completion claim. SPEC.md remains the binding product specification. Decisions are in `docs/adr/` and executed evidence is in TEST_REPORT.md.
 
+Task 12 adds an onedir Windows build with actual input captures, a production package-integrity verifier and runtime dependency notices. `scripts/package.py` binds the XPI and engine ZIP to the exact source bytes and Git revision; `source-inputs.zip` preserves the inspected inputs. `scripts/smoke-package.py` uses the real frozen executable with authenticated loopback HTTP, a private one-use handshake, synthetic evidence/matrix/export data, frozen PDFium parsing and normal heartbeat expiry. The harness controls only its own disposable data and child processes. A PATH-restricted developer machine is recorded separately from a clean Windows installation.
+
+Migration 015 tracks last access and bytes for reconstructible preview material. Configurable derived-cache limits default to 512 MiB total and 100 MiB images; vector retrieval already streams compact CPU blocks without a persistent vector RAM cache. Eviction deletes only cached previews/extraction results, never original document versions, evidence or human decisions. A later preview request returns explicit `PREVIEW_EVICTED` and requires regeneration. SQLite frees reusable pages; this policy does not promise immediate filesystem truncation. The cache configuration is local `cache-settings.json`, parsed with bounded size and strict validation.
+
+Portable decisions preserve two separate concepts: the latest review event and the retained cell state. Rejecting a competing proposal can leave a previously approved value and proposal intact. CSV derives the displayed value/state/proposal from `decision.new` and retains the event in `decision_action`; backup validation resolves the event target plus old/new proposal references independently. Neither export nor import promotes imported history into local write authority.
+
 ## Components and ownership
 
 | Component | Responsibility | Current implementation state |

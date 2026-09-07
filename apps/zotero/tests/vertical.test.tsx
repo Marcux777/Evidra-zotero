@@ -193,7 +193,7 @@ test.each(['click', 'Enter'] as const)('real React notebook command uses %s with
         expect(notebooks).toHaveLength(1);
         expect(host.querySelector('h1')!.textContent).toBe('Revisão de evidências');
         expect(host.textContent).toContain('Revisão de fontes');
-        expect(host.textContent).toContain('Nenhum modelo');
+        expect(host.textContent).toContain('Caderno pronto para trabalho manual.');
         expect(input.value).toBe('');
         expect(host.querySelector('[role="alert"]')).toBeNull();
         expect(submits).toBe(0);

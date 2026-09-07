@@ -11,17 +11,21 @@ from pydantic import BaseModel, ValidationError
 
 from evidra.domain.documents import Evidence
 from evidra.domain.errors import EvidraError
-from evidra.domain.sources import SourceIdentity
+from evidra.domain.sources import Source, SourceIdentity
 from evidra.exports.models import (
     MAX_ARCHIVE_BYTES,
     MAX_DATA_BYTES,
     BackupManifest,
     ManifestFile,
     PortableNotebook,
+    PortablePagePart,
+    PortableRecord,
 )
+from evidra.extraction.models import FormVersion
+from evidra.research.models import ProtocolVersion
 
 
-def digest(value: bytes) -> str:
+def digest(value: bytes | bytearray) -> str:
     return hashlib.sha256(value).hexdigest()
 
 
@@ -179,7 +183,7 @@ def read_backup(value: bytes) -> tuple[PortableNotebook, list[tuple[ManifestFile
 
 def validate_references(notebook: PortableNotebook) -> None:
     """Check identity, immutable original text/offsets and research version relationships."""
-    groups: dict[tuple[str, str, str | None], list] = {}
+    groups: dict[tuple[str, str, str | None], list[PortableRecord]] = {}
     for record in notebook.records:
         groups.setdefault(
             (record.origin_profile_id, record.origin_notebook_id, record.origin_group_id), []
@@ -191,10 +195,14 @@ def validate_references(notebook: PortableNotebook) -> None:
         proposals = {r.data.id: r.data for r in records if r.kind == "proposal"}
         documents = {r.data.id: r.data for r in records if r.kind == "document_version"}
         evidences = {r.data.id: r.data for r in records if r.kind == "evidence"}
-        pages: dict[tuple[str, int], list] = {}
+        pages: dict[tuple[str, int], list[PortablePagePart]] = {}
 
         def nested(
-            value: object, sources=sources, evidences=evidences, forms=forms, protocols=protocols
+            value: object,
+            sources: dict[str, Source] = sources,
+            evidences: dict[str, Evidence] = evidences,
+            forms: dict[str, FormVersion] = forms,
+            protocols: dict[str, ProtocolVersion] = protocols,
         ) -> None:
             # Embedded external-note/research-input evidence is just as original as
             # top-level evidence. A syntactically valid nested quotation is not proof.
@@ -256,10 +264,12 @@ def validate_references(notebook: PortableNotebook) -> None:
             ):
                 raise ValueError("Compound source identity differs")
             if record.kind == "page_part":
-                data = record.data
-                if data.document_version_id not in documents:
+                page_data = record.data
+                if page_data.document_version_id not in documents:
                     raise ValueError("Unresolved document page version")
-                pages.setdefault((data.document_version_id, data.page_index), []).append(data)
+                pages.setdefault((page_data.document_version_id, page_data.page_index), []).append(
+                    page_data
+                )
             if record.kind == "form":
                 if record.data.notebook_id != book or any(
                     origin not in forms for origin in record.data.field_origins.values()
@@ -268,12 +278,12 @@ def validate_references(notebook: PortableNotebook) -> None:
             if record.kind == "protocol" and record.data.form_version_id not in forms:
                 raise ValueError("Unresolved protocol form")
             if record.kind == "proposal":
-                data = record.data
+                proposal_data = record.data
                 if (
-                    data.form_version_id not in forms
-                    or data.field_origin_form_version_id not in forms
-                    or data.source_id not in sources
-                    or any(e not in evidences for e in data.evidence_ids)
+                    proposal_data.form_version_id not in forms
+                    or proposal_data.field_origin_form_version_id not in forms
+                    or proposal_data.source_id not in sources
+                    or any(e not in evidences for e in proposal_data.evidence_ids)
                 ):
                     raise ValueError("Unresolved proposal dependency")
             if record.kind == "decision":

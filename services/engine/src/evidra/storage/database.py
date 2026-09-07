@@ -70,7 +70,8 @@ class Database:
     def read_one(self, query: str, parameters: tuple[object, ...]) -> sqlite3.Row | None:
         """A locked authorization read, also safe inside an existing guarded transaction."""
         with self._lock:
-            return self._connection.execute(query, parameters).fetchone()
+            row: sqlite3.Row | None = self._connection.execute(query, parameters).fetchone()
+            return row
 
     def close(self) -> None:
         with self._lock:
