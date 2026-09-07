@@ -6,7 +6,9 @@ root = Path(SPECPATH).parent
 datas = [(str(root / 'services/engine/src/evidra/storage/migrations'), 'evidra/storage/migrations')]
 datas += collect_data_files('pypdfium2') + collect_data_files('pypdfium2_raw')
 datas += copy_metadata('mcp', recursive=True)
-hidden = ['win32timezone', 'keyring.backends.Windows'] + collect_submodules('mcp')
+# The Evidra stdio server uses the SDK, not the optional Typer-based `mcp` CLI.
+hidden = ['win32timezone', 'keyring.backends.Windows'] + collect_submodules(
+    'mcp', filter=lambda name: name != 'mcp.cli' and not name.startswith('mcp.cli.'))
 a = Analysis([str(root / 'scripts/engine-launcher.py')],
     pathex=[str(root / 'services/engine/src')],
     binaries=[], datas=datas, hiddenimports=hidden, hookspath=[], hooksconfig={},
