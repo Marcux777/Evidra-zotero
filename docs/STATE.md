@@ -1,6 +1,16 @@
 # Evidra implementation state
 
-## Current source and distribution checkpoint — 2026-09-07
+## Current resumed source checkpoint — 2026-09-07
+
+Source `4fbc836` adds the verified extracted-text inspector (`ff390eb`), imported-ID wrapping (`63b52f3`) and the exact EngineController POST route correction. The bounded independent review of all 21 changed inputs at 63b52f3 found the route omission F1 and original-document representation gap F2. F1 is corrected with an actual-controller RED/GREEN regression; F2 remains **Important and open**: displaying the SQLite extraction does not open the original HTML/XML/EPUB representation. The controller is investigating the bundled Zotero Reader interface before the next implementation. No new package or native PASS is claimed.
+
+The criterion audit now distinguishes 26 fixture-verified invariants, bounded native A27, and nine partial criteria; see [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md). New lightweight A02/A10 checks prove grouped-header handling and an actual generator-profile switch without reindexing or a provider call. Successful native model extraction/research, cancellation revalidation, original markup/EPUB opening, the remaining native UI/lifecycle slice, external-network isolation and clean Windows validation are still outstanding. The original incomplete generations remain failures.
+
+The user asked to wait for `ppo-native-development-v2`; it exited normally at 2026-09-07T19:22:53Z. Hardware/ownership was inspected again at 19:48Z. Other benchmark containers have since acquired GPU resources, so model execution still requires an available GPU and the pending explicit output/context budget decisions. No unrelated job was stopped. The successor package4 recipe is prepared but has not run; source F2 is being resolved first. Package3 remains the last built/native-tested distribution, with its separate 08d3cf6 source binding and recorded limitations.
+
+All blocks below are historical checkpoints. Their earlier “current”, “next”, review caps and compute waiting states do not override this resumed work.
+
+## Historical source and distribution checkpoint — 2026-09-07
 
 The final whole-branch fix wave addresses admitted textual attachment ingestion, snapshot-local CSV projection, localized document reasons, operation labels and the failed-keyring database test boundary. Source changes and exact scoped verification are recorded in [.superpowers/sdd/IMPLEMENTATION_PLAN/final-fix-report.md](../.superpowers/sdd/IMPLEMENTATION_PLAN/final-fix-report.md). The independent re-review of `08d3cf6..1f567d1` closed I1/I2 and M1–M4, retained warning debt M5, and identified **Important N1: textual citations still cannot open the original attachment through Evidra**. This is a real A12 implementation gap, not merely a missing native test. See [the final review](FINAL_REVIEW.md). A successor distribution remains pending; this is not a complete-v1 or release-readiness declaration.
 

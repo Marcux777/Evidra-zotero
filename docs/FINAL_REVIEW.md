@@ -1,4 +1,12 @@
-# Final source review — 2026-09-07
+# Resumed source review — 2026-09-07
+
+**Specification v1 remains incomplete.** The 21-file review at 63b52f3 found F1 (EngineController route omission) and F2 (the extracted-text inspector does not open the original HTML/XML/EPUB representation). F1 is corrected in 4fbc836 with an actual-controller RED/GREEN regression. F2 remains Important; its implementation is the next source increment. The inspector and scoped CSS have no other established quality finding, but no new native acceptance or package approval is inferred.
+
+The exact independent report is `.superpowers/sdd/IMPLEMENTATION_PLAN/text-opening-review.md`, SHA-256 474d31c612c52183dfe11dfeabdd203cbe757bbbc955dfce0f1649b7fbe89218. The controller read it fully, checked F1 against the actual allowlist and verified the correction's raw evidence. Native original-document presentation must be exercised after that remaining implementation is reviewed and packaged. [TEST_REPORT.md](TEST_REPORT.md) and [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md) retain original failures and the distinct fixture/native categories.
+
+The review below is historical; its old final-wave cap no longer stops the user's resumed completion request.
+
+# Historical final source review — 2026-09-07
 
 **The specification v1 is not complete.** The single final correction and independent re-review closed the original ingestion and CSV defects, but an Important textual-citation opening gap remains. This document records that result; it does not grant release approval.
 
