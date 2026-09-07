@@ -25,9 +25,10 @@ export class ZoteroBridge {
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
-    #textViews = new TextAttachmentViews();
+    #textViews: TextAttachmentViews;
     #open: (window: Window) => void;
-    constructor(globals: NativeGlobals, open: (window: Window) => void) { this.#g = globals; this.#open = open; }
+    constructor(globals: NativeGlobals, open: (window: Window) => void) { this.#g = globals; this.#open = open; this.#textViews = new TextAttachmentViews(globals.crypto,
+        error => globals.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error))))); }
     pref(key: string): string | null { const value = this.#g.Zotero.Prefs.get(PREFIX + key, true); return typeof value === 'string' ? value : null; }
     #set(key: string, value: string) { this.#g.Zotero.Prefs.set(PREFIX + key, value, true); }
     get locale(): Locale { return this.pref('locale') === 'en-US' ? 'en-US' : 'pt-BR'; }
@@ -69,7 +70,8 @@ export class ZoteroBridge {
         const sources = () => {
             if (engine.view().state !== 'running') throw new Error('ENGINE_NOT_RUNNING');
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
-                error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
+                error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))),
+                identities => this.#textViews.invalidate(identities));
         };
         if (message.op.startsWith('exports.') || message.op.startsWith('imports.')) {
             this.#exports ??= new ExportBridge(this.#g, sources(), engine, this.#profile, this.#textViews);
@@ -101,7 +103,10 @@ export class ZoteroBridge {
             case 'sources.read': return sources().read(message.notebook_id, message.snapshot_id, message.offset);
             case 'sources.preview.page': return sources().previewPage(message.notebook_id, message.preview_id, message.offset);
             case 'sources.create': return sources().create(message.notebook_id, message.request);
-            case 'sources.revoke': return sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
+            case 'sources.revoke': {
+                const result = await sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
+                this.#textViews.revoke(message.source_id); return result;
+            }
             case 'sources.preview': {
                 const pane = (window as Window & { ZoteroPane?: NativeSourcePane }).ZoteroPane;
                 if (message.capture && !pane) throw new Error('SOURCE_PANE_UNAVAILABLE');

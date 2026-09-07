@@ -29,6 +29,8 @@ Textual file attachments use the same registered-file and isolated-worker bounda
 
 The engine never opens `zotero.sqlite`. Zotero source identity is the compound profile/library/item key; document attachments have their own compound identity. Zotero writes occur through the plugin after a human-approved intent and a fresh native permission check.
 
+Textual original views use the existing verified file handle and bounded Windows parser to produce passive structure or exact decoded source. Deterministic native-only chunks bind the unit and EPUB extraction range to the immutable original hash; each continuation revalidates current access. The privileged view sanitizes a URL-free token grammar in an inert document and renders it in an owned opaque, script-disabled frame, using only validated same-original PNG assets. It keeps the extracted citation separate, lists omissions, and tears down both panes on invalidation. See [text attachment boundaries](TEXT_ATTACHMENTS.md); actual Gecko sandbox/rendering acceptance is recorded separately from source checks.
+
 ## Runtime session
 
 The privileged plugin generates a fresh session token and a private, unpredictable Windows handshake directory. The engine validates current-user ownership/DACLs and path/file identity before consuming the handshake exactly once. The credential is neither an argument nor part of the connection receipt. The engine prebinds an exclusive IPv4 loopback socket and gives that same socket to Uvicorn.

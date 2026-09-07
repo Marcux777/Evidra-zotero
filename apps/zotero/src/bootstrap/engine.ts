@@ -79,7 +79,7 @@ function allowedEngineRoute(method: string, path: string): boolean {
                 || documentPath === '/vectors' || /^\/vectors\/[a-f0-9]{32}\/cancel$/.test(documentPath))
             || !!notebook && (['/sources/sync', '/sources/preview', '/snapshots'].includes(suffix)
                 || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix))
-            || !!documentPath && (/^\/documents\/(register|missing|verify|ingest|text|text-view|preview)$/.test(documentPath)
+            || !!documentPath && (/^\/documents\/(register|missing|verify|ingest|text|text-view|original-view|preview)$/.test(documentPath)
                 || /^\/documents\/text\/[a-f0-9]{32}$/.test(documentPath)
                 || /^\/operations\/[a-f0-9]{32}\/cancel$/.test(documentPath) || documentPath === '/search');
     }

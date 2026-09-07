@@ -1,0 +1,33 @@
+{
+  "title": "Anexo original verificado",
+  "structural": "Visualização estrutural segura do arquivo original verificado. Estilos, scripts e navegação originais são removidos; conteúdo gerado por CSS e paginação da editora não são reproduzidos.",
+  "source": "Código-fonte original decodificado exatamente. Tags, atributos, espaços e Unicode são preservados como texto; esta não é uma renderização HTML.",
+  "plain": "Texto original decodificado exatamente e conferido contra a extração citada.",
+  "excerpt": "Texto extraído e excerto citado exato",
+  "excerptHelp": "O excerto marcado e os offsets abaixo referem-se apenas à extração imutável. Nenhum destaque, página física ou CFI do EPUB é atribuído à visualização estrutural.",
+  "resource": "Recurso original",
+  "target": "Intervalo verificado de recursos citados",
+  "precision": "Localização no nível do recurso; nenhuma posição dentro da renderização é afirmada.",
+  "previousUnit": "Recurso anterior",
+  "nextUnit": "Próximo recurso",
+  "inspect": "Inspecionar código-fonte original",
+  "showStructure": "Mostrar visualização estrutural",
+  "previousSource": "Código-fonte anterior",
+  "nextSource": "Próximo código-fonte",
+  "loading": "Verificando e carregando o conteúdo original…",
+  "ready": "Conteúdo original carregado",
+  "incomplete": "Esta representação estrutural contém omissões. Inspecione cada limitação e o código-fonte original; ela não é uma reprodução completa.",
+  "limitations": "Limitações específicas do conteúdo original",
+  "codes": {
+    "ACTIVE_CONTENT": "Conteúdo ativo removido",
+    "SOURCE_STYLE": "Estilos originais removidos; eles podem afetar o significado ou gerar conteúdo",
+    "EXTERNAL_RESOURCE": "Recurso externo ao original verificado não carregado",
+    "UNSUPPORTED_ELEMENT": "Este elemento original está indisponível na visualização estrutural",
+    "REMOVED_ATTRIBUTE": "Atributo ou navegação original removido",
+    "UNDECLARED_IMAGE": "Imagem ausente ou sem declaração única neste arquivo verificado",
+    "IMAGE_FORMAT": "Formato de imagem ou perfil de cor original incompatível",
+    "IMAGE_LIMIT": "Imagem excede o limite configurado de bytes ou pixels",
+    "IMAGE_DECODE": "Não foi possível decodificar a imagem com segurança",
+    "IMAGE_ANIMATION": "Imagem animada indisponível; nenhum quadro foi selecionado silenciosamente"
+  }
+}

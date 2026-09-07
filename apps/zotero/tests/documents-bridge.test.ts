@@ -88,6 +88,12 @@ async function readerNotifications(incompleteObservation = false, mediaType = 'a
             await hooks.textView();
             return { evidence, title: 'Original text', media_type: mediaType, offset: body.offset ?? 0, text: 'verified text', total: 40000 };
         }
+        if (path.endsWith('/documents/original-view')) {
+            await hooks.textView();
+            return { evidence, title: 'Original', media_type: mediaType, unit_index: body.unit_index ?? 0,
+                unit_count: 2, resource_id: 'second.xhtml', format: 'source', offset: body.offset ?? 0,
+                content: '<html>Original</html>', total: 40000 };
+        }
         if (path.endsWith('/documents/verify')) { if (++verifyCount === 2) await hooks.beforeSecondVerify(); return evidence; }
         if (path === '/v1/sources/invalidate') { invalidated.push(body); return { invalidated_count: 1 }; }
         throw new Error(`Unexpected reader route ${path}`);
@@ -108,11 +114,13 @@ async function readerNotifications(incompleteObservation = false, mediaType = 'a
 }
 
 test('text attachment opening and later segments verify current scoped originals without entering the PDF Reader', async () => {
-    let opened = 0, read!: Parameters<TextAttachmentOpener>[1];
-    const f = await readerNotifications(false, 'text/html', async (view, next) => {
-        ++opened; read = next;
+    let opened = 0, read!: Parameters<TextAttachmentOpener>[1], original!: Parameters<TextAttachmentOpener>[2];
+    const f = await readerNotifications(false, 'text/html', async (view, next, readOriginal) => {
+        ++opened; read = next; original = readOriginal;
         expect(view.evidence.source_kind).toBe('text_attachment');
         expect(view.evidence.page_index).toBeNull();
+        // This runs before opener completion; a serialized-scope self-wait would deadlock.
+        expect((await readOriginal({})).content).toBe('<html>Original</html>');
     });
     try {
         await f.open();
@@ -120,15 +128,18 @@ test('text attachment opening and later segments verify current scoped originals
         expect(f.requests.find(value => value.path.endsWith('/documents/text-view'))?.body).toEqual({
             evidence_id: f.evidence.id, path: 'C:/authorized/only.pdf', offset: null,
         });
+        expect(f.requests.find(value => value.path.endsWith('/documents/original-view'))?.body).toEqual({ evidence_id: f.evidence.id, path: 'C:/authorized/only.pdf' });
         f.requests.length = 0;
         expect((await read(16000)).offset).toBe(16000);
         expect(f.requests.some(value => value.path.includes('/identities?'))).toBe(true);
         expect(f.requests.some(value => value.path.endsWith('/documents/register'))).toBe(true);
+        expect((await original({ unit_index: 1, representation: 'source', offset: 16000 })).offset).toBe(16000);
         f.hooks.textView = async () => { f.pdf.attachmentPath = 'C:/changed/other.html'; };
         await expect(f.open()).rejects.toThrow('DOCUMENT_STALE');
         expect(opened).toBe(1);
         f.hooks.textView = async () => { throw new Error('DOCUMENT_STALE'); };
         await expect(read(0)).rejects.toThrow('DOCUMENT_STALE');
+        await expect(original({ unit_index: 1 })).rejects.toThrow('DOCUMENT_STALE');
         f.removeLibrary();
         const calls = f.requests.filter(value => value.path.endsWith('/documents/text-view')).length;
         await expect(read(0)).rejects.toThrow();

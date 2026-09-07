@@ -56,7 +56,8 @@ export class SourceBridge {
     #selection = new Map<string, SelectionSpec>();
     #active = true;
 
-    constructor(api: NativeZotero, engine: SourceTransport, profile: string, report: (error: unknown) => void) {
+    constructor(api: NativeZotero, engine: SourceTransport, profile: string, report: (error: unknown) => void,
+        private invalidated?: (identities: SourceIdentity[]) => void) {
         this.#api = api; this.#engine = engine; this.#profile = profile; this.#report = report;
         this.#observer = api.Notifier.registerObserver({ notify: (event, type, ids, extraData) => this.#notify(event, type, ids, extraData) },
             ['item', 'collection', 'collection-item', 'search', 'group'], 'evidra-sources');
@@ -104,6 +105,7 @@ export class SourceBridge {
         return invalidation;
     }
     #invalidate(identities: SourceIdentity[], reason: 'changed' | 'deleted' | 'missing' | 'library_missing' | 'archived'): Promise<void> {
+        if (identities.length) this.invalidated?.(identities);
         const affected = new Set(identities.map(identityKey));
         for (const id of this.#readerItems.keys()) {
             const identity = this.#observed.get(id);

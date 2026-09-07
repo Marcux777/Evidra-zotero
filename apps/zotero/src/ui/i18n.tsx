@@ -14,8 +14,10 @@ import ptExports from './locales/exports.pt-BR.json';
 import enExports from './locales/exports.en-US.json';
 import ptDiagnostics from './locales/diagnostics.pt-BR.json';
 import enDiagnostics from './locales/diagnostics.en-US.json';
+import ptOriginal from './locales/original.pt-BR.json';
+import enOriginal from './locales/original.en-US.json';
 import type { Locale } from '../bridge/types';
-export type Catalog = typeof pt & { chat: typeof ptChat; matrix: typeof ptMatrix; jobs: typeof ptJobs; research: typeof ptResearch; mcp: typeof ptMcp; exports: typeof ptExports; diagnostics: typeof ptDiagnostics };
-const english: Catalog = { ...en, chat: enChat, matrix: enMatrix, jobs: enJobs, research: enResearch, mcp: enMcp, exports: enExports, diagnostics: enDiagnostics };
-const portuguese: Catalog = { ...pt, chat: ptChat, matrix: ptMatrix, jobs: ptJobs, research: ptResearch, mcp: ptMcp, exports: ptExports, diagnostics: ptDiagnostics };
+export type Catalog = typeof pt & { chat: typeof ptChat; matrix: typeof ptMatrix; jobs: typeof ptJobs; research: typeof ptResearch; mcp: typeof ptMcp; exports: typeof ptExports; diagnostics: typeof ptDiagnostics; original: typeof ptOriginal };
+const english: Catalog = { ...en, chat: enChat, matrix: enMatrix, jobs: enJobs, research: enResearch, mcp: enMcp, exports: enExports, diagnostics: enDiagnostics, original: enOriginal };
+const portuguese: Catalog = { ...pt, chat: ptChat, matrix: ptMatrix, jobs: ptJobs, research: ptResearch, mcp: ptMcp, exports: ptExports, diagnostics: ptDiagnostics, original: ptOriginal };
 export function catalog(locale: Locale): Catalog { return locale === 'en-US' ? english : portuguese; }
