@@ -19,7 +19,7 @@ class NotePreview(StrictModel):
     uuid: str
     artifact_version_id: str
     artifact_revision: int
-    run_id: str
+    run_id: str | None
     source_id: str
     destination: SourceIdentity
     title: str

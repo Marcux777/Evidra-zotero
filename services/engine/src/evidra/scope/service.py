@@ -13,6 +13,7 @@ import sqlite3
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from typing import Literal
 
 from evidra.domain.errors import EvidraError
@@ -32,8 +33,11 @@ Capability = Literal["read", "commit", "manage"]
 @dataclass(frozen=True)
 class Principal:
     profile_instance_id: str
-    credential_kind: Literal["bridge"] = "bridge"
+    credential_kind: Literal["bridge", "mcp"] = "bridge"
     capabilities: frozenset[Capability] = frozenset({"read", "commit", "manage"})
+    connection_id: str | None = None
+    notebook_id: str | None = None
+    snapshot_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +58,7 @@ class ScopeService:
         self.principal = Principal(session.settings.profile_instance_id)
         self._key = secrets.token_bytes(32)
         self.session_id = secrets.token_hex(32)
+        self._mcp_principals: dict[str, Principal] = {}
         # Persisted availability is not an authorization receipt for a new bridge session.
         with database.transaction() as connection:
             connection.execute(
@@ -114,13 +119,51 @@ class ScopeService:
     def authorize(self, principal: Principal, capability: Capability = "read") -> None:
         self.session.assert_current()
         # Authentication, never a request body, owns principal identity/capabilities.
-        if principal is not self.principal or capability not in principal.capabilities:
+        if capability not in principal.capabilities:
             raise EvidraError("FORBIDDEN", "The principal is not authorized.")
+        if principal is self.principal:
+            return
+        if (
+            principal.connection_id is None
+            or self._mcp_principals.get(principal.connection_id) is not principal
+        ):
+            raise EvidraError("FORBIDDEN", "The principal is not authorized.")
+        row = self.database.read_one(
+            "SELECT * FROM mcp_connections WHERE id=?", (principal.connection_id,)
+        )
+        if (
+            row is None
+            or row["session_id"] != self.session_id
+            or row["revoked_at"] is not None
+            or row["expires_at"] <= datetime.now(UTC).isoformat()
+            or row["notebook_id"] != principal.notebook_id
+            or row["snapshot_id"] != principal.snapshot_id
+            or (capability == "commit" and not row["allow_proposals"])
+            or capability == "manage"
+        ):
+            raise EvidraError("FORBIDDEN", "External connection is expired or revoked.")
+
+    def mcp_principal(self, row: sqlite3.Row) -> Principal:
+        identity = str(row["id"])
+        if identity not in self._mcp_principals:
+            self._mcp_principals[identity] = Principal(
+                self.principal.profile_instance_id,
+                "mcp",
+                frozenset({"read", "commit"} if row["allow_proposals"] else {"read"}),
+                identity,
+                row["notebook_id"],
+                row["snapshot_id"],
+            )
+        principal = self._mcp_principals[identity]
+        self.authorize(principal)
+        return principal
 
     def notebook(
         self, connection: sqlite3.Connection, principal: Principal, notebook_id: str
     ) -> sqlite3.Row:
         self.authorize(principal)
+        if principal.credential_kind == "mcp" and notebook_id != principal.notebook_id:
+            raise EvidraError("SCOPE_DENIED", "Notebook is outside this connection.")
         row: sqlite3.Row | None = connection.execute(
             "SELECT * FROM notebooks WHERE id=? AND profile_instance_id=?",
             (notebook_id, principal.profile_instance_id),
@@ -262,6 +305,9 @@ class ScopeService:
     def _signature(self, context: ScopeContext) -> str:
         data = [
             context.principal.profile_instance_id,
+            context.principal.credential_kind,
+            context.principal.connection_id,
+            sorted(context.principal.capabilities),
             context.notebook_id,
             context.snapshot_id,
             context.capability,
@@ -280,6 +326,8 @@ class ScopeService:
     ) -> ScopeContext:
         with self.database.transaction() as connection:
             self.authorize(principal, capability)
+            if principal.credential_kind == "mcp" and snapshot_id != principal.snapshot_id:
+                raise EvidraError("SCOPE_DENIED", "Snapshot is outside this connection.")
             notebook = self.notebook(connection, principal, notebook_id)
             if (
                 connection.execute(

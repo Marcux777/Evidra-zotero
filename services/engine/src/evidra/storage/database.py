@@ -9,7 +9,7 @@ from threading import RLock
 
 from evidra.domain.errors import EvidraError
 
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 
 class Database:
@@ -66,6 +66,11 @@ class Database:
                 raise EvidraError("INVALID_BACKUP", "The backup destination must be new.")
             with closing(sqlite3.connect(destination)) as backup:
                 self._connection.backup(backup)
+
+    def read_one(self, query: str, parameters: tuple[object, ...]) -> sqlite3.Row | None:
+        """A locked authorization read, also safe inside an existing guarded transaction."""
+        with self._lock:
+            return self._connection.execute(query, parameters).fetchone()
 
     def close(self) -> None:
         with self._lock:

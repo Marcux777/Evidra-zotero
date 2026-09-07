@@ -9,7 +9,9 @@ from evidra.domain.errors import EvidraError
 from evidra.domain.sources import Source
 from evidra.extraction.forms import author, fingerprint, now
 from evidra.extraction.models import Write
-from evidra.research.execution import ResearchPreview
+from evidra.mcp.models import ExternalNote
+from evidra.mcp.proposals import ExternalNoteService, external_note_html
+from evidra.research.execution import ArtifactVersion, ResearchPreview
 from evidra.research.notes import (
     ApprovedWriteOutbox,
     NoteApproval,
@@ -25,8 +27,21 @@ from evidra.storage.note_html import note_html
 
 
 class OutboxService:
-    def __init__(self, research: ResearchService) -> None:
+    def __init__(
+        self, research: ResearchService, external: ExternalNoteService | None = None
+    ) -> None:
         self.research, self.scopes = research, research.scopes
+        self.external = external
+
+    def artifact(
+        self, conn: sqlite3.Connection, context: ScopeContext, identity: str
+    ) -> ArtifactVersion | ExternalNote:
+        if (
+            self.external is not None
+            and conn.execute("SELECT 1 FROM external_notes WHERE id=?", (identity,)).fetchone()
+        ):
+            return self.external.from_connection(conn, context, identity)
+        return self.research.artifact_from_connection(conn, context, identity)
 
     def destination(
         self, conn: sqlite3.Connection, context: ScopeContext, source_id: str
@@ -49,7 +64,9 @@ class OutboxService:
     def validate(
         self, conn: sqlite3.Connection, context: ScopeContext, preview: NotePreview
     ) -> None:
-        self.research.artifact_from_connection(conn, context, preview.artifact_version_id)
+        artifact = self.artifact(conn, context, preview.artifact_version_id)
+        if isinstance(artifact, ExternalNote) and artifact.review_state != "APPROVED":
+            raise EvidraError("FORBIDDEN", "An external note requires human review.")
         source = self.destination(conn, context, preview.source_id)
         if source.identity != preview.destination:
             raise EvidraError("SOURCE_REVOKED", "Note destination changed.")
@@ -68,14 +85,17 @@ class OutboxService:
                 result = NotePreview.model_validate_json(old["payload"])
                 self.validate(conn, context, result)
                 return result
-            artifact = self.research.artifact_from_connection(
-                conn, context, body.artifact_version_id
-            )
+            artifact = self.artifact(conn, context, body.artifact_version_id)
             source = self.destination(conn, context, body.source_id)
-            row = self.research.row(conn, context, artifact.run_id)
-            inputs = ResearchPreview.model_validate_json(row["preview"]).inputs
             uuid = str(uuid4())
-            html = note_html(uuid, body.title, artifact, inputs, body.locale)
+            if isinstance(artifact, ExternalNote):
+                if artifact.review_state != "APPROVED":
+                    raise EvidraError("FORBIDDEN", "An external note requires human review.")
+                html = external_note_html(uuid, body.title, artifact, body.locale)
+            else:
+                row = self.research.row(conn, context, artifact.run_id)
+                inputs = ResearchPreview.model_validate_json(row["preview"]).inputs
+                html = note_html(uuid, body.title, artifact, inputs, body.locale)
             if len(html.encode()) > 48000:
                 raise EvidraError("BODY_TOO_LARGE", "Note exceeds the bounded preview size.")
             result = NotePreview(
@@ -124,11 +144,11 @@ class OutboxService:
                 if old["approval"] != fingerprint(body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Note approval changed.")
                 return self.from_connection(conn, context, old["id"])
-            artifact = self.research.artifact_from_connection(
-                conn, context, preview.artifact_version_id
-            )
+            artifact = self.artifact(conn, context, preview.artifact_version_id)
             latest = conn.execute(
-                "SELECT max(revision) FROM artifact_versions WHERE artifact_id=?",
+                "SELECT max(revision) FROM "
+                + ("external_notes" if isinstance(artifact, ExternalNote) else "artifact_versions")
+                + " WHERE artifact_id=?",
                 (artifact.artifact_id,),
             ).fetchone()[0]
             if (

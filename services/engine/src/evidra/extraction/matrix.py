@@ -103,6 +103,10 @@ class MatrixService:
         ]
         if any(e.source_id != proposal.source_id for e in evidence):
             raise EvidraError("FORBIDDEN", "Evidence belongs to a different study.")
+        if isinstance(proposal, ExtractionProposal) and proposal.origin == "EXTERNAL_CLIENT":
+            if proposal.run_id is not None or proposal.model is not None or not evidence:
+                raise EvidraError("INVALID_OUTPUT", "External provenance is invalid.")
+            return evidence, None
         if isinstance(proposal, ExtractionProposal) and proposal.origin != "HUMAN_CLIENT":
             # Authorship requires the immutable server-produced result, not an attached run ID.
             result = conn.execute(
@@ -168,8 +172,26 @@ class MatrixService:
         self.provenance(conn, context, value)
         return value
 
-    def propose_extractions(self, context: ScopeContext, body: ProposalWrite) -> ExtractionProposal:
+    def propose_extractions(
+        self, context: ScopeContext, body: ProposalWrite, *, declared_model: str | None = None
+    ) -> ExtractionProposal:
         with self.scopes.guarded(context, capability="commit") as conn:
+            external = context.principal.credential_kind == "mcp"
+            if external and body.run_id is not None:
+                raise EvidraError("FORBIDDEN", "External clients cannot claim server runs.")
+            if external:
+                # Separate caller namespaces, including the declared provenance in replay identity.
+                body = body.model_copy(
+                    update={
+                        "idempotency_key": "mcp:"
+                        + str(context.principal.connection_id)
+                        + ":"
+                        + body.idempotency_key
+                    }
+                )
+            request_fingerprint = fingerprint(body) + (
+                json.dumps(declared_model) if external else ""
+            )
             field, _ = self.target(
                 conn, context, body.form_version_id, body.source_id, body.field_key
             )
@@ -181,7 +203,7 @@ class MatrixService:
                 (*self.scope(context), body.idempotency_key),
             ).fetchone()
             if old:
-                if old["request"] != fingerprint(body):
+                if old["request"] != request_fingerprint:
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Proposal request changed.")
                 return self.proposal(conn, context, old["id"])
             proposal = ExtractionProposal(
@@ -191,7 +213,8 @@ class MatrixService:
                     conn, body.form_version_id, body.field_key
                 ),
                 # A cited conversation proves support, not authorship of caller-entered values.
-                origin="HUMAN_CLIENT",
+                origin="EXTERNAL_CLIENT" if external else "HUMAN_CLIENT",
+                declared_model=declared_model if external else None,
                 principal=author(context),
                 model=run.profile.model if run else None,
                 coverage="CITED_EVIDENCE_ONLY",
@@ -209,7 +232,7 @@ class MatrixService:
                     body.source_id,
                     body.field_key,
                     body.idempotency_key,
-                    fingerprint(body),
+                    request_fingerprint,
                     proposal.model_dump_json(),
                 ),
             )

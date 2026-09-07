@@ -134,7 +134,8 @@ class ExtractionProposal(CellValue):
     evidence_ids: list[str]
     run_id: str | None
     rationale: str
-    origin: Literal["HUMAN_CLIENT", "MODEL_RUN", "COVERAGE_CHECK"]
+    origin: Literal["HUMAN_CLIENT", "MODEL_RUN", "COVERAGE_CHECK", "EXTERNAL_CLIENT"]
+    declared_model: str | None = None
     principal: str
     model: str | None
     coverage: Literal["CITED_EVIDENCE_ONLY", "SEARCH", "PARTIAL_SCAN", "FULL_SCAN"]

@@ -10,6 +10,8 @@ from evidra.scope.service import ScopeContext, ScopeService
 
 
 def author(context: ScopeContext) -> str:
+    if context.principal.credential_kind == "mcp":
+        return f"mcp:{context.principal.connection_id}"
     return f"{context.principal.credential_kind}:{context.principal.profile_instance_id}"
 
 

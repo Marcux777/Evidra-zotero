@@ -169,9 +169,17 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     serve_parser = commands.add_parser("serve")
     serve_parser.add_argument("--handshake", type=Path, required=True)
+    mcp_parser = commands.add_parser("mcp")
+    mcp_parser.add_argument("--connection-file", type=Path, required=True)
     args = parser.parse_args()
     operation = "consume_handshake"
     try:
+        if args.command == "mcp":
+            from evidra.mcp.server import serve_mcp
+
+            operation = "mcp_stdio"
+            asyncio.run(serve_mcp(args.connection_file))
+            return
         handshake = consume_handshake(args.handshake)
         operation = "serve_engine"
         asyncio.run(serve(handshake))

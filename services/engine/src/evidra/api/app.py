@@ -11,6 +11,7 @@ from evidra.api.conversations import router as conversations_router
 from evidra.api.documents import router as documents_router
 from evidra.api.extraction import router as extraction_router
 from evidra.api.jobs import router as jobs_router
+from evidra.api.mcp import router as mcp_router
 from evidra.api.notebooks import router
 from evidra.api.providers import router as providers_router
 from evidra.api.research import router as research_router
@@ -27,6 +28,8 @@ from evidra.extraction.matrix import MatrixService
 from evidra.extraction.runner import ExtractionRunner
 from evidra.jobs.queue import JobQueue
 from evidra.jobs.worker import JobWorker
+from evidra.mcp.proposals import ExternalNoteService
+from evidra.mcp.service import ConnectionService
 from evidra.notebooks.protocol import ProtocolService
 from evidra.notebooks.service import NotebookService
 from evidra.notebooks.snapshots import SnapshotService
@@ -65,6 +68,8 @@ class Services:
     screening: ScreeningService
     research: ResearchService
     outbox: OutboxService
+    mcp: ConnectionService
+    external_notes: ExternalNoteService
 
 
 def create_app(settings: RuntimeSettings) -> FastAPI:
@@ -114,7 +119,9 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 protocols,
                 ScreeningService(protocols),
                 research,
-                OutboxService(research),
+                OutboxService(research, ExternalNoteService(evidence)),
+                ConnectionService(scopes),
+                ExternalNoteService(evidence),
             )
             yield
         finally:
@@ -155,6 +162,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
     app.include_router(extraction_router)
     app.include_router(jobs_router)
     app.include_router(research_router)
+    app.include_router(mcp_router)
 
     @app.exception_handler(Exception)
     async def internal_error(request: Request, exc: Exception) -> JSONResponse:
