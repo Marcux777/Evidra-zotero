@@ -12,6 +12,8 @@ from evidra.domain.documents import (
     EvidenceTextView,
     IngestRequest,
     Operation,
+    OriginalViewChunk,
+    OriginalViewRequest,
     PagePreview,
     PagePreviewRequest,
     RegisteredDocument,
@@ -113,6 +115,14 @@ def read_original_attachment_text(
 ) -> EvidenceTextView:
     service, context = services(request, notebook_id, snapshot_id)
     return service.evidence.text_view(context, body)
+
+
+@router.post("/documents/original-view", response_model=OriginalViewChunk)
+def read_original_attachment(
+    notebook_id: str, snapshot_id: str, body: OriginalViewRequest, request: Request
+) -> OriginalViewChunk:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.evidence.original_view(context, body)
 
 
 @router.post("/search", response_model=SearchPage)

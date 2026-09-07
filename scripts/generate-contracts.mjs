@@ -33,4 +33,9 @@ for (const name of ['conversation', 'provider', 'matrix', 'job', 'research', 'mc
     await writeFile(`packages/contracts/generated/validate-${name}-command.js`,compiled.outputFiles[0].text);
     await writeFile(`packages/contracts/generated/validate-${name}-command.d.ts`,`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['${name[0].toUpperCase()+name.slice(1)}Command'];\n`);
 }
+const originalStructure = JSON.parse(await readFile('packages/contracts/generated/original-structure.schema.json', 'utf8'));
+const originalValidator = new Ajv2020({code:{source:true,esm:true},allErrors:false});
+const originalCompiled = await build({stdin:{contents:standaloneCode(originalValidator,originalValidator.compile(originalStructure)),resolveDir:process.cwd(),sourcefile:'validate-original-structure.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+await writeFile('packages/contracts/generated/validate-original-structure.js',originalCompiled.outputFiles[0].text);
+await writeFile('packages/contracts/generated/validate-original-structure.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['OriginalStructure'];\n`);
 console.log('Generated OpenAPI and TypeScript from Pydantic (no service startup).');

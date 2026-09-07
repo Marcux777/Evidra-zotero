@@ -9,6 +9,9 @@ import posixpath
 import re
 import stat
 import zipfile
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
 from email.message import Message
 from html.parser import HTMLParser
 from typing import BinaryIO
@@ -82,13 +85,17 @@ def decode(data: bytes, charset: str | None = None) -> str:
     return text
 
 
-def xml(data: bytes) -> ET.Element:
+def xml_source(data: bytes) -> str:
     # Decode before inspection, so UTF-16/32 cannot conceal entity declarations.
     encoding = re.match(rb"""\s*<\?xml[^>]*encoding=["']([^"']+)["']""", data[:512])
     text = decode(data, encoding[1].decode("ascii") if encoding else None)
     if re.search(r"<!\s*(DOCTYPE|ENTITY)", text, re.IGNORECASE):
         raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "DTD and entity declarations are unsupported.")
-    return ET.fromstring(text)
+    return text
+
+
+def xml(data: bytes) -> ET.Element:
+    return ET.fromstring(xml_source(data))
 
 
 def xml_text(root: ET.Element, *, html: bool) -> str:
@@ -136,17 +143,25 @@ class _HTMLText(HTMLParser):
             self.parts.append(data)
 
 
-def html_text(data: bytes, charset: str | None) -> str:
+def html_source(data: bytes, charset: str | None) -> str:
     if charset is None:
         declared = re.search(
             rb"""<meta\s[^>]*charset\s*=\s*["']?([a-zA-Z0-9_-]+)""", data[:4096], re.I
         )
         charset = declared[1].decode("ascii") if declared else None
-    parser = _HTMLText()
     text = decode(data, charset)
     if re.search(r"<!\s*ENTITY|<!DOCTYPE[^>]*\[", text, re.I):
         raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "HTML entity declarations are unsupported.")
-    parser.feed(text)
+    return text
+
+
+def html_text(data: bytes, charset: str | None) -> str:
+    return html_text_source(html_source(data, charset))
+
+
+def html_text_source(source: str) -> str:
+    parser = _HTMLText()
+    parser.feed(source)
     parser.close()
     if parser.hidden:
         raise EvidraError("INVALID_TEXT_DOCUMENT", "An HTML text exclusion was not closed.")
@@ -164,7 +179,72 @@ def _archive_name(name: str) -> str:
     return name
 
 
-def epub_text(stream: BinaryIO, limits: ParserLimits) -> str:
+@dataclass
+class EpubUnit:
+    name: str
+    source: str
+    root: ET.Element
+    text: str
+
+
+@dataclass
+class EpubArchive:
+    archive: zipfile.ZipFile
+    limits: ParserLimits
+    spine: list[str]
+    manifest: list[ET.Element]
+    package_name: str
+
+    def read(self, name: str) -> bytes:
+        _archive_name(name)
+        with self.archive.open(name) as member:
+            data = member.read(self.limits.max_file_bytes + 1)
+        if len(data) > self.limits.max_file_bytes:
+            raise EvidraError("FILE_LIMIT", "The EPUB member exceeds the byte limit.")
+        return data
+
+    def units(self) -> Iterator[EpubUnit]:
+        # Keep extraction's original streaming memory behavior: one source/tree at a time.
+        for name in self.spine:
+            source = xml_source(self.read(name))
+            root = ET.fromstring(source)
+            if root.tag != "{http://www.w3.org/1999/xhtml}html":
+                raise EvidraError("INVALID_TEXT_DOCUMENT", "The EPUB spine member is not XHTML.")
+            extracted = xml_text(root, html=True)
+            if not extracted.strip():
+                raise EvidraError("INCOMPLETE_TEXT", "An EPUB spine unit has no extractable text.")
+            yield EpubUnit(name, source, root, extracted)
+
+    def image_type(self, name: str) -> str | None:
+        # Asset declarations are irrelevant to extraction admission. Resolve them only
+        # for this requested image; malformed/duplicate declarations cannot authorize it.
+        matches: list[str | None] = []
+        for item in self.manifest:
+            href = item.attrib.get("href")
+            if href is None:
+                continue
+            try:
+                member = epub_member(self.package_name, href)
+            except (EvidraError, ValueError, UnicodeError):
+                continue
+            if member == name:
+                matches.append(item.attrib.get("media-type"))
+        return matches[0] if len(matches) == 1 else None
+
+
+def epub_member(base: str, reference: str) -> str:
+    href = urlsplit(reference)
+    if href.scheme or href.netloc or href.query or href.fragment:
+        raise EvidraError("INVALID_TEXT_DOCUMENT", "The EPUB resource is not a local member.")
+    return _archive_name(
+        posixpath.normpath(
+            posixpath.join(posixpath.dirname(base), unquote(href.path, errors="strict"))
+        )
+    )
+
+
+@contextmanager
+def epub_archive(stream: BinaryIO, limits: ParserLimits) -> Iterator[EpubArchive]:
     with zipfile.ZipFile(stream) as archive:
         entries = archive.infolist()
         if len(entries) > 10000:
@@ -186,13 +266,8 @@ def epub_text(stream: BinaryIO, limits: ParserLimits) -> str:
                 "UNSUPPORTED_TEXT_FORMAT", "Encrypted EPUB resources are unsupported."
             )
 
-        def read(name: str) -> bytes:
-            _archive_name(name)
-            with archive.open(name) as member:
-                data = member.read(limits.max_file_bytes + 1)
-            if len(data) > limits.max_file_bytes:
-                raise EvidraError("FILE_LIMIT", "The EPUB member exceeds the byte limit.")
-            return data
+        book = EpubArchive(archive, limits, [], [], "")
+        read = book.read
 
         if read("mimetype") != b"application/epub+zip":
             raise EvidraError("INVALID_TEXT_DOCUMENT", "The EPUB mimetype does not match.")
@@ -203,36 +278,29 @@ def epub_text(stream: BinaryIO, limits: ParserLimits) -> str:
         if len(rootfiles) != 1:
             raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "Exactly one EPUB rendition is required.")
         package_name = _archive_name(rootfiles[0].attrib["full-path"])
+        book.package_name = package_name
         package = xml(read(package_name))
         ns = "{http://www.idpf.org/2007/opf}"
         items = package.findall(f"{ns}manifest/{ns}item")
+        book.manifest = items
         manifest = {item.attrib["id"]: item for item in items}
         spine = package.findall(f"{ns}spine/{ns}itemref")
         if len(manifest) != len(items) or not spine:
             raise EvidraError("INVALID_TEXT_DOCUMENT", "The EPUB manifest/spine is incomplete.")
         if len(spine) > limits.max_pages:
             raise EvidraError("PAGE_LIMIT", "The EPUB exceeds the configured spine-unit limit.")
-        parts = []
         for reference in spine:
             item = manifest[reference.attrib["idref"]]
             if item.attrib["media-type"] != "application/xhtml+xml":
                 raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "The EPUB spine requires XHTML text.")
-            href = urlsplit(item.attrib["href"])
-            if href.scheme or href.netloc or href.query or href.fragment:
-                raise EvidraError(
-                    "INVALID_TEXT_DOCUMENT", "The EPUB resource is not a local member."
-                )
-            member_name = posixpath.normpath(
-                posixpath.join(posixpath.dirname(package_name), unquote(href.path, errors="strict"))
-            )
-            root = xml(read(member_name))
-            if root.tag != "{http://www.w3.org/1999/xhtml}html":
-                raise EvidraError("INVALID_TEXT_DOCUMENT", "The EPUB spine member is not XHTML.")
-            extracted = xml_text(root, html=True)
-            if not extracted.strip():
-                raise EvidraError("INCOMPLETE_TEXT", "An EPUB spine unit has no extractable text.")
-            parts.append(extracted)
-        return "\n\n".join(parts)
+            member_name = epub_member(package_name, item.attrib["href"])
+            book.spine.append(member_name)
+        yield book
+
+
+def epub_text(stream: BinaryIO, limits: ParserLimits) -> str:
+    with epub_archive(stream, limits) as book:
+        return "\n\n".join(unit.text for unit in book.units())
 
 
 def parse_text(stream: BinaryIO, media_type: str, limits: ParserLimits) -> ParsedPage:

@@ -1,9 +1,13 @@
 """Literal excerpts with immutable offsets and current authorization."""
 
+import hashlib
+import json
+import logging
 import os
 import sqlite3
 from pathlib import Path
 
+from evidra.documents.parser_worker import diagnostic, run_worker
 from evidra.documents.registry import DocumentRegistry, open_verified
 from evidra.domain.documents import (
     DocumentPage,
@@ -12,12 +16,18 @@ from evidra.domain.documents import (
     EvidenceFileCheck,
     EvidenceTextRequest,
     EvidenceTextView,
+    IngestRequest,
     Operation,
+    OriginalViewChunk,
+    OriginalViewRequest,
+    OriginalWorkerResult,
     ParsedPage,
 )
 from evidra.domain.errors import EvidraError
 from evidra.domain.sources import content_version
 from evidra.scope.service import ScopeContext
+
+logger = logging.getLogger(__name__)
 
 
 class EvidenceService:
@@ -149,6 +159,138 @@ class EvidenceService:
                 offset=offset,
                 total=row["total"],
             )
+
+    def original_view(self, context: ScopeContext, body: OriginalViewRequest) -> OriginalViewChunk:
+        try:
+            return self._original_view(context, body)
+        except Exception as exc:
+            details = exc.details if isinstance(exc, EvidraError) and exc.details else {}
+            worker = {
+                key: details[key]
+                for key in (
+                    "returncode",
+                    "job_message",
+                    "causes",
+                    "stderr_bytes",
+                    "stderr_sha256",
+                    "winerror",
+                )
+                if key in details
+            }
+            logger.error(
+                "Original view failed: %s",
+                json.dumps(
+                    {
+                        "evidence_id": body.evidence_id,
+                        "diagnostic": diagnostic(exc),
+                        "worker": worker,
+                    },
+                    separators=(",", ":"),
+                ),
+            )
+            raise
+
+    def _original_view(self, context: ScopeContext, body: OriginalViewRequest) -> OriginalViewChunk:
+        """Native-only original bytes, parsed through the exact verified Windows handle."""
+        self.scopes.authorize(context.principal, "manage")
+        with self.scopes.guarded(context) as connection:
+            evidence = self.from_connection(connection, context, body.evidence_id)
+            version = connection.execute(
+                "SELECT document_id FROM document_versions WHERE id=?",
+                (evidence.document_version_id,),
+            ).fetchone()
+            document = dict(
+                self.registry.require(connection, context, version["document_id"], current=True)
+            )
+            source, content = self.registry.content(
+                connection, context, evidence.source_id, evidence.content_key, current=True
+            )
+            if evidence.source_kind != "text_attachment":
+                raise EvidraError("UNSUPPORTED_DOCUMENT", "The original is not a text attachment.")
+            if not content.media_type:
+                raise EvidraError("SCOPE_STALE", "The attachment MIME provenance is missing.")
+            if os.path.normcase(str(Path(body.path))) != os.path.normcase(document["path"]):
+                raise EvidraError(
+                    "DOCUMENT_STALE", "The native path differs from the registered file."
+                )
+            original = connection.execute(
+                "SELECT json_extract(payload,'$.original_text') FROM document_pages "
+                "WHERE version_id=? AND page_index=0",
+                (evidence.document_version_id,),
+            ).fetchone()
+            extraction_sha256 = hashlib.sha256(original[0].encode()).hexdigest()
+            operation = connection.execute(
+                "SELECT request FROM document_operations WHERE document_id=? "
+                "AND json_extract(payload,'$.document_version_id')=? "
+                "AND json_extract(payload,'$.kind')='ingest' "
+                "AND json_extract(payload,'$.state')='COMPLETE' ORDER BY rowid DESC LIMIT 1",
+                (document["id"], evidence.document_version_id),
+            ).fetchone()
+            if operation is None:
+                raise EvidraError(
+                    "ORIGINAL_LIMITS_UNAVAILABLE", "The cited parser limits are unavailable."
+                )
+            limits = IngestRequest.model_validate_json(operation[0]).limits
+
+        def check() -> None:
+            with self.scopes.guarded(context) as connection:
+                current = self.registry.require(connection, context, document["id"], current=True)
+                if (
+                    current["revision"] != document["revision"]
+                    or self.from_connection(connection, context, body.evidence_id) != evidence
+                ):
+                    raise EvidraError("DOCUMENT_STALE", "The registered original changed.")
+
+        with open_verified(Path(body.path), document["file_identity"]) as opened:
+            if opened.size > limits.max_file_bytes:
+                raise EvidraError("FILE_LIMIT", "The original exceeds its configured byte limit.")
+            if (
+                opened.size != evidence.document_bytes
+                or opened.digest(check) != evidence.document_sha256
+            ):
+                raise EvidraError(
+                    "DOCUMENT_STALE", "The original differs from the cited immutable version."
+                )
+            with run_worker(
+                opened.stream,
+                {
+                    "kind": "original_view",
+                    "source_kind": "text_attachment",
+                    "media_type": content.media_type,
+                    "start": evidence.start,
+                    "end": evidence.end,
+                    "unit_index": body.unit_index,
+                    "representation": body.representation,
+                    "offset": body.offset,
+                },
+                limits,
+                check,
+                lambda _: None,
+            ) as output:
+                payload = output.read(900_001)
+                if len(payload) > 900_000:
+                    raise EvidraError(
+                        "BODY_TOO_LARGE", "The original worker chunk exceeded its transport limit."
+                    )
+                result = OriginalWorkerResult.model_validate_json(payload)
+            check()
+            opened.recheck()
+            if result.extraction_sha256 != extraction_sha256:
+                raise EvidraError(
+                    "EVIDENCE_INVARIANT",
+                    "The original extraction does not match the cited version.",
+                )
+            response = OriginalViewChunk(
+                **result.chunk.model_dump(),
+                evidence=evidence,
+                title=content.title or source.title or evidence.content_key,
+                media_type=content.media_type,
+            )
+            if len(response.model_dump_json().encode()) > 900_000:
+                raise EvidraError(
+                    "BODY_TOO_LARGE", "The original response exceeded its transport limit."
+                )
+            return response
 
     def documents(self, context: ScopeContext, offset: int, limit: int) -> DocumentPage:
         with self.scopes.guarded(context) as connection:

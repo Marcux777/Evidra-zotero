@@ -2714,6 +2714,137 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/original-view": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Read Original Attachment",
+        "operationId": "read_original_attachment_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_original_view_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OriginalViewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OriginalViewChunk"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/search": {
       "post": {
         "tags": [
@@ -23181,6 +23312,160 @@
         ],
         "title": "Operation"
       },
+      "OriginalViewChunk": {
+        "properties": {
+          "unit_index": {
+            "type": "integer",
+            "maximum": 9999.0,
+            "minimum": 0.0,
+            "title": "Unit Index"
+          },
+          "unit_count": {
+            "type": "integer",
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Unit Count"
+          },
+          "resource_id": {
+            "type": "string",
+            "title": "Resource Id"
+          },
+          "extraction_start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Extraction Start"
+          },
+          "extraction_end": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Extraction End"
+          },
+          "target_first": {
+            "type": "integer",
+            "maximum": 9999.0,
+            "minimum": 0.0,
+            "title": "Target First"
+          },
+          "target_last": {
+            "type": "integer",
+            "maximum": 9999.0,
+            "minimum": 0.0,
+            "title": "Target Last"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "structure",
+              "source",
+              "plain"
+            ],
+            "title": "Format"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 64000,
+            "title": "Content"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Offset"
+          },
+          "total": {
+            "type": "integer",
+            "maximum": 4294967296.0,
+            "exclusiveMinimum": 0.0,
+            "title": "Total"
+          },
+          "payload_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Payload Sha256"
+          },
+          "evidence": {
+            "$ref": "#/components/schemas/Evidence"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "media_type": {
+            "type": "string",
+            "title": "Media Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "unit_index",
+          "unit_count",
+          "resource_id",
+          "extraction_start",
+          "extraction_end",
+          "target_first",
+          "target_last",
+          "format",
+          "content",
+          "offset",
+          "total",
+          "payload_sha256",
+          "evidence",
+          "title",
+          "media_type"
+        ],
+        "title": "OriginalViewChunk"
+      },
+      "OriginalViewRequest": {
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Evidence Id"
+          },
+          "path": {
+            "type": "string",
+            "maxLength": 32767,
+            "minLength": 1,
+            "title": "Path"
+          },
+          "unit_index": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9999.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit Index"
+          },
+          "representation": {
+            "type": "string",
+            "enum": [
+              "structure",
+              "source"
+            ],
+            "title": "Representation",
+            "default": "structure"
+          },
+          "offset": {
+            "type": "integer",
+            "maximum": 4294967296.0,
+            "minimum": 0.0,
+            "title": "Offset",
+            "default": 0
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "evidence_id",
+          "path"
+        ],
+        "title": "OriginalViewRequest"
+      },
       "OutboxBegin": {
         "properties": {
           "intent": {
@@ -29781,6 +30066,163 @@
           "files"
         ],
         "title": "BackupManifest",
+        "type": "object"
+      },
+      "OriginalImage": {
+        "additionalProperties": false,
+        "properties": {
+          "sha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "width": {
+            "exclusiveMinimum": 0,
+            "title": "Width",
+            "type": "integer"
+          },
+          "height": {
+            "exclusiveMinimum": 0,
+            "title": "Height",
+            "type": "integer"
+          },
+          "data_base64": {
+            "title": "Data Base64",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sha256",
+          "width",
+          "height",
+          "data_base64"
+        ],
+        "title": "OriginalImage",
+        "type": "object"
+      },
+      "OriginalLimitation": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "enum": [
+              "ACTIVE_CONTENT",
+              "SOURCE_STYLE",
+              "EXTERNAL_RESOURCE",
+              "UNSUPPORTED_ELEMENT",
+              "REMOVED_ATTRIBUTE",
+              "UNDECLARED_IMAGE",
+              "IMAGE_FORMAT",
+              "IMAGE_LIMIT",
+              "IMAGE_DECODE",
+              "IMAGE_ANIMATION"
+            ],
+            "title": "Code",
+            "type": "string"
+          },
+          "element": {
+            "title": "Element",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          },
+          "count": {
+            "default": 1,
+            "minimum": 1,
+            "title": "Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "element",
+          "reference"
+        ],
+        "title": "OriginalLimitation",
+        "type": "object"
+      },
+      "OriginalToken": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "start",
+              "end",
+              "text",
+              "image"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "tag": {
+            "default": "",
+            "title": "Tag",
+            "type": "string"
+          },
+          "attributes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Attributes",
+            "type": "object"
+          },
+          "text": {
+            "default": "",
+            "title": "Text",
+            "type": "string"
+          },
+          "image_index": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Image Index"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "OriginalToken",
+        "type": "object"
+      },
+      "OriginalStructure": {
+        "additionalProperties": false,
+        "properties": {
+          "tokens": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalToken"
+            },
+            "title": "Tokens",
+            "type": "array"
+          },
+          "images": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalImage"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/OriginalLimitation"
+            },
+            "title": "Limitations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "tokens",
+          "images",
+          "limitations"
+        ],
+        "title": "OriginalStructure",
         "type": "object"
       },
       "DocumentEvidenceCommand": {

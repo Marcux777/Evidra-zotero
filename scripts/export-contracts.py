@@ -5,7 +5,7 @@ from pathlib import Path
 from evidra.api.app import create_app
 from evidra.distribution import EngineManifest
 from evidra.domain.sources import SelectionSpec
-from evidra.domain.documents import DocumentCommand
+from evidra.domain.documents import DocumentCommand, OriginalStructure
 from evidra.conversations.commands import ConversationCommand, ProviderCommand
 from evidra.extraction.commands import MatrixCommand
 from evidra.jobs.models import JobCommand
@@ -27,11 +27,12 @@ settings = RuntimeSettings(
     port=49152,
 )
 schema = create_app(settings).openapi()
-for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, EventPage, McpSetup, PortableNotebook, BackupManifest):
+for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, EventPage, McpSetup, PortableNotebook, BackupManifest, OriginalStructure):
     provider_schema = provider_model.model_json_schema()
     for name, definition in provider_schema.pop("$defs", {}).items():
         schema["components"]["schemas"].setdefault(name, definition)
     schema["components"]["schemas"][provider_model.__name__] = provider_schema
+(destination / "original-structure.schema.json").write_text(json.dumps(OriginalStructure.model_json_schema(), indent=2) + "\n", encoding="utf-8")
 documents = TypeAdapter(DocumentCommand).json_schema()
 (destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
 schema["components"]["schemas"].update(documents.pop("$defs"))

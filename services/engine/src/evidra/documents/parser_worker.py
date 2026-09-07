@@ -46,6 +46,9 @@ CHILD_CODES = {
     "PREVIEW_TRANSPORT_LIMIT",
     "FILE_LIMIT",
     "PARSER_VERSION_MISMATCH",
+    "EVIDENCE_INVARIANT",
+    "INVALID_TEXT_OFFSET",
+    "INVALID_ORIGINAL_UNIT",
 }
 
 
@@ -485,6 +488,22 @@ def worker_main() -> None:
             if request.get("source_kind") == "text_attachment":
                 from evidra.documents.text_parser import TEXT_FILE_PARSER_VERSION, parse_text
 
+                if request["kind"] == "original_view":
+                    from evidra.documents.original_parser import original_content
+
+                    result = original_content(
+                        stream,
+                        request["media_type"],
+                        limits,
+                        start=request["start"],
+                        end=request["end"],
+                        unit_index=request["unit_index"],
+                        representation=request["representation"],
+                        offset=request["offset"],
+                    )
+                    # The inherited Windows stdout encoding is not necessarily UTF-8.
+                    print(json.dumps(result.model_dump(), ensure_ascii=True))
+                    return
                 if request["kind"] != "ingest":
                     raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "Text files have no PDF preview.")
                 page = parse_text(stream, request["media_type"], limits)

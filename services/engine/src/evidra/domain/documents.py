@@ -228,6 +228,80 @@ class EvidenceTextView(StrictModel):
     total: int = Field(ge=0, le=20_000_000)
 
 
+class OriginalViewRequest(EvidenceFileCheck):
+    unit_index: int | None = Field(default=None, ge=0, le=9999)
+    representation: Literal["structure", "source"] = "structure"
+    offset: int = Field(default=0, ge=0, le=4_294_967_296)
+
+
+class OriginalToken(StrictModel):
+    kind: Literal["start", "end", "text", "image"]
+    tag: str = ""
+    attributes: dict[str, str] = Field(default_factory=dict)
+    text: str = ""
+    image_index: int | None = Field(default=None, ge=0)
+
+
+class OriginalImage(StrictModel):
+    sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    data_base64: str
+
+
+OriginalLimitationCode = Literal[
+    "ACTIVE_CONTENT",
+    "SOURCE_STYLE",
+    "EXTERNAL_RESOURCE",
+    "UNSUPPORTED_ELEMENT",
+    "REMOVED_ATTRIBUTE",
+    "UNDECLARED_IMAGE",
+    "IMAGE_FORMAT",
+    "IMAGE_LIMIT",
+    "IMAGE_DECODE",
+    "IMAGE_ANIMATION",
+]
+
+
+class OriginalLimitation(StrictModel):
+    code: OriginalLimitationCode
+    element: str
+    reference: str
+    count: int = Field(default=1, ge=1)
+
+
+class OriginalStructure(StrictModel):
+    tokens: list[OriginalToken]
+    images: list[OriginalImage]
+    limitations: list[OriginalLimitation]
+
+
+class OriginalContentChunk(StrictModel):
+    unit_index: int = Field(ge=0, le=9999)
+    unit_count: int = Field(ge=1, le=10000)
+    resource_id: str
+    extraction_start: int = Field(ge=0)
+    extraction_end: int = Field(ge=0)
+    target_first: int = Field(ge=0, le=9999)
+    target_last: int = Field(ge=0, le=9999)
+    format: Literal["structure", "source", "plain"]
+    content: str = Field(max_length=64000)
+    offset: int = Field(ge=0)
+    total: int = Field(gt=0, le=4_294_967_296)
+    payload_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class OriginalWorkerResult(StrictModel):
+    extraction_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    chunk: OriginalContentChunk
+
+
+class OriginalViewChunk(OriginalContentChunk):
+    evidence: Evidence
+    title: str
+    media_type: str
+
+
 class DocumentCommandScope(StrictModel):
     notebook_id: str = Field(
         pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"

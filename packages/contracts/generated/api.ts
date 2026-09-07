@@ -324,6 +324,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/original-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read Original Attachment */
+        post: operations["read_original_attachment_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_original_view_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/search": {
         parameters: {
             query?: never;
@@ -4085,6 +4102,61 @@ export interface components {
              */
             created_at: string;
         };
+        /** OriginalViewChunk */
+        OriginalViewChunk: {
+            /** Unit Index */
+            unit_index: number;
+            /** Unit Count */
+            unit_count: number;
+            /** Resource Id */
+            resource_id: string;
+            /** Extraction Start */
+            extraction_start: number;
+            /** Extraction End */
+            extraction_end: number;
+            /** Target First */
+            target_first: number;
+            /** Target Last */
+            target_last: number;
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "structure" | "source" | "plain";
+            /** Content */
+            content: string;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
+            /** Payload Sha256 */
+            payload_sha256: string;
+            evidence: components["schemas"]["Evidence"];
+            /** Title */
+            title: string;
+            /** Media Type */
+            media_type: string;
+        };
+        /** OriginalViewRequest */
+        OriginalViewRequest: {
+            /** Evidence Id */
+            evidence_id: string;
+            /** Path */
+            path: string;
+            /** Unit Index */
+            unit_index?: number | null;
+            /**
+             * Representation
+             * @default structure
+             * @enum {string}
+             */
+            representation: "structure" | "source";
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+        };
         /** OutboxBegin */
         OutboxBegin: {
             intent: components["schemas"]["ApprovedWriteOutbox"];
@@ -6341,6 +6413,70 @@ export interface components {
             format: "evidra-notebook-backup";
             /** Files */
             files: components["schemas"]["ManifestFile"][];
+        };
+        /** OriginalImage */
+        OriginalImage: {
+            /** Sha256 */
+            sha256: string;
+            /** Width */
+            width: number;
+            /** Height */
+            height: number;
+            /** Data Base64 */
+            data_base64: string;
+        };
+        /** OriginalLimitation */
+        OriginalLimitation: {
+            /**
+             * Code
+             * @enum {string}
+             */
+            code: "ACTIVE_CONTENT" | "SOURCE_STYLE" | "EXTERNAL_RESOURCE" | "UNSUPPORTED_ELEMENT" | "REMOVED_ATTRIBUTE" | "UNDECLARED_IMAGE" | "IMAGE_FORMAT" | "IMAGE_LIMIT" | "IMAGE_DECODE" | "IMAGE_ANIMATION";
+            /** Element */
+            element: string;
+            /** Reference */
+            reference: string;
+            /**
+             * Count
+             * @default 1
+             */
+            count: number;
+        };
+        /** OriginalToken */
+        OriginalToken: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "start" | "end" | "text" | "image";
+            /**
+             * Tag
+             * @default
+             */
+            tag: string;
+            /** Attributes */
+            attributes?: {
+                [key: string]: string;
+            };
+            /**
+             * Text
+             * @default
+             */
+            text: string;
+            /**
+             * Image Index
+             * @default null
+             */
+            image_index: number | null;
+        };
+        /** OriginalStructure */
+        OriginalStructure: {
+            /** Tokens */
+            tokens: components["schemas"]["OriginalToken"][];
+            /** Images */
+            images: components["schemas"]["OriginalImage"][];
+            /** Limitations */
+            limitations: components["schemas"]["OriginalLimitation"][];
         };
         /** DocumentEvidenceCommand */
         DocumentEvidenceCommand: {
@@ -9496,6 +9632,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EvidenceTextView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_original_attachment_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_original_view_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OriginalViewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OriginalViewChunk"];
                 };
             };
             /** @description Unauthorized */
