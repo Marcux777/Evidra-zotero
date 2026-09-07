@@ -82,6 +82,51 @@ def decision_fixture(client):
     return prefix, form, proposal, decision, protocol1
 
 
+@pytest.mark.parametrize("format", ["csv_results", "csv_studies"])
+def test_csv_current_cell_survives_rejection_of_a_competing_proposal(tmp_path, format):
+    with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
+        prefix, form, accepted, _, _ = decision_fixture(client)
+        competitor = post(
+            client,
+            prefix + "/matrix/proposals",
+            {
+                "form_version_id": form["id"],
+                "source_id": accepted["source_id"],
+                "field_key": accepted["field_key"],
+                "value": {"original": "43", "normalized": 43},
+                "value_state": "FOUND",
+                "evidence_ids": accepted["evidence_ids"],
+                "rationale": "Incorrect competing reading",
+                "idempotency_key": "competitor",
+            },
+        )
+        rejected = post(
+            client,
+            prefix + "/matrix/decisions",
+            {
+                "proposal_id": competitor["id"],
+                "expected_revision": 1,
+                "action": "REJECTED",
+                "rationale": "Preserve the reviewed value",
+                "idempotency_key": "reject-competitor",
+            },
+        )
+        current = client.post(
+            prefix + "/matrix/query",
+            headers=HEADERS,
+            json={"form_version_id": form["id"], "offset": 0},
+        ).json()["items"][0]
+        assert current["review_state"] == "APPROVED" and current["proposal_id"] == accepted["id"]
+        data, _, _ = export(client, prefix, format)
+        row = next(csv.DictReader(io.StringIO(data.decode("utf-8"))))
+        column = "result.1." if format == "csv_studies" else ""
+        assert row[column + "review_state"] == current["review_state"]
+        assert row[column + "proposal_id"] == current["proposal_id"]
+        assert float(row[column + "value"]) == 42 and row[column + "revision"] == "2"
+        assert row[column + "decision_id"] == rejected["id"]
+        assert row[column + "decision_action"] == "REJECTED"
+
+
 def test_versioned_roundtrip_has_typed_imported_history_without_local_authority(tmp_path):
     app = make_app(tmp_path, [0.0])
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:

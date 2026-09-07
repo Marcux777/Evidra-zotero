@@ -78,7 +78,7 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
                     and p.field_origin_form_version_id == form.field_origins[field.key]
                 ]
                 proposal = (
-                    proposals.get(decision.proposal_id)
+                    proposals.get(decision.new.proposal_id or "")
                     if decision
                     else max(pending, key=lambda p: p.created_at)
                     if pending
@@ -100,10 +100,12 @@ def result_rows(notebook: PortableNotebook) -> list[dict[str, Any]]:
                     "field": field.key,
                     "field_label": field.label,
                     "value_state": cell.value_state if cell else "UNPROCESSED",
-                    "review_state": decision.action if decision else "UNREVIEWED",
+                    # A rejection of a competitor advances the ledger but preserves the cell.
+                    "review_state": decision.new.review_state if decision else "UNREVIEWED",
                     "revision": decision.new.revision if decision else 0,
                     "proposal_id": proposal.id if proposal else "",
                     "decision_id": decision.id if decision else "",
+                    "decision_action": decision.action if decision else "",
                     "author": decision.author if decision else "",
                     "unit": field.unit or "",
                     "condition": "",
@@ -192,6 +194,7 @@ RESULT_COLUMNS = [
     "locator",
     "proposal_id",
     "decision_id",
+    "decision_action",
     "author",
 ]
 
