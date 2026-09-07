@@ -1,0 +1,20 @@
+{
+  "INVALID_BACKUP": "O backup falhou na validação de conteúdo, referências ou integridade. Confira o pacote e sua versão; nenhum registro foi importado. Consulte o diagnóstico local antes de tentar novamente.",
+  "INVALID_ENGINE_MANIFEST": "O manifesto está inválido ou é incompatível. Extraia novamente o pacote Windows x64 do Evidra e selecione engine-manifest.json.",
+  "ENGINE_NOT_CHOSEN": "Escolha engine-manifest.json na pasta extraída do engine.",
+  "ENGINE_NOT_RUNNING": "O engine está parado. Confira o pacote e autorize sua inicialização.",
+  "MISSING_ENTRYPOINT": "O pacote não contém evidra-engine.exe. Extraia o ZIP completo e mantenha todos os arquivos juntos.",
+  "PAYLOAD_HASH_MISMATCH": "Um arquivo difere do manifesto. Confira SHA256SUMS.txt e extraia novamente o pacote completo.",
+  "PAYLOAD_FILE_SET_MISMATCH": "Há arquivos ausentes ou extras na pasta do engine. Extraia o pacote em uma pasta nova.",
+  "PAYLOAD_CHANGED": "O pacote mudou após sua conferência. Verifique os arquivos e revise a nova impressão antes de autorizar.",
+  "INVALID_CONNECTION_RECEIPT": "O engine retornou uma porta, perfil ou protocolo incompatível. Use o pacote correspondente a esta versão do plugin.",
+  "PROTOCOL_MISMATCH": "O protocolo do engine é incompatível. Use os dois artefatos da mesma distribuição do Evidra.",
+  "ACL_ERROR": "Não foi possível verificar as permissões privadas. Use uma pasta local de sua conta e confira o diagnóstico do engine.",
+  "UNSAFE_NATIVE_PATH": "O caminho contém um vínculo ou redirecionamento não permitido. Extraia o pacote em uma pasta local comum.",
+  "NATIVE_COMMAND_FAILED": "A verificação local de caminho ou permissões falhou. Confira o diagnóstico nativo e use uma pasta local de sua conta.",
+  "ENGINE_EXITED": "O engine encerrou durante a inicialização. Confira o diagnóstico local, as permissões e a integridade do pacote.",
+  "HEARTBEAT_FAILED": "A conexão com o engine expirou ou falhou. Reabra o espaço de pesquisa e confira o estado antes de reiniciar.",
+  "PROVIDER_HTTP_ERROR": "O serviço recusou a solicitação. Confira o adaptador escolhido, o endereço do serviço e o nome ou a disponibilidade do modelo. O erro HTTP, por si só, não identifica qual configuração causou a falha.",
+  "PROVIDER_TRANSPORT_ERROR": "Não foi possível acessar o serviço. Confira se ele está em execução e se o endereço configurado está correto. Revise o estado da operação antes de tentar novamente.",
+  "PROVIDER_TIMEOUT": "O serviço não respondeu dentro do prazo. Confira seu estado e revise a operação antes de tentar novamente."
+}

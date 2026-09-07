@@ -1,26 +1,95 @@
 import validateManifest from '../../../../packages/contracts/generated/validate-manifest.js';
 import type { EngineManifest, EnginePreview, RuntimeStatus } from '../bridge/types';
+import { readEventBatch } from '../security/stream';
 
 const notebookRoute = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}(\/.*)?$/;
 const snapshotSourcesRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/(sources|identities)$/;
+const snapshotDocumentRoute = /^\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})(\/.*)$/;
 
 function allowedEngineRoute(method: string, path: string): boolean {
     // Match the literal path before fetch can normalize traversal or encoded segments.
     if (/[\u0000-\u0020\u007f\\%#]/.test(path)) return false;
-    const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|50|100)$/.exec(path);
+    const eventRoute = /^\/v1\/notebooks\/[a-f0-9-]{36}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9-]{36})\/runs\/[a-f0-9]{32}\/events\?cursor=(0|[1-9][0-9]{0,6})$/.exec(path);
+    if (eventRoute) return method === 'GET' && Number(eventRoute[1]) <= 1000000;
+    const exportData = /^\/v1\/notebooks\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}\/snapshots\/(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/exports\/[a-f0-9]{32}\/data\?offset=(0|[1-9][0-9]{0,8})$/.exec(path);
+    if (exportData) return method === 'GET' && Number(exportData[1]) <= 134217728;
+    const page = /^([^?]+)\?offset=(0|[1-9][0-9]{0,15})&limit=(1|10|20|50|100)$/.exec(path);
     if (path.includes('?') && (!page || !Number.isSafeInteger(Number(page[2])))) return false;
     const base = page?.[1] ?? path, limit = page?.[3];
     const notebook = notebookRoute.exec(base), suffix = notebook?.[1] ?? '';
+    const documentPath = notebook && snapshotDocumentRoute.exec(suffix)?.[1];
+    if (documentPath && (method === 'POST' && !page && (
+        ['/exports/bibliography-access', '/exports/previews', '/exports', '/imports/uploads', '/imports'].includes(documentPath)
+        || /^\/exports\/[a-f0-9]{32}\/validate$/.test(documentPath)
+        || /^\/transfers\/[a-f0-9]{32}\/discard$/.test(documentPath)
+        || /^\/imports\/[a-f0-9]{32}\/(reference|evidence)$/.test(documentPath)
+        || /^\/imports\/uploads\/[a-f0-9]{32}(?:\/(inspect|mappings))?$/.test(documentPath))
+        || method === 'GET' && (limit === '20' && Number(page?.[2]) <= 1000000 && (
+            documentPath === '/imports' || /^\/imports\/[a-f0-9]{32}\/records$/.test(documentPath)
+            || /^\/imports\/uploads\/[a-f0-9]{32}\/sources$/.test(documentPath))
+            || !page && /^\/imports\/[a-f0-9]{32}\/status$/.test(documentPath)))) return true;
+    if (documentPath && (method === 'POST' && !page && (
+        documentPath === '/mcp/connections' || /^\/mcp\/connections\/[a-f0-9]{32}\/revoke$/.test(documentPath)
+        || /^\/mcp\/notes\/[a-f0-9]{32}\/review$/.test(documentPath))
+        || method === 'GET' && (documentPath === '/mcp/connections' && limit === '20'
+            || documentPath === '/mcp/notes' && limit === '1'))) return true;
+    if (documentPath && (method === 'POST' && !page && (
+        ['/protocols', '/screening/decisions', '/research/runs', '/notes/previews', '/notes/approve'].includes(documentPath)
+        || /^\/research\/runs\/[a-f0-9]{32}\/control$/.test(documentPath)
+        || /^\/artifacts\/[a-f0-9]{32}\/review$/.test(documentPath)
+        || /^\/notes\/outbox\/[a-f0-9]{32}\/(begin|ack)$/.test(documentPath))
+        || method === 'GET' && (
+            (documentPath === '/protocols' || documentPath === '/notes/outbox'
+                || /^\/artifacts\/[a-f0-9]{32}\/versions$/.test(documentPath)) && limit === '1'
+            || (documentPath === '/research/runs' || /^\/screening\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/research\/runs\/[a-f0-9]{32}\/access$/.test(documentPath)) && limit === '20'
+            || !page && (/^\/protocols\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/research\/runs\/[a-f0-9]{32}(\/preview)?$/.test(documentPath)
+                || /^\/artifacts\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/notes\/outbox\/[a-f0-9]{32}$/.test(documentPath))))) return true;
+    if (documentPath && (method === 'POST' && !page && (
+        documentPath === '/jobs' || documentPath === '/job-cache/clear' || /^\/jobs\/[a-f0-9]{32}\/control$/.test(documentPath))
+        || method === 'GET' && (documentPath === '/jobs' && limit === '10'
+            || /^\/jobs\/[a-f0-9]{32}\/units$/.test(documentPath) && limit === '20'
+            || /^\/jobs\/[a-f0-9]{32}\/access$/.test(documentPath) && limit === '50'
+            || !page && /^\/jobs\/[a-f0-9]{32}(?:\/units\/[a-f0-9]{32}\/batches\/(?:0|[1-9][0-9]{0,3}|10000))?$/.test(documentPath)))) return true;
+    if (documentPath && (method === 'GET' && (documentPath === '/forms' && limit === '1'
+        || !page && /^\/forms\/(template|[a-f0-9]{32})$/.test(documentPath))
+        || method === 'POST' && !page && /^(\/forms|\/matrix\/(query|proposals|decisions|proposals\/query|decisions\/query|bulk-preview|bulk-approve))$/.test(documentPath))) return true;
+    const profile = /^\/v1\/providers\/profiles\/[a-zA-Z0-9_-]{1,100}(\/secret|\/models|\/resume)?$/.exec(base);
+    if (method === 'PUT') return !page && (base === '/v1/providers/settings'
+        || !!profile && (!profile[1] || profile[1] === '/secret')
+        || !!notebook && /^\/providers\/[a-zA-Z0-9_-]{1,100}\/consent$/.test(suffix)
+        || documentPath === '/provider-budgets');
+    if (method === 'DELETE') return !page && !!profile && profile[1] === '/secret';
+    if (method === 'GET' && (base === '/v1/providers/settings' && !page
+        || base === '/v1/providers/profiles' && limit === '50'
+        || !!profile && (profile[1] === '/secret' && !page || profile[1] === '/models' && limit === '50')
+        || !!notebook && !page && /^\/providers\/[a-zA-Z0-9_-]{1,100}\/consent$/.test(suffix)
+        || !!documentPath && (limit === '50' && (/^\/conversations(?:\/[a-f0-9]{32}\/runs)?$/.test(documentPath) || documentPath === '/provider-calls')
+            || !page && (/^\/(?:conversations|runs|vectors)\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/runs\/[a-f0-9]{32}\/access$/.test(documentPath)
+                || /^\/provider-budgets\/(call|job|session)\/[a-f0-9]{32}$/.test(documentPath))))) return true;
     if (method === 'POST') {
         if (page) return false;
-        return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate'].includes(base)
+        return ['/v1/notebooks', '/v1/bridge/heartbeat', '/v1/sources/invalidate', '/v1/providers/prices'].includes(base)
+            || !!profile && profile[1] === '/resume'
+            || !!documentPath && (/^\/conversations(?:\/[a-f0-9]{32}\/runs)?$/.test(documentPath)
+                || /^\/runs\/[a-f0-9]{32}\/(start|cancel)$/.test(documentPath)
+                || documentPath === '/vectors' || /^\/vectors\/[a-f0-9]{32}\/cancel$/.test(documentPath))
             || !!notebook && (['/sources/sync', '/sources/preview', '/snapshots'].includes(suffix)
-                || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix));
+                || /^\/sources\/[a-f0-9]{64}\/revoke$/.test(suffix))
+            || !!documentPath && (/^\/documents\/(register|missing|verify|ingest|text|text-view|original-view|preview)$/.test(documentPath)
+                || /^\/documents\/text\/[a-f0-9]{32}$/.test(documentPath)
+                || /^\/operations\/[a-f0-9]{32}\/cancel$/.test(documentPath) || documentPath === '/search');
     }
     if (method !== 'GET') return false;
-    if (!page) return base === '/v1/status' || base === '/v1/notebooks' || !!notebook && suffix === '';
+    if (!page) return base === '/v1/status' || base === '/v1/notebooks' || !!notebook && suffix === ''
+        || !!documentPath && (/^\/operations\/[a-f0-9]{32}(\/preview)?$/.test(documentPath)
+            || /^\/evidence\/[a-f0-9]{64}$/.test(documentPath));
     if (base === '/v1/notebooks') return limit === '50';
     if (!notebook) return false;
+    if (documentPath === '/documents') return limit === '50';
     if (suffix === '/snapshots') return limit === '1' || limit === '50';
     if (/^\/sources\/previews\/[a-f0-9]{32}$/.test(suffix)) return limit === '50';
     const snapshot = snapshotSourcesRoute.exec(suffix);
@@ -42,7 +111,12 @@ export interface VerifiedPackage {
     fingerprint: string;
 }
 export async function verifyPackage(root: string, io: PackageIO): Promise<VerifiedPackage> {
-    const manifest = await io.readJson(io.join(root, 'engine-manifest.json'));
+    let manifest: unknown;
+    try { manifest = await io.readJson(io.join(root, 'engine-manifest.json')); }
+    catch (cause) {
+        if (cause instanceof SyntaxError) throw new Error('INVALID_ENGINE_MANIFEST', { cause });
+        throw cause;
+    }
     if (!validateManifest(manifest))
         throw new Error('INVALID_ENGINE_MANIFEST');
     const names = new Set<string>();
@@ -93,6 +167,10 @@ export class EngineController {
     #startTask: Promise<void> | null = null;
     constructor(platform: EnginePlatform, profile: string) { this.#platform = platform; this.#profile = profile; }
     view() { return { state: this.#state, engine: this.#preview, error: this.#error }; }
+    mcpExecutable() {
+        if (this.#state !== 'running' || !this.#root) throw new Error('ENGINE_NOT_RUNNING');
+        return this.#root.replace(/[\\/]$/, '') + '\\evidra-engine.exe';
+    }
     async choose(root: string) { if (this.#state === 'starting' || this.#state === 'running')
         throw new Error('ENGINE_ALREADY_RUNNING'); this.#root = root; return this.verify(); }
     async verify() { if (!this.#root)
@@ -157,23 +235,26 @@ export class EngineController {
             throw new Error(this.#error, { cause: error });
         }
     }
-    async request(method: 'GET' | 'POST', path: string, body?: unknown): Promise<unknown> {
+    async request(method: 'GET' | 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<unknown> {
         if (this.#state !== 'running' || !this.#session)
             throw new Error('ENGINE_NOT_RUNNING');
         if (!allowedEngineRoute(method, path))
             throw new Error('INVALID_ENGINE_ROUTE');
+        const serialized = body === undefined ? undefined : JSON.stringify(body);
+        if (serialized !== undefined && new TextEncoder().encode(serialized).byteLength > 65536) throw new Error('BODY_TOO_LARGE');
         const controller = new AbortController();
         this.#requests.add(controller);
-        const timeout = setTimeout(() => controller.abort(), 10000);
+        const timeout = setTimeout(() => controller.abort(), /\/conversations\/[a-f0-9]{32}\/runs$|\/models\?/.test(path) ? 55000 : 10000);
         try {
-            const response = await this.#platform.fetch(this.#url + path, { method, headers: { Authorization: `Bearer ${this.#session.token}`, 'X-Evidra-Client': 'bridge', 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), credentials: 'omit', redirect: 'error', signal: controller.signal });
+            const response = await this.#platform.fetch(this.#url + path, { method, headers: { Authorization: `Bearer ${this.#session.token}`, 'X-Evidra-Client': 'bridge', 'Content-Type': 'application/json' }, ...(serialized === undefined ? {} : { body: serialized }), credentials: 'omit', redirect: 'error', signal: controller.signal });
             if (!response.ok) {
                 const error = await response.json() as {
                     code?: unknown;
                 };
                 throw new Error(typeof error.code === 'string' && /^[A-Z_]{1,80}$/.test(error.code) ? error.code : 'ENGINE_HTTP_ERROR', { cause: { operation: 'engine_http', http_status: response.status } });
             }
-            return await response.json();
+            const events = /\/events\?cursor=([0-9]+)$/.exec(path);
+            return events ? await readEventBatch(response, Number(events[1])) : await response.json();
         }
         finally {
             clearTimeout(timeout);

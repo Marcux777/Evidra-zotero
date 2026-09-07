@@ -1,0 +1,507 @@
+{
+  "$defs": {
+    "JobAccessCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.access",
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id"
+      ],
+      "title": "JobAccessCommand",
+      "type": "object"
+    },
+    "JobCacheCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.cache.clear",
+          "title": "Op",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op"
+      ],
+      "title": "JobCacheCommand",
+      "type": "object"
+    },
+    "JobControl": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "resume",
+            "pause",
+            "cancel",
+            "skip_uncertain"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "action",
+        "expected_revision"
+      ],
+      "title": "JobControl",
+      "type": "object"
+    },
+    "JobControlCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.control",
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/JobControl"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id",
+        "request"
+      ],
+      "title": "JobControlCommand",
+      "type": "object"
+    },
+    "JobListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.list",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "JobListCommand",
+      "type": "object"
+    },
+    "JobPreviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.preview",
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "unit_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Unit Id",
+          "type": "string"
+        },
+        "batch_index": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Batch Index",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id",
+        "unit_id",
+        "batch_index"
+      ],
+      "title": "JobPreviewCommand",
+      "type": "object"
+    },
+    "JobReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id"
+      ],
+      "title": "JobReadCommand",
+      "type": "object"
+    },
+    "JobUnitsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.units",
+          "title": "Op",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "job_id",
+        "offset"
+      ],
+      "title": "JobUnitsCommand",
+      "type": "object"
+    },
+    "JobWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "form_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Form Version Id",
+          "type": "string"
+        },
+        "field_keys": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Field Keys",
+          "type": "array"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "method": {
+          "enum": [
+            "SEARCH",
+            "FULL_SCAN"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "max_chunks_per_unit": {
+          "default": 500,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Chunks Per Unit",
+          "type": "integer"
+        },
+        "context_tokens": {
+          "default": 32768,
+          "maximum": 1000000,
+          "minimum": 1024,
+          "title": "Context Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "default": 2048,
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "ollama_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OllamaOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "force_new": {
+          "default": false,
+          "title": "Force New",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "form_version_id",
+        "field_keys",
+        "profile_id",
+        "method"
+      ],
+      "title": "JobWrite",
+      "type": "object"
+    },
+    "JobWriteCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "jobs.prepare",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/JobWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "JobWriteCommand",
+      "type": "object"
+    },
+    "OllamaOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "num_ctx": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Num Ctx"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Temperature"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "think": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Think"
+        }
+      },
+      "title": "OllamaOptions",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "jobs.access": "#/$defs/JobAccessCommand",
+      "jobs.cache.clear": "#/$defs/JobCacheCommand",
+      "jobs.control": "#/$defs/JobControlCommand",
+      "jobs.list": "#/$defs/JobListCommand",
+      "jobs.prepare": "#/$defs/JobWriteCommand",
+      "jobs.preview": "#/$defs/JobPreviewCommand",
+      "jobs.read": "#/$defs/JobReadCommand",
+      "jobs.units": "#/$defs/JobUnitsCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/JobListCommand"
+    },
+    {
+      "$ref": "#/$defs/JobWriteCommand"
+    },
+    {
+      "$ref": "#/$defs/JobReadCommand"
+    },
+    {
+      "$ref": "#/$defs/JobAccessCommand"
+    },
+    {
+      "$ref": "#/$defs/JobUnitsCommand"
+    },
+    {
+      "$ref": "#/$defs/JobPreviewCommand"
+    },
+    {
+      "$ref": "#/$defs/JobControlCommand"
+    },
+    {
+      "$ref": "#/$defs/JobCacheCommand"
+    }
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "$defs": {
+    "OriginalImage": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "data_base64": {
+          "title": "Data Base64",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "width",
+        "height",
+        "data_base64"
+      ],
+      "title": "OriginalImage",
+      "type": "object"
+    },
+    "OriginalLimitation": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "ACTIVE_CONTENT",
+            "SOURCE_STYLE",
+            "EXTERNAL_RESOURCE",
+            "UNSUPPORTED_ELEMENT",
+            "REMOVED_ATTRIBUTE",
+            "UNDECLARED_IMAGE",
+            "IMAGE_FORMAT",
+            "IMAGE_LIMIT",
+            "IMAGE_DECODE",
+            "IMAGE_ANIMATION"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "element": {
+          "title": "Element",
+          "type": "string"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        },
+        "count": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "code",
+        "element",
+        "reference"
+      ],
+      "title": "OriginalLimitation",
+      "type": "object"
+    },
+    "OriginalToken": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "start",
+            "end",
+            "text",
+            "image"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "tag": {
+          "default": "",
+          "title": "Tag",
+          "type": "string"
+        },
+        "attributes": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Attributes",
+          "type": "object"
+        },
+        "text": {
+          "default": "",
+          "title": "Text",
+          "type": "string"
+        },
+        "image_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Index"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "OriginalToken",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "tokens": {
+      "items": {
+        "$ref": "#/$defs/OriginalToken"
+      },
+      "title": "Tokens",
+      "type": "array"
+    },
+    "images": {
+      "items": {
+        "$ref": "#/$defs/OriginalImage"
+      },
+      "title": "Images",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/OriginalLimitation"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "tokens",
+    "images",
+    "limitations"
+  ],
+  "title": "OriginalStructure",
+  "type": "object"
+}

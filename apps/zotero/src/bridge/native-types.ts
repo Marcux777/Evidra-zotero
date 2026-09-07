@@ -31,6 +31,8 @@ export interface NativeSubprocess {
     }): Promise<NativeProcess>;
 }
 export interface NativeIO {
+    read(path: string, options?: { offset?: number; maxBytes?: number }): Promise<Uint8Array<ArrayBuffer>>;
+    write(path: string, data: Uint8Array<ArrayBuffer>, options: { mode: 'create' | 'overwrite'; tmpPath?: string }): Promise<number>;
     readJSON(path: string): Promise<unknown>;
     writeJSON(path: string, value: unknown, options: {
         tmpPath: string;
@@ -62,8 +64,43 @@ export interface NativePicker {
     file: string;
     modeOpen: number;
     returnOK: number;
+    modeSave: number;
+    returnReplace: number;
+    defaultString: string;
+}
+export interface NativeCreator {
+    firstName?: string;
+    lastName: string;
+    fieldMode: number;
+    creatorTypeID: number;
+}
+export interface NativeExportTranslation {
+    getTranslators(): Promise<{ translatorID: string }[]>;
+    setItems(items: NativeSourceItem[]): void;
+    setTranslator(id: string): boolean;
+    setDisplayOptions(options: { exportNotes: false; exportFileData: false; exportTags: false; includeAnnotations: false; exportCharset: 'UTF-8' }): void;
+    setHandler(type: 'itemDone' | 'error', handler: (translation: NativeExportTranslation, value: unknown) => void): void;
+    translate(): Promise<unknown>;
+    string: string;
 }
 export interface NativeZotero {
+    Item: new (type: string) => NativeSourceItem & {
+        setField(field: string | number, value: string | number): boolean;
+        setCreators(creators: NativeCreator[]): void;
+        setNote(html: string): void;
+        addTag(tag: string): void;
+        saveTx(): Promise<number | boolean>;
+    };
+    ItemFields: { getName(id: number): string };
+    URI: { getItemURI(item: NativeSourceItem): string };
+    Translate: { Export: new () => NativeExportTranslation };
+    EditorInstanceUtilities: {
+        _transformTextToHTML(text: string): string;
+    };
+    Reader: {
+        open(itemID: number, location?: NativeReaderLocation, options?: { openInWindow: boolean }): Promise<NativeReader | undefined>;
+        getByTabID(tabID: string): NativeReader | undefined;
+    };
     version: string;
     isWin: boolean;
     initializationPromise: Promise<void>;
@@ -135,19 +172,51 @@ export interface NativeSourceItem {
     version: number;
     deleted: boolean;
     attachmentContentType: string;
+    attachmentPath: string;
+    attachmentLinkMode: number;
+    attachmentCharset: string | null;
+    attachmentSyncState: number;
+    attachmentSyncedModificationTime: number | null;
+    attachmentSyncedHash: string | null;
+    attachmentLastProcessedModificationTime: number | null;
+    attachmentLastRead: number | null;
     isRegularItem(): boolean;
     isAttachment(): boolean;
     isNote(): boolean;
     isAnnotation(): boolean;
     isFileAttachment(): boolean;
     isPDFAttachment(): boolean;
-    getField(name: string, unformatted?: boolean): string | number;
+    getField(name: string | number, unformatted?: boolean): string | number;
+    getUsedFields(): number[];
+    getCreators(): NativeCreator[];
     getTags(): { tag: string }[];
     getAttachments(includeTrashed?: boolean): number[];
     getNotes(includeTrashed?: boolean): number[];
     getAnnotations(includeTrashed?: boolean): NativeSourceItem[];
     getNote(): string;
+    annotationText: string;
+    annotationComment: string;
+    getFilePath(): string | false;
+    getFilePathAsync(): Promise<string | false>;
     loadAllData(): Promise<void>;
+}
+export interface NativeReaderLocation {
+    pageIndex?: number;
+    position?: { pageIndex: number; rects: number[][] };
+}
+export interface NativePDFProxy {
+    getDownloadInfo(): Promise<{ length: number }>;
+    getData(): Promise<Uint8Array<ArrayBuffer>>;
+}
+export interface NativePDFView {
+    initializedPromise: Promise<void>;
+    _iframeWindow?: { PDFViewerApplication?: { pdfDocument: NativePDFProxy | null } };
+}
+export interface NativeReader {
+    itemID: number;
+    _initPromise: Promise<void>;
+    _internalReader: { _lastView: NativePDFView };
+    navigate(location: NativeReaderLocation): Promise<void>;
 }
 export interface NativeSourceCollection {
     id: number;
@@ -170,6 +239,7 @@ export interface NativeSourceAPI {
         get(id: number): { libraryID: number; libraryType: string; libraryTypeID: number | null; groupID?: number; archived?: boolean; editable: boolean; filesEditable: boolean };
     };
     Items: {
+        get(id: number): NativeSourceItem | false;
         getAsync(id: number): Promise<NativeSourceItem | false>;
         getByLibraryAndKeyAsync(library: number, key: string): Promise<NativeSourceItem | false>;
     };
@@ -198,6 +268,7 @@ export interface NativeServices {
     };
 }
 export interface NativeGlobals {
+    plainText(html: string): string;
     Zotero: NativeZotero;
     Services: NativeServices;
     IOUtils: NativeIO;

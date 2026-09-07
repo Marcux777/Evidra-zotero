@@ -2,22 +2,34 @@
 
 The approved design is implemented in sequential vertical layers. This document describes the boundaries and records which layers currently exist; it is not a completion claim. SPEC.md remains the binding product specification. Decisions are in `docs/adr/` and executed evidence is in TEST_REPORT.md.
 
+Task 12 adds an onedir Windows build with actual input captures, a production package-integrity verifier and runtime dependency notices. `scripts/package.py` binds the XPI and engine ZIP to the exact source bytes and Git revision; `source-inputs.zip` preserves the inspected inputs. `scripts/smoke-package.py` uses the real frozen executable with authenticated loopback HTTP, a private one-use handshake, synthetic evidence/matrix/export data, frozen PDFium parsing and normal heartbeat expiry. The harness controls only its own disposable data and child processes. A PATH-restricted developer machine is recorded separately from a clean Windows installation.
+
+Migration 015 tracks last access and bytes for reconstructible preview material. Configurable derived-cache limits default to 512 MiB total and 100 MiB images; vector retrieval already streams compact CPU blocks without a persistent vector RAM cache. Eviction deletes only cached previews/extraction results, never original document versions, evidence or human decisions. A later preview request returns explicit `PREVIEW_EVICTED` and requires regeneration. SQLite frees reusable pages; this policy does not promise immediate filesystem truncation. The cache configuration is local `cache-settings.json`, parsed with bounded size and strict validation.
+
+Portable decisions preserve two separate concepts: the latest review event and the retained cell state. Rejecting a competing proposal can leave a previously approved value and proposal intact. CSV derives the displayed value/state/proposal from `decision.new` and retains the event in `decision_action`; backup validation resolves the event target plus old/new proposal references independently. Neither export nor import promotes imported history into local write authority.
+
+Both CSV orientations project local cells only from the selected snapshot. Revisions are compared within that snapshot and field lineage. `snapshot_id` and `source_version` identify the original snapshot and immutable source metadata version. Imported history retains separate rows per original snapshot and import group; it is never treated as a local decision. Source records retain each snapshot association even when their immutable payload is unchanged. A portable archive with a deduplicated source still identifies that source when only one original version exists; ambiguous multi-version associations fail with `CSV_SOURCE_VERSION_AMBIGUOUS`. JSON/backup retain authorized history from every snapshot; CSV selection does not delete that history.
+
+Textual file attachments use the same registered-file and isolated-worker boundary as PDFs, with native snapshot MIME provenance, original file hashes and unpaginated text evidence. [Supported formats and limitations](TEXT_ATTACHMENTS.md) distinguish complete extraction, explicit format failures and unavailable verified native text navigation. No schema migration or new parser dependency is required.
+
 ## Components and ownership
 
 | Component | Responsibility | Current implementation state |
 |---|---|---|
-| Zotero plugin | Resolve native source objects, present the local interface, mediate human approval, own the engine process | Task 2 pending |
-| Typed UI bridge | Permit named operations from the renderer without exposing Zotero objects, paths, credentials or generic network access | Task 2 pending |
+| Zotero plugin | Resolve native source objects, present the local interface, mediate human approval, own the engine process | Task 2 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Typed UI bridge | Permit named operations from the renderer without exposing Zotero objects, paths, credentials or generic network access | Task 2 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
 | Loopback engine | Own sessions, domain services and one Evidra database | Task 1 implemented and independently reviewed |
-| Scope service | Intersect snapshot membership, current notebook grants and current source access at every read/commit | Task 3 pending |
-| Document/evidence services | Parse authorized files in subprocesses; retain immutable versions and verified locations | Task 4 pending |
-| Provider services | Native protocols, explicit capability provenance, consent and budget accounting | Task 5 pending |
-| Retrieval/conversations | Authorized lexical/vector retrieval, draft streams and validated promotion | Task 6 pending |
-| Matrix/jobs/research | Proposals distinct from human decisions; persistent units and approved-note outbox | Tasks 7–9 pending |
-| MCP bridge | Restricted stdio client of the running engine, with a separate scoped credential | Task 10 pending |
-| Exports/distribution | Current-access filtering, validated backup/import and bundled Windows runtime | Tasks 11–12 pending |
+| Scope service | Intersect snapshot membership, current notebook grants and current source access at every read/commit | Task 3 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Document/evidence services | Parse authorized files in subprocesses; retain immutable versions and verified locations | Task 4 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Provider services | Native protocols, explicit capability provenance, consent and budget accounting | Task 5 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Retrieval/conversations | Authorized lexical/vector retrieval, draft streams and validated promotion | Task 6 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Matrix/jobs/research | Proposals distinct from human decisions; persistent units and approved-note outbox | Tasks 7–9 implemented and scoped source reviewed; native model failures remain documented |
+| MCP bridge | Restricted stdio client of the running engine, with a separate scoped credential | Task 10 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Exports/distribution | Current-access filtering, validated backup/import and bundled Windows runtime | Task 11 scoped source reviewed; Task 12 distribution implemented, final review/native gates pending |
 
 The engine never opens `zotero.sqlite`. Zotero source identity is the compound profile/library/item key; document attachments have their own compound identity. Zotero writes occur through the plugin after a human-approved intent and a fresh native permission check.
+
+Textual original views use the existing verified file handle and bounded Windows parser to produce passive structure or exact decoded source. Deterministic native-only chunks bind the unit and EPUB extraction range to the immutable original hash; each continuation revalidates current access. The privileged view sanitizes a URL-free token grammar in an inert document and renders it in an owned opaque, script-disabled frame, using only validated same-original PNG assets. It keeps the extracted citation separate, lists omissions, and tears down both panes on invalidation. See [text attachment boundaries](TEXT_ATTACHMENTS.md); actual Gecko sandbox/rendering acceptance is recorded separately from source checks.
 
 ## Runtime session
 
@@ -29,7 +41,7 @@ The receipt identifies protocol, host, negotiated port and profile. Health revea
 
 ## Content authorization
 
-The planned `ScopeService.resolve` creates an immutable server-owned context from the authenticated principal, notebook, snapshot and requested capability. The permitted set is the intersection of immutable membership, current notebook grants and current source/library access. Retrieval restricts that set before top-k. A UUID is an identifier, never proof of authorization.
+`ScopeService.resolve` creates an immutable server-owned context from the authenticated principal, notebook, snapshot and requested capability. The permitted set is the intersection of immutable membership, current notebook grants and current source/library access. Retrieval restricts that set before top-k. A UUID is an identifier, never proof of authorization.
 
 Services recheck current access and scope revision before committing asynchronous results. Removal or revocation also affects historical reads, cached results, exports and MCP. Frozen snapshots preserve composition and document references; they do not guarantee that an old original PDF still exists. Human decisions are durable records, not discardable derived cache.
 

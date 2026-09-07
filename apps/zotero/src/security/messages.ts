@@ -1,5 +1,13 @@
 import type { UiMessage } from '../bridge/types';
 import validateSelection from '../../../../packages/contracts/generated/validate-selection';
+import validateDocument from '../../../../packages/contracts/generated/validate-document-command';
+import validateConversation from '../../../../packages/contracts/generated/validate-conversation-command';
+import validateProvider from '../../../../packages/contracts/generated/validate-provider-command';
+import validateMatrix from '../../../../packages/contracts/generated/validate-matrix-command';
+import validateJob from '../../../../packages/contracts/generated/validate-job-command';
+import validateResearch from '../../../../packages/contracts/generated/validate-research-command';
+import validateMcp from '../../../../packages/contracts/generated/validate-mcp-command';
+import validateExport from '../../../../packages/contracts/generated/validate-export-command';
 
 export function serializeUiResponse(id: string, result: unknown, error: string | null): string {
     const message = JSON.stringify({ channel: 'evidra-ui-v1', id, result, error });
@@ -10,6 +18,42 @@ const plain = (value: unknown): value is Record<string, unknown> => !!value && t
 export function parseUiMessage(value: unknown): UiMessage {
     if (!plain(value) || typeof value.op !== 'string')
         throw new Error('INVALID_UI_MESSAGE');
+    if (value.op.startsWith('exports.') || value.op.startsWith('imports.')) {
+        if (!validateExport(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('mcp.')) {
+        if (!validateMcp(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('research.')) {
+        if (!validateResearch(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('jobs.')) {
+        if (!validateJob(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('matrix.')) {
+        if (!validateMatrix(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('conversation.')) {
+        if (!validateConversation(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('provider.')) {
+        if (!validateProvider(value)) throw new Error('INVALID_UI_MESSAGE');
+        return value;
+    }
+    if (value.op.startsWith('documents.')) {
+        if (!validateDocument(value)) throw new Error('INVALID_UI_MESSAGE');
+        if (value.op === 'documents.preview' && value.request.region) {
+            const [left, bottom, right, top] = value.request.region;
+            if (left >= right || bottom >= top) throw new Error('INVALID_UI_MESSAGE');
+        }
+        return value;
+    }
     const fields: Record<string, string[]> = { status: [], 'engine.choose': [], 'engine.verify': [], 'workspace.close': [], 'workspace.open': [], 'engine.start': ['fingerprint', 'consent'], 'notebook.list': ['offset'], 'notebook.create': ['name', 'idempotency_key'], 'notebook.select': ['id'], preferences: ['locale', 'theme', 'mode'],
         'sources.state': [], 'sources.history': ['notebook_id', 'offset'], 'sources.read': ['notebook_id', 'snapshot_id', 'offset'],
         'sources.preview': ['notebook_id', 'selection', 'capture'], 'sources.create': ['notebook_id', 'request'],

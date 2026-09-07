@@ -1,0 +1,777 @@
+{
+  "$defs": {
+    "ContentRemap": {
+      "additionalProperties": false,
+      "properties": {
+        "original_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Original Key",
+          "type": "string"
+        },
+        "target_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Target Key",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "pdf",
+            "abstract",
+            "human_note",
+            "human_annotation",
+            "ai_artifact",
+            "approved_data",
+            "text_attachment"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "original_key",
+        "target_key",
+        "kind"
+      ],
+      "title": "ContentRemap",
+      "type": "object"
+    },
+    "ExportCreate": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "preview_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Preview Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "preview_id"
+      ],
+      "title": "ExportCreate",
+      "type": "object"
+    },
+    "ExportCreateCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "exports.create",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ExportCreate"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ExportCreateCommand",
+      "type": "object"
+    },
+    "ExportOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "enum": [
+            "json",
+            "markdown",
+            "csv_studies",
+            "csv_results",
+            "backup",
+            "bibtex",
+            "ris",
+            "csl_json"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "excel": {
+          "default": false,
+          "title": "Excel",
+          "type": "boolean"
+        },
+        "include_pdfs": {
+          "default": false,
+          "title": "Include Pdfs",
+          "type": "boolean"
+        },
+        "source_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "title": "ExportOptions",
+      "type": "object"
+    },
+    "ExportPreviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "exports.preview",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ExportOptions"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ExportPreviewCommand",
+      "type": "object"
+    },
+    "ExportSaveCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "exports.save",
+          "title": "Op",
+          "type": "string"
+        },
+        "artifact_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Artifact Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "artifact_id"
+      ],
+      "title": "ExportSaveCommand",
+      "type": "object"
+    },
+    "ImportChooseCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.choose",
+          "title": "Op",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op"
+      ],
+      "title": "ImportChooseCommand",
+      "type": "object"
+    },
+    "ImportCommit": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "preview_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "confirmed": {
+          "const": true,
+          "title": "Confirmed",
+          "type": "boolean"
+        },
+        "expected_mapping_revision": {
+          "minimum": 0,
+          "title": "Expected Mapping Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "preview_id",
+        "confirmed",
+        "expected_mapping_revision"
+      ],
+      "title": "ImportCommit",
+      "type": "object"
+    },
+    "ImportCommitCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.commit",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ImportCommit"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "ImportCommitCommand",
+      "type": "object"
+    },
+    "ImportEvidenceReference": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "origin_group_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Origin Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "origin_group_id"
+      ],
+      "title": "ImportEvidenceReference",
+      "type": "object"
+    },
+    "ImportListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.list",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "ImportListCommand",
+      "type": "object"
+    },
+    "ImportMapCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.map",
+          "title": "Op",
+          "type": "string"
+        },
+        "preview_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ImportMappingPart"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "preview_id",
+        "request"
+      ],
+      "title": "ImportMapCommand",
+      "type": "object"
+    },
+    "ImportMappingPart": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "original": {
+          "$ref": "#/$defs/SourceIdentity"
+        },
+        "target": {
+          "$ref": "#/$defs/SourceIdentity"
+        },
+        "contents": {
+          "items": {
+            "$ref": "#/$defs/ContentRemap"
+          },
+          "maxItems": 50,
+          "title": "Contents",
+          "type": "array"
+        },
+        "offset": {
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "final": {
+          "title": "Final",
+          "type": "boolean"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "original",
+        "target",
+        "contents",
+        "offset",
+        "final",
+        "expected_revision"
+      ],
+      "title": "ImportMappingPart",
+      "type": "object"
+    },
+    "ImportOpenCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.open",
+          "title": "Op",
+          "type": "string"
+        },
+        "import_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ImportEvidenceReference"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "import_id",
+        "request"
+      ],
+      "title": "ImportOpenCommand",
+      "type": "object"
+    },
+    "ImportRecordsCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.records",
+          "title": "Op",
+          "type": "string"
+        },
+        "import_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "import_id",
+        "offset"
+      ],
+      "title": "ImportRecordsCommand",
+      "type": "object"
+    },
+    "ImportReference": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "form",
+            "protocol",
+            "proposal",
+            "evidence",
+            "artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "identity": {
+          "pattern": "^[a-f0-9]{32,64}$",
+          "title": "Identity",
+          "type": "string"
+        },
+        "origin_group_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Origin Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "identity",
+        "origin_group_id"
+      ],
+      "title": "ImportReference",
+      "type": "object"
+    },
+    "ImportReferenceCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.reference",
+          "title": "Op",
+          "type": "string"
+        },
+        "import_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Import Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ImportReference"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "import_id",
+        "request"
+      ],
+      "title": "ImportReferenceCommand",
+      "type": "object"
+    },
+    "ImportSourcesCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.sources",
+          "title": "Op",
+          "type": "string"
+        },
+        "preview_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Preview Id",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "preview_id",
+        "offset"
+      ],
+      "title": "ImportSourcesCommand",
+      "type": "object"
+    },
+    "ImportStatusCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "imports.status",
+          "title": "Op",
+          "type": "string"
+        },
+        "import_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Import Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "import_id"
+      ],
+      "title": "ImportStatusCommand",
+      "type": "object"
+    },
+    "SourceIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_instance_id": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Profile Instance Id",
+          "type": "string"
+        },
+        "library_id": {
+          "minimum": 1,
+          "title": "Library Id",
+          "type": "integer"
+        },
+        "item_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Item Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_instance_id",
+        "library_id",
+        "item_key"
+      ],
+      "title": "SourceIdentity",
+      "type": "object"
+    },
+    "TransferDiscardCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "exports.discard",
+          "title": "Op",
+          "type": "string"
+        },
+        "transfer_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Transfer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "transfer_id"
+      ],
+      "title": "TransferDiscardCommand",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "exports.create": "#/$defs/ExportCreateCommand",
+      "exports.discard": "#/$defs/TransferDiscardCommand",
+      "exports.preview": "#/$defs/ExportPreviewCommand",
+      "exports.save": "#/$defs/ExportSaveCommand",
+      "imports.choose": "#/$defs/ImportChooseCommand",
+      "imports.commit": "#/$defs/ImportCommitCommand",
+      "imports.list": "#/$defs/ImportListCommand",
+      "imports.map": "#/$defs/ImportMapCommand",
+      "imports.open": "#/$defs/ImportOpenCommand",
+      "imports.records": "#/$defs/ImportRecordsCommand",
+      "imports.reference": "#/$defs/ImportReferenceCommand",
+      "imports.sources": "#/$defs/ImportSourcesCommand",
+      "imports.status": "#/$defs/ImportStatusCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ExportPreviewCommand"
+    },
+    {
+      "$ref": "#/$defs/ExportCreateCommand"
+    },
+    {
+      "$ref": "#/$defs/ExportSaveCommand"
+    },
+    {
+      "$ref": "#/$defs/TransferDiscardCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportChooseCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportCommitCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportListCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportRecordsCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportOpenCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportSourcesCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportMapCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportStatusCommand"
+    },
+    {
+      "$ref": "#/$defs/ImportReferenceCommand"
+    }
+  ]
+}

@@ -16,4 +16,26 @@ const selection=JSON.parse(await readFile('packages/contracts/generated/selectio
 const selectionCompiled=await build({stdin:{contents:standaloneCode(ajv,ajv.compile(selection)),resolveDir:process.cwd(),sourcefile:'validate-selection.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
 await writeFile('packages/contracts/generated/validate-selection.js',selectionCompiled.outputFiles[0].text);
 await writeFile('packages/contracts/generated/validate-selection.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['SelectionSpec'];\n`);
+const documents=JSON.parse(await readFile('packages/contracts/generated/document-command.schema.json','utf8'));
+const documentAjv=new Ajv2020({code:{source:true,esm:true},allErrors:false});
+// Pydantic's discriminator mapping is an annotation; the complete oneOf validates every command.
+documentAjv.addKeyword('discriminator');
+const documentCompiled=await build({stdin:{contents:standaloneCode(documentAjv,documentAjv.compile(documents)),resolveDir:process.cwd(),sourcefile:'validate-document-command.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+await writeFile('packages/contracts/generated/validate-document-command.js',documentCompiled.outputFiles[0].text);
+await writeFile('packages/contracts/generated/validate-document-command.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['DocumentCommand'];\n`);
+for (const name of ['conversation', 'provider', 'matrix', 'job', 'research', 'mcp', 'export']) {
+    const commands = JSON.parse(await readFile(`packages/contracts/generated/${name}-command.schema.json`, 'utf8'));
+    const validator = new Ajv2020({code:{source:true,esm:true},allErrors:false});
+    validator.addKeyword('discriminator');
+    validator.addFormat('date', /^\d{4}-\d{2}-\d{2}$/);
+    validator.addFormat('password', true); // OpenAPI annotation; SecretWrite bounds validate the value.
+    const compiled = await build({stdin:{contents:standaloneCode(validator,validator.compile(commands)),resolveDir:process.cwd(),sourcefile:`validate-${name}-command.generated.js`},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+    await writeFile(`packages/contracts/generated/validate-${name}-command.js`,compiled.outputFiles[0].text);
+    await writeFile(`packages/contracts/generated/validate-${name}-command.d.ts`,`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['${name[0].toUpperCase()+name.slice(1)}Command'];\n`);
+}
+const originalStructure = JSON.parse(await readFile('packages/contracts/generated/original-structure.schema.json', 'utf8'));
+const originalValidator = new Ajv2020({code:{source:true,esm:true},allErrors:false});
+const originalCompiled = await build({stdin:{contents:standaloneCode(originalValidator,originalValidator.compile(originalStructure)),resolveDir:process.cwd(),sourcefile:'validate-original-structure.generated.js'},bundle:true,write:false,format:'esm',platform:'browser',target:['firefox140'],legalComments:'eof'});
+await writeFile('packages/contracts/generated/validate-original-structure.js',originalCompiled.outputFiles[0].text);
+await writeFile('packages/contracts/generated/validate-original-structure.d.ts',`import type { components } from './api';\nexport default function validate(value:unknown):value is components['schemas']['OriginalStructure'];\n`);
 console.log('Generated OpenAPI and TypeScript from Pydantic (no service startup).');

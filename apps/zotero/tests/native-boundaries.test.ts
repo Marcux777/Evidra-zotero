@@ -94,6 +94,16 @@ test('opaque UI waits for native readiness and exchanges only admitted messages 
         expect(settled).toBe(false);
         deliver({ data: JSON.stringify(response), source: null, origin: '', isTrusted: true });
         await expect(second).resolves.toEqual({ operation: 'status' });
+        pauseReplies = false;
+        const research: any = { op: 'research.prepare', notebook_id: '11111111-1111-4111-8111-111111111111', snapshot_id: 'a'.repeat(32), request: {
+            kind: 'AUDIT', protocol_version_id: 'b'.repeat(32), profile_id: 'local', question: 'Question', pasted_text: 'é'.repeat(12000),
+            retrieval_query: 'query', idempotency_key: 'audit',
+        } };
+        await expect(transport.bridge.request(research)).resolves.toEqual({ operation: 'research.prepare' });
+        expect(dispatch).toHaveBeenLastCalledWith(research, window, expect.any(Function));
+        const sentBefore = outgoing.length;
+        await expect(transport.bridge.request({ ...research, request: { ...research.request, pasted_text: '字'.repeat(24000) } })).rejects.toThrow('BODY_TOO_LARGE');
+        expect(outgoing).toHaveLength(sentBefore);
         unmount();
         const afterClose = transport.bridge.request({ op: 'status' });
         transport.close();

@@ -1,0 +1,261 @@
+{
+  "$defs": {
+    "ConnectionWrite": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Label",
+          "type": "string"
+        },
+        "allow_proposals": {
+          "default": false,
+          "title": "Allow Proposals",
+          "type": "boolean"
+        },
+        "expires_in_seconds": {
+          "default": 3600,
+          "maximum": 86400,
+          "minimum": 60,
+          "title": "Expires In Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "label"
+      ],
+      "title": "ConnectionWrite",
+      "type": "object"
+    },
+    "ExternalNoteReview": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 1,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "expected_revision",
+        "action",
+        "rationale"
+      ],
+      "title": "ExternalNoteReview",
+      "type": "object"
+    },
+    "McpCreateCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "mcp.create",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ConnectionWrite"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "McpCreateCommand",
+      "type": "object"
+    },
+    "McpListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "mcp.connections",
+            "mcp.notes"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "McpListCommand",
+      "type": "object"
+    },
+    "McpReviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "mcp.review",
+          "title": "Op",
+          "type": "string"
+        },
+        "version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Version Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ExternalNoteReview"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "version_id",
+        "request"
+      ],
+      "title": "McpReviewCommand",
+      "type": "object"
+    },
+    "McpRevokeCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "mcp.revoke",
+          "title": "Op",
+          "type": "string"
+        },
+        "connection_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Connection Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/Write"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "connection_id",
+        "request"
+      ],
+      "title": "McpRevokeCommand",
+      "type": "object"
+    },
+    "Write": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "idempotency_key"
+      ],
+      "title": "Write",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "mcp.connections": "#/$defs/McpListCommand",
+      "mcp.create": "#/$defs/McpCreateCommand",
+      "mcp.notes": "#/$defs/McpListCommand",
+      "mcp.review": "#/$defs/McpReviewCommand",
+      "mcp.revoke": "#/$defs/McpRevokeCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/McpListCommand"
+    },
+    {
+      "$ref": "#/$defs/McpCreateCommand"
+    },
+    {
+      "$ref": "#/$defs/McpRevokeCommand"
+    },
+    {
+      "$ref": "#/$defs/McpReviewCommand"
+    }
+  ]
+}

@@ -1,0 +1,390 @@
+{
+  "$defs": {
+    "DocumentEvidenceCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "documents.evidence",
+            "documents.open"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "evidence_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Evidence Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "evidence_id"
+      ],
+      "title": "DocumentEvidenceCommand",
+      "type": "object"
+    },
+    "DocumentIndexCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "content_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Content Key",
+          "type": "string"
+        },
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "documents.index",
+          "title": "Op",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/ParserLimits"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "content_key",
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "limits",
+        "idempotency_key"
+      ],
+      "title": "DocumentIndexCommand",
+      "type": "object"
+    },
+    "DocumentListCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "documents.list",
+          "title": "Op",
+          "type": "string"
+        },
+        "offset": {
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "offset"
+      ],
+      "title": "DocumentListCommand",
+      "type": "object"
+    },
+    "DocumentOperationCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "documents.operation",
+            "documents.cancel",
+            "documents.preview.read"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "operation_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Operation Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "operation_id"
+      ],
+      "title": "DocumentOperationCommand",
+      "type": "object"
+    },
+    "DocumentPreviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "documents.preview",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/PagePreviewRequest"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "DocumentPreviewCommand",
+      "type": "object"
+    },
+    "DocumentSearchCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "documents.search",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/SearchRequest"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "DocumentSearchCommand",
+      "type": "object"
+    },
+    "PagePreviewRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "document_version_id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Document Version Id",
+          "type": "string"
+        },
+        "page_index": {
+          "maximum": 9999,
+          "minimum": 0,
+          "title": "Page Index",
+          "type": "integer"
+        },
+        "region": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Region"
+        },
+        "scale": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "maximum": 4,
+          "title": "Scale",
+          "type": "number"
+        },
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "limits": {
+          "$ref": "#/$defs/ParserLimits"
+        }
+      },
+      "required": [
+        "document_version_id",
+        "page_index",
+        "idempotency_key"
+      ],
+      "title": "PagePreviewRequest",
+      "type": "object"
+    },
+    "ParserLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_file_bytes": {
+          "default": 200000000,
+          "maximum": 2000000000,
+          "minimum": 1,
+          "title": "Max File Bytes",
+          "type": "integer"
+        },
+        "max_pages": {
+          "default": 1000,
+          "maximum": 10000,
+          "minimum": 1,
+          "title": "Max Pages",
+          "type": "integer"
+        },
+        "memory_bytes": {
+          "default": 536870912,
+          "maximum": 4294967296,
+          "minimum": 67108864,
+          "title": "Memory Bytes",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 120,
+          "maximum": 1800,
+          "minimum": 0.1,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "title": "ParserLimits",
+      "type": "object"
+    },
+    "SearchRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 40,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "SearchRequest",
+      "type": "object"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "documents.cancel": "#/$defs/DocumentOperationCommand",
+      "documents.evidence": "#/$defs/DocumentEvidenceCommand",
+      "documents.index": "#/$defs/DocumentIndexCommand",
+      "documents.list": "#/$defs/DocumentListCommand",
+      "documents.open": "#/$defs/DocumentEvidenceCommand",
+      "documents.operation": "#/$defs/DocumentOperationCommand",
+      "documents.preview": "#/$defs/DocumentPreviewCommand",
+      "documents.preview.read": "#/$defs/DocumentOperationCommand",
+      "documents.search": "#/$defs/DocumentSearchCommand"
+    },
+    "propertyName": "op"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/DocumentListCommand"
+    },
+    {
+      "$ref": "#/$defs/DocumentIndexCommand"
+    },
+    {
+      "$ref": "#/$defs/DocumentSearchCommand"
+    },
+    {
+      "$ref": "#/$defs/DocumentEvidenceCommand"
+    },
+    {
+      "$ref": "#/$defs/DocumentOperationCommand"
+    },
+    {
+      "$ref": "#/$defs/DocumentPreviewCommand"
+    }
+  ]
+}

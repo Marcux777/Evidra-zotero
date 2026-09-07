@@ -1,0 +1,33 @@
+{
+  "title": "Verified original attachment",
+  "structural": "Safe structural view of the verified original file. Original styling, scripts and navigation are omitted; CSS-generated content and publisher pagination are not reproduced.",
+  "source": "Exact decoded original source. Tags, attributes, whitespace and Unicode are preserved as text; this is not an HTML rendering.",
+  "plain": "Exact decoded original file text, verified against the cited extraction.",
+  "excerpt": "Extracted text and exact cited excerpt",
+  "excerptHelp": "The marked excerpt and character offsets below refer only to the immutable extraction. No highlight, physical page or EPUB CFI is assigned to the structural view.",
+  "resource": "Original resource",
+  "target": "Verified cited resource range",
+  "precision": "Resource-level location; no position within the rendered resource is claimed.",
+  "previousUnit": "Previous resource",
+  "nextUnit": "Next resource",
+  "inspect": "Inspect original source",
+  "showStructure": "Show structural view",
+  "previousSource": "Previous source text",
+  "nextSource": "Next source text",
+  "loading": "Verifying and loading original content…",
+  "ready": "Original content loaded",
+  "incomplete": "This structural representation has omissions. Inspect each limitation and the original source; it is not a complete reproduction.",
+  "limitations": "Specific original-content limitations",
+  "codes": {
+    "ACTIVE_CONTENT": "Active content was removed",
+    "SOURCE_STYLE": "Original styling was removed; it may affect meaning or generated content",
+    "EXTERNAL_RESOURCE": "Resource outside the verified original was not loaded",
+    "UNSUPPORTED_ELEMENT": "This original element is unavailable in the structural view",
+    "REMOVED_ATTRIBUTE": "An original attribute or navigation was removed",
+    "UNDECLARED_IMAGE": "Image is missing or not uniquely declared in this verified archive",
+    "IMAGE_FORMAT": "Image format or source color profile is unsupported",
+    "IMAGE_LIMIT": "Image exceeds the configured byte or pixel limit",
+    "IMAGE_DECODE": "Image could not be decoded safely",
+    "IMAGE_ANIMATION": "Animated image is unavailable; no frame was silently selected"
+  }
+}

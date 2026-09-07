@@ -9,7 +9,9 @@ async function startup({ rootURI }) {
   try {
     evidraChrome = startupService.registerChrome(Services.io.newURI(rootURI + 'manifest.json'), [['content', 'evidra', 'content/', 'contentaccessible=yes']]);
     Services.scriptloader.loadSubScript(rootURI + 'content/native.js', this);
-    evidraLifecycle = new EvidraRuntime.Lifecycle({ Zotero, Services, IOUtils, PathUtils, ChromeUtils, Ci, crypto, fetch, setTimeout, clearTimeout, setInterval, clearInterval });
+    const plainText = html => Components.classes['@mozilla.org/parserutils;1'].getService(Ci.nsIParserUtils)
+      .convertToPlainText(html, Ci.nsIDocumentEncoder.OutputRaw, 0);
+    evidraLifecycle = new EvidraRuntime.Lifecycle({ Zotero, Services, IOUtils, PathUtils, ChromeUtils, Ci, crypto, fetch, setTimeout, clearTimeout, setInterval, clearInterval, plainText });
     await evidraLifecycle.startup();
   } catch (error) {
     evidraChrome?.destruct();

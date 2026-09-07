@@ -1,0 +1,19 @@
+.research { margin-block: 1.5rem; border: 1px solid var(--line); border-radius: .5rem; padding: 1rem; min-inline-size: 0; background: var(--surface); }
+.research section { min-inline-size: 0; margin-block: 1.5rem; }
+.research :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.research fieldset { margin-block: 1rem; min-inline-size: 0; }
+.research-reference { border-inline-start: 2px solid var(--line); padding-inline-start: .75rem; margin-block: 1rem; }
+.research-reference > label { display: block; margin-block-end: .5rem; }
+.research input:not([type=checkbox]), .research textarea, .research select { display: block; inline-size: 100%; max-inline-size: 100%; }
+.research textarea { font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: .3rem; padding: .65rem; resize: vertical; min-block-size: 5rem; }
+.research input[type=checkbox] { inline-size: 1.2rem; block-size: 1.2rem; min-block-size: 1.2rem; margin: 0 .5rem 0 0; vertical-align: middle; }
+.research pre, .research blockquote { white-space: pre-wrap; overflow-wrap: anywhere; }
+.research pre { max-block-size: 28rem; overflow: auto; font-size: .875rem; }
+.research blockquote { margin-inline: 0; padding-inline-start: .8rem; border-inline-start: 3px solid var(--line); }
+.research button, .research code, .research p, .research legend, .research h3, .research h4 { max-inline-size: 100%; overflow-wrap: anywhere; }
+.research-list { list-style: none; padding: 0; max-block-size: 30rem; overflow: auto; overscroll-behavior: contain; }
+.research-list li { padding-block: .6rem; border-block-end: 1px solid var(--line); }
+.research-list button { inline-size: 100%; text-align: start; }
+.research-list [aria-current=true] { border-color: var(--accent); font-weight: 600; }
+.note-preview { max-block-size: 36rem; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: .3rem; padding: 1rem; }
+@media(max-width: 45rem) { .research { padding: .75rem; } }

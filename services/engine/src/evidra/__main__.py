@@ -10,6 +10,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# The frozen executable dispatches its private child mode before importing the web app.
+if __name__ == "__main__" and sys.argv[1:] == ["--parser-worker"]:
+    from evidra.documents.parser_worker import worker_main
+
+    worker_main()
+    raise SystemExit(0)
+
 import uvicorn
 from pydantic import ValidationError
 
@@ -22,6 +29,7 @@ from evidra.security.handshake import (
     write_connection_receipt,
 )
 from evidra.security.runtime import RuntimeSettings
+from evidra.storage.cache import load_cache_limits
 
 
 def startup_diagnostic(operation: str, error: BaseException) -> dict[str, Any]:
@@ -111,6 +119,7 @@ async def serve(handshake: Handshake) -> None:
             profile_instance_id=handshake.profile_instance_id,
             session_token=handshake.session_token,
             port=port,
+            cache_limits=load_cache_limits(handshake.data_dir),
         )
         app = create_app(settings)
         receipt_identity: tuple[int, int] | None = None
@@ -162,9 +171,17 @@ def main() -> None:
     commands = parser.add_subparsers(dest="command", required=True)
     serve_parser = commands.add_parser("serve")
     serve_parser.add_argument("--handshake", type=Path, required=True)
+    mcp_parser = commands.add_parser("mcp")
+    mcp_parser.add_argument("--connection-file", type=Path, required=True)
     args = parser.parse_args()
     operation = "consume_handshake"
     try:
+        if args.command == "mcp":
+            from evidra.mcp.server import serve_mcp
+
+            operation = "mcp_stdio"
+            asyncio.run(serve_mcp(args.connection_file))
+            return
         handshake = consume_handshake(args.handshake)
         operation = "serve_engine"
         asyncio.run(serve(handshake))

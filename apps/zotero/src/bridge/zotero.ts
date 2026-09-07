@@ -1,8 +1,16 @@
 import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
+import { DocumentBridge } from './documents';
+import { TextAttachmentViews } from './text-view';
+import { NoteBridge } from './notes';
+import { McpCredentials } from './mcp';
+import { ExportBridge } from './exports';
+import type { McpSetup } from './types';
+import { providerCommand } from './conversations';
 import { isUiEvent, parseUiMessage, serializeUiResponse } from '../security/messages';
 import { nativeDiagnostic } from '../security/diagnostics';
+import { MAX_UI_REQUEST_BYTES } from '../security/limits';
 import { catalog } from '../ui/i18n';
 import type { NativeGlobals, NativePicker, NativeSourcePane } from './native-types';
 import type { BridgeStatus, Locale, Mode, Notebook, Theme, UiMessage } from './types';
@@ -11,11 +19,16 @@ export class ZoteroBridge {
     #g: NativeGlobals;
     #engine: EngineController | null = null;
     #sources: SourceBridge | null = null;
+    #notes: NoteBridge | null = null;
+    #mcpCredentials: McpCredentials | null = null;
+    #exports: ExportBridge | null = null;
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
+    #textViews: TextAttachmentViews;
     #open: (window: Window) => void;
-    constructor(globals: NativeGlobals, open: (window: Window) => void) { this.#g = globals; this.#open = open; }
+    constructor(globals: NativeGlobals, open: (window: Window) => void) { this.#g = globals; this.#open = open; this.#textViews = new TextAttachmentViews(globals.crypto,
+        error => globals.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error))))); }
     pref(key: string): string | null { const value = this.#g.Zotero.Prefs.get(PREFIX + key, true); return typeof value === 'string' ? value : null; }
     #set(key: string, value: string) { this.#g.Zotero.Prefs.set(PREFIX + key, value, true); }
     get locale(): Locale { return this.pref('locale') === 'en-US' ? 'en-US' : 'pt-BR'; }
@@ -57,15 +70,43 @@ export class ZoteroBridge {
         const sources = () => {
             if (engine.view().state !== 'running') throw new Error('ENGINE_NOT_RUNNING');
             return this.#sources ??= new SourceBridge(this.#g.Zotero, engine, this.#profile,
-                error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
+                error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))),
+                identities => this.#textViews.invalidate(identities));
         };
+        if (message.op.startsWith('exports.') || message.op.startsWith('imports.')) {
+            this.#exports ??= new ExportBridge(this.#g, sources(), engine, this.#profile, this.#textViews);
+            return this.#exports.dispatch(message as import('./types').ExportCommand, window, this.locale);
+        }
+        if (message.op.startsWith('mcp.')) {
+            const command = message as import('./types').McpCommand;
+            const token = command.op === 'mcp.create'
+                ? (this.#mcpCredentials ??= new McpCredentials(this.#g.crypto)).forCommand(command) : null;
+            const transport = { stop: () => engine.stop(), request: (method: 'GET' | 'POST', path: string, body?: unknown) => engine.request(method, path,
+                token && method === 'POST' && path.endsWith('/mcp/connections') ? { ...(body as object), token } : body) };
+            const result = await new DocumentBridge(this.#g.Zotero, sources(), transport, this.#g.crypto, this.#g.plainText).dispatch(command);
+            return command.op === 'mcp.create' ? { ...(result as Omit<McpSetup, 'executable'>), executable: engine.mcpExecutable() } satisfies McpSetup : result;
+        }
+        if (message.op === 'research.notes.publish') {
+            const sourceBridge = sources();
+            this.#notes ??= new NoteBridge(this.#g.Zotero, sourceBridge, engine, this.#g.crypto,
+                new DocumentBridge(this.#g.Zotero, sourceBridge, engine, this.#g.crypto, this.#g.plainText));
+            return this.#notes.publish(message);
+        }
+        if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.') || message.op.startsWith('jobs.') || message.op.startsWith('research.')) {
+            return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText, this.#textViews.opener(window, this.locale))
+                .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand | import('./types').JobCommand | Exclude<import('./types').ResearchCommand, { op: 'research.notes.publish' }>);
+        }
+        if (message.op.startsWith('provider.')) return providerCommand(message as import('./types').ProviderCommand, engine);
         switch (message.op) {
             case 'sources.state': return sources().state();
             case 'sources.history': return sources().history(message.notebook_id, message.offset);
             case 'sources.read': return sources().read(message.notebook_id, message.snapshot_id, message.offset);
             case 'sources.preview.page': return sources().previewPage(message.notebook_id, message.preview_id, message.offset);
             case 'sources.create': return sources().create(message.notebook_id, message.request);
-            case 'sources.revoke': return sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
+            case 'sources.revoke': {
+                const result = await sources().revoke(message.notebook_id, message.source_id, message.expected_revision);
+                this.#textViews.revoke(message.source_id); return result;
+            }
             case 'sources.preview': {
                 const pane = (window as Window & { ZoteroPane?: NativeSourcePane }).ZoteroPane;
                 if (message.capture && !pane) throw new Error('SOURCE_PANE_UNAVAILABLE');
@@ -96,7 +137,9 @@ export class ZoteroBridge {
             }
             case 'engine.verify': return engine.verify();
             case 'engine.start':
-                this.#sources?.shutdown(); this.#sources = null;
+                this.#textViews.shutdown();
+                this.#sources?.shutdown(); this.#sources = null; this.#notes = null; this.#exports = null;
+                this.#mcpCredentials?.clear();
                 await engine.start(message.fingerprint, message.consent);
                 this.#setupError = null;
                 return engine.view();
@@ -130,8 +173,15 @@ export class ZoteroBridge {
         let active = true;
         let frameWindow: Window | null = null;
         const pending = new Set<string>();
+        type OwnedRun = { notebook_id: string; snapshot_id: string; run_id: string };
+        const ownedRuns = new Map<string, OwnedRun>();
+        const cancelOwned = (message: OwnedRun) => {
+            void this.dispatch({ ...message, op: 'conversation.cancel' }, window, close).catch(error =>
+                this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
+        };
         const listener = (event: MessageEvent) => {
-            if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string' || event.data.length > 16384)
+            if (!active || !event.isTrusted || !isUiEvent(event, frameWindow) || typeof event.data !== 'string'
+                || event.data.length > MAX_UI_REQUEST_BYTES || new TextEncoder().encode(event.data).byteLength > MAX_UI_REQUEST_BYTES)
                 return;
             let envelope: {
                 channel?: unknown;
@@ -159,7 +209,18 @@ export class ZoteroBridge {
                 }
                 frameWindow?.postMessage(message, '*');
             };
-            void Promise.resolve().then(() => this.dispatch(parseUiMessage(envelope.request), window, close)).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
+            void Promise.resolve().then(async () => {
+                const request = parseUiMessage(envelope.request);
+                if (!active) throw new Error('VIEW_CLOSED');
+                if (request.op === 'conversation.start') ownedRuns.set(request.run_id, request);
+                const value = await this.dispatch(request, window, close);
+                if (request.op === 'conversation.start' && !active) cancelOwned(request);
+                if (['conversation.start', 'conversation.run', 'conversation.events', 'conversation.cancel'].includes(request.op)
+                    && value && typeof value === 'object' && 'state' in value
+                    && ['COMPLETE', 'FAILED', 'CANCELLED'].includes(String(value.state)))
+                    ownedRuns.delete((request as { run_id: string }).run_id);
+                return value;
+            }).then(value => send(value, null), error => { this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))); send(null, publicCode(error)); });
         };
         const loaded = (event: Event) => {
             if (!active || !event.isTrusted || frameWindow) return;
@@ -177,11 +238,12 @@ export class ZoteroBridge {
         const addLoadListener = iframe.addEventListener as (type: string, listener: EventListener, options: AddEventListenerOptions, wantsUntrusted: boolean) => void;
         addLoadListener.call(iframe, 'load', loaded, { capture: true }, true);
         parent.append(iframe);
-        const cleanup = () => { active = false; pending.clear(); removeLoadListener(); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
+        const cleanup = () => { active = false; for (const run of ownedRuns.values()) cancelOwned(run); ownedRuns.clear(); pending.clear(); removeLoadListener(); frameWindow?.removeEventListener('message', listener); frameWindow = null; iframe.remove(); this.#frames.delete(cleanup); };
         this.#frames.add(cleanup);
         return cleanup;
     }
-    async shutdown() { for (const cleanup of this.#frames)
-        cleanup(); this.#sources?.shutdown(); this.#sources = null; await this.#engine?.stop(); this.#engine = null; }
+    closeWindow(window: Window) { this.#textViews.closeWindow(window); }
+    async shutdown() { this.#textViews.shutdown(); for (const cleanup of this.#frames)
+        cleanup(); this.#sources?.shutdown(); this.#sources = null; this.#mcpCredentials?.clear(); await this.#engine?.stop(); this.#engine = null; }
 }
 export function publicCode(error: unknown): string { return error instanceof Error && /^[A-Z_]{1,80}$/.test(error.message) ? error.message : 'OPERATION_FAILED'; }

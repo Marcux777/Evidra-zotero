@@ -82,6 +82,9 @@ function fixture() {
         const fields: Record<string, string> = { title: key, date: '2020-02-01', dateModified: '2026-09-05 00:00:00', DOI: '10.1/same', abstractNote: 'Original abstract' };
         const value = { id, key, libraryID, parentID, parentKey: parentID ? items.get(parentID)?.key : false,
             itemTypeID: type, version: 4, deleted: false, attachmentContentType: type === 'attachment' ? 'application/pdf' : '',
+            attachmentPath: `C:/authorized/${key}.pdf`, attachmentLinkMode: 2, attachmentCharset: null,
+            attachmentSyncState: 0, attachmentSyncedModificationTime: null, attachmentSyncedHash: null,
+            attachmentLastProcessedModificationTime: 0, attachmentLastRead: null,
             isRegularItem: () => !['note', 'annotation', 'attachment'].includes(type),
             isNote: () => type === 'note', isAnnotation: () => type === 'annotation', isAttachment: () => type === 'attachment',
             isFileAttachment: () => type === 'attachment', isPDFAttachment: () => type === 'attachment',
@@ -90,6 +93,7 @@ function fixture() {
             getNotes: () => [...items.values()].filter(i => i.parentID === id && i.isNote()).map(i => i.id),
             getAnnotations: () => [...items.values()].filter(i => i.parentID === id && i.isAnnotation()),
             getNote: () => id === 15 ? '<div data-evidra-origin="ai">Draft</div>' : '<p>Human</p>',
+            getFilePath: () => value.attachmentPath,
             loadAllData: async () => {}, isEditable: () => false };
         items.set(id, value); return value;
     }
@@ -105,7 +109,8 @@ function fixture() {
         ['COL2', { id: 2, key: 'COL2', libraryID: 1, deleted: false, loadAllData: async () => {}, getChildItems: () => [10], getDescendents: () => [{ id: 10, type: 'item' }] }]]);
     const searches = new Map([['SEARCH1', { id: 3, key: 'SEARCH1', libraryID: 1, deleted: false, loadAllData: async () => {}, search: async () => [12, 13, 15] }]]);
     const api = { Libraries: { exists: (id: number) => libraries.has(id), get: (id: number) => libraries.get(id) },
-        Items: { getAsync: async (id: number) => { fetched.push(id); return items.get(id) ?? false; },
+        Items: { get: (id: number) => { fetched.push(id); return items.get(id) ?? false; },
+            getAsync: async (id: number) => { fetched.push(id); return items.get(id) ?? false; },
             getByLibraryAndKeyAsync: async (library: number, key: string) => { const value = [...items.values()].find(i => i.libraryID === library && i.key === key); if (value) fetched.push(value.id); return value ?? false; } },
         Collections: { getByLibraryAndKeyAsync: async (_: number, key: string) => collections.get(key) ?? false },
         Searches: { getByLibraryAndKeyAsync: async (_: number, key: string) => searches.get(key) ?? false },

@@ -13,6 +13,7 @@ from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from evidra.domain.errors import STATUS_CODES, EvidraError, public_error
+from evidra.storage.cache import CacheLimits
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class RuntimeSettings:
     session_token: SecretStr = field(repr=False)
     port: int
     monotonic_clock: Callable[[], float] = field(default=time.monotonic, repr=False)
+    cache_limits: CacheLimits = field(default_factory=CacheLimits)
 
     def __post_init__(self) -> None:
         if not self.data_dir.is_absolute():
@@ -71,12 +73,19 @@ class SessionGuard:
             if headers.get(b"host") != [host] or b"origin" in headers:
                 raise EvidraError("FORBIDDEN", "Request origin is not permitted.")
             if scope["path"] != "/health":
-                if headers.get(b"x-evidra-client") != [b"bridge"]:
-                    raise EvidraError("FORBIDDEN", "A bridge client is required.")
                 credential = headers.get(b"authorization", [])
-                expected = b"Bearer " + self.settings.session_token.get_secret_value().encode()
-                if len(credential) != 1 or not hmac.compare_digest(credential[0], expected):
-                    raise EvidraError("UNAUTHENTICATED", "Invalid session credential.")
+                if scope["path"].startswith("/v1/mcp/gateway/"):
+                    if headers.get(b"x-evidra-client") != [b"mcp"] or len(credential) != 1:
+                        raise EvidraError("FORBIDDEN", "A scoped MCP credential is required.")
+                    scope.setdefault("state", {})["mcp_principal"] = scope[
+                        "app"
+                    ].state.services.mcp.authenticate(credential[0])
+                else:
+                    if headers.get(b"x-evidra-client") != [b"bridge"]:
+                        raise EvidraError("FORBIDDEN", "A bridge client is required.")
+                    expected = b"Bearer " + self.settings.session_token.get_secret_value().encode()
+                    if len(credential) != 1 or not hmac.compare_digest(credential[0], expected):
+                        raise EvidraError("UNAUTHENTICATED", "Invalid session credential.")
                 scope["app"].state.services.session.assert_current()
             lengths = headers.get(b"content-length", [])
             if lengths and (len(lengths) != 1 or not lengths[0].isdigit()):

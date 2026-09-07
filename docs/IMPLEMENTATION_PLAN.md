@@ -142,16 +142,19 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
 
 **Requirements:** Verify current native docs and installed SDK/types before implementation. Real Ollama native protocol/catalog/embeddings, LM Studio and explicit OpenAI-compatible chat/embedding protocols, official OpenAI appropriate generation API, Anthropic Messages, Gemini generateContent/streamGenerateContent. Each handles protocol-specific streaming, images/schema where supported, explicit capabilities and model ID. HTTP pooled httpx with TLS validation, bounded timeouts, no redirect/retry. LOCAL requires explicit loopback and denies cloud model metadata/names; remote custom HTTPS hosts require explicit consent. Per-notebook/provider consent shows content categories; paid API block default. keyring failures allow memory-only storage with clear status. Call/job/session usage/reservations, versioned price config, unknown price blocks monetary cap; post-send timeout/cancel records BILLING_UNKNOWN. No fallback credential/provider.
 
-- [ ] Create protocol fixture tests parameterized per adapter for exact request contract, streaming chunks, invalid JSON/schema, 429, timeout and cancellation. Example:
+- [x] Create protocol fixture tests parameterized per adapter for exact request contract, streaming chunks, invalid JSON/schema, 429, timeout and cancellation. Example:
   ```python
   with pytest.raises(EvidraError, match='RATE_LIMITED'):
       await collect(provider.generate(request, cancel_event))
   assert transport.request_count == 1
   ```
-- [ ] Execute focused tests to establish RED; use fixture HTTP transport/controlled local server only for provider I/O, real profile/usage persistence.
-- [ ] Implement native adapters, consent checks, capabilities, secret lifecycle and reservation/reconciliation. Keep generation separate from local embeddings.
-- [ ] Execute focused protocols/security/usage tests, Ruff/mypy. Live smoke only with explicitly supplied endpoint/model/credentials; otherwise report NOT_VERIFIED live.
-- [ ] Commit and record official URLs/protocol versions and A23–A26/A30 mapping. Catalog failures are explicit and manual model configuration remains available.
+- [x] Execute focused tests to establish RED; use fixture HTTP transport/controlled local server only for provider I/O, real profile/usage persistence.
+- [x] Implement native adapters, consent checks, capabilities, secret lifecycle and reservation/reconciliation. Keep generation separate from local embeddings.
+- [x] Execute focused protocols/security/usage tests, Ruff/mypy. Live smoke only with explicitly supplied endpoint/model/credentials; otherwise report NOT_VERIFIED live.
+- [x] Commit and record official URLs/protocol versions and A23–A26/A30 mapping. Catalog failures are explicit and manual model configuration remains available.
+
+
+Task5 source/review completed at12b6aa7 after I1–I4/N1 fixes; actual scoped local Ollama generation/embedding passed. Initial RED fixture/capture deviations, failed helper configuration and all unverified native/paid/keyring/offline boundaries remain explicit in TEST_REPORT.md. Task6 owns the user-facing semantic/conversation consumer.
 
 ## Task 6: M3 semantic retrieval, conversations and model UI
 
@@ -161,15 +164,17 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
 
 **Requirements:** Exact NumPy cosine search over permitted IDs in blocks, cache <=512MB, reject mismatched generations/dimensions and keep previous generation consistent until commit. RRF k60 of 40 lexical/40 vector candidates; up to12 diverse non-overlapping chunks within token budget; no assertion of full-corpus reading. Draft SSE with authenticated fetch/cursor and no token URL. Validate final schema and chosen evidence/excerpts against server records; fabricated anchors fail. No automatic repair retry (zero allowed; one only explicit authorized command with separate ledger). Scope revision recheck before final commit; removed historical evidence unavailable. Persist effective provenance/coverage and distinguish valid anchor/proposed support/human review. Settings implement provider/model/manual catalog/capability/consent/cost controls and stop actions; no model still permits lexical/manual workflows.
 
-- [ ] Write tests for unauthorized dominant vectors excluded before top-k, mismatched dimensions, revoked evidence during stream, fabricated evidence and bounded context. Example:
+- [x] Write tests for unauthorized dominant vectors excluded before top-k, mismatched dimensions, revoked evidence during stream, fabricated evidence and bounded context. Example:
   ```python
   assert vector_search(scope_a, query, limit=1)[0].source_id == authorized_source
   with pytest.raises(EvidraError, match='INVALID_MODEL_OUTPUT'):
       validator.promote(scope_a, {'evidence_ids': ['invented-id']})
   ```
-- [ ] Observe RED, implement services and then real UI streaming/coverage/error handling. Never keep SQLite locks over provider I/O.
-- [ ] Run focused service/protocol tests and TS stream/security tests/typecheck/build; record no live-model claims without a real endpoint.
-- [ ] Commit and report A05–A10/A13–A15/A23–A26 with evidence.
+- [x] Observe RED, implement services and then real UI streaming/coverage/error handling. Never keep SQLite locks over provider I/O.
+- [x] Run focused service/protocol tests and TS stream/security tests/typecheck/build; record no live-model claims without a real endpoint.
+- [x] Commit and report A05–A10/A13–A15/A23–A26 with evidence.
+
+Task6 source and bounded native conversation acceptance completed at `9bd75f45a9adfff605af044a2a021b446433e302`. See TEST_REPORT.md for exact reviewed XPI/engine identities, actual local generation, persisted-history/evidence navigation, cancellation and Reader checks. This slice does not close broader vision, paid-provider, corpus-performance or final UI/export acceptance.
 
 ## Task 7: M4 versioned forms and human-reviewed matrix
 
@@ -179,7 +184,7 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
 
 **Requirements:** Text/number/boolean/enum/list/experimental-result fields, definitions/question/unit/rules/required. Initial computing template as SPEC §12. Multiple results preserve dataset/condition/unit/baseline/direction/original numeric representation. Absent value null plus six value states; independent four review states. Model output cannot set APPROVED. Reextraction never overwrites human-approved/corrected values; compare competing proposals and revision CAS. Human corrections/events include author/time/old/new. Windowed matrix, filters/source/status, cell selection, evidence side panel and concrete bulk review preview.
 
-- [ ] Write parametrized schema/nullability/result-context tests and real SQLite concurrency test. Example:
+- [x] Write parametrized schema/nullability/result-context tests and real SQLite concurrency test. Example:
   ```python
   matrix.approve(scope, proposal_a, expected_revision=0, author='Pesquisador')
   matrix.propose(scope, proposal_b)
@@ -187,9 +192,13 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
   with pytest.raises(EvidraError):
       matrix.correct(scope, study, field, 43, expected_revision=0, author='Pesquisador')
   ```
-- [ ] Observe RED then implement forms/proposals/decisions and matrix UI using generated contracts.
-- [ ] Run focused Python/TS tests, type checks and migration compatibility on existing synthetic notebooks; verify restart persistence.
-- [ ] Commit and report A17–A19/A34 with invariant mapping.
+- [x] Observe RED then implement forms/proposals/decisions and matrix UI using generated contracts.
+- [x] Run focused Python/TS tests, type checks and migration compatibility on existing synthetic notebooks; verify restart persistence.
+- [x] Commit and report A17–A19/A34 with invariant mapping.
+
+Task7 source through `eed17a602607145edd59c105a8fb67e6645f18ac` passed independent review after correcting proposal reselection state and unit presentation. Retained checks cover field/null/result contexts, real SQLite competing proposals/CAS/lineage/restart, migration, controlled visual provenance and native command UI. These support the Task7 portions of A17–A19/A34; systematic extraction and full release acceptance remain open.
+
+The actual reviewed XPI and frozen engine passed manual native forms/proposals/evidence/approval/rejection/two-cell bulk/version/filter/keyboard checks and a separate read-only restart in the existing isolated profile. No model was called. Controller summary `.local/native-smoke/task7-native-controller-summary.json` SHA2560529c81c966057d8c964c1d0240644d4d0ef3eea2042c946fcb9ffced04cfd0c binds32artifacts. Narrow row-label truncation and the displayed0-based page range remain minor final-UI items; the complete extraction/export/A36 gates remain later work.
 
 ## Task 8: M4 persistent jobs, extraction coverage and resume/cancel
 
@@ -199,16 +208,18 @@ Task3 source/review gate passed at24bc78c after F1–F4 fixes. Real native two-i
 
 **Requirements:** QUEUED/RUNNING/PAUSED/WAITING_PROVIDER/PARTIAL/SUCCEEDED/FAILED/CANCELLED. One generator worker, parser limit separate. Lease transaction and backpressure; checkpoint each committed unit; restart paid sent units becomes BILLING_UNKNOWN and requires explicit reconciliation, never automatic resend. Search versus full scan coverage distinguishes pages/attachments/failures/missing files. NOT_FOUND_IN_SEARCH versus NOT_REPORTED_CANDIDATE correctly null, never infer zero. Recheck cancellation/scope before each provider call and commit; provider limit pauses without fallback. Cache keys include current access/snapshot/prompt/form/model/evidence/history, and cache reads reauthorize.
 
-- [ ] Write real SQLite concurrent-claim and restart tests plus extraction coverage fixtures. Example:
+- [x] Write real SQLite concurrent-claim and restart tests plus extraction coverage fixtures. Example:
   ```python
   queue.cancel(job_id)
   await worker.step()
   assert ledger.calls_after_cancel(job_id) == 0
   assert queue.get(job_id).state == 'CANCELLED'
   ```
-- [ ] Observe RED, implement queue/worker/runner with deterministic injected clock and explicit resume commands.
-- [ ] Run focused jobs/extraction tests including process interruption; verify no duplicate proposals, no approved-cell replacement and accurate missing/partial studies.
-- [ ] Wire setup/progress/pause/resume/cancel/coverage UI, run UI checks/build and commit; report A16–A19/A22–A24.
+- [x] Observe RED, implement queue/worker/runner with deterministic injected clock and explicit resume commands.
+- [x] Run focused jobs/extraction tests including process interruption; verify no duplicate proposals, no approved-cell replacement and accurate missing/partial studies.
+- [x] Wire setup/progress/pause/resume/cancel/coverage UI, run UI checks/build and commit; report A16–A19/A22–A24.
+
+Task8 source gate passed at50431ef after two reviewed fixes: exact study/target cache binding and normalized numeric equivalence with preserved original provenance. Native preparation passed, but separate512/1024-output jobs failed GENERATION_INCOMPLETE without committed results. Native cancellation then exposed a worker/display revision race: the stop was rejected and two calls exceeded the intended one-call bound. Correction810a564 permits older displayed revisions only for restrictive pause/cancel, with a strengthened existing regression(3passing cases) and scoped independent approval. Original failures remain in TEST_REPORT.md. Corrected packaged/native cancellation, successful native extraction/restart, paid-provider and target-scale acceptance remain pending. Source completion does not assert full M4 or product acceptance.
 
 ## Task 9: M5 protocol, screening, synthesis, audit and approved-note outbox
 
