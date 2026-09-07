@@ -1,5 +1,6 @@
 import { nativeBibliography, TRANSLATORS, type BibliographyFormat } from './bibliography';
 import { DocumentBridge } from './documents';
+import type { TextAttachmentViews } from './text-view';
 import type { NativeGlobals, NativePicker } from './native-types';
 import type { SourceBridge, SourceTransport } from './sources';
 import type { Evidence, ExportArtifact, ExportCommand, ExportData, ExportPreview, ImportPreview,
@@ -17,7 +18,7 @@ export class ExportBridge {
     #artifacts = new Map<string, ExportArtifact>();
     #saved = new Map<string, SaveReceipt>();
     constructor(private g: NativeGlobals, private sources: SourceBridge, private engine: SourceTransport,
-        private profile: string) {}
+        private profile: string, private textViews?: TextAttachmentViews) {}
 
     #prefix(message: ExportCommand) { return `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`; }
 
@@ -74,7 +75,7 @@ export class ExportBridge {
         }
         if (message.op === 'imports.open') {
             const evidence = await this.#scoped(message, request => request('POST', `/imports/${message.import_id}/evidence`, message.request)) as Evidence;
-            return new DocumentBridge(this.g.Zotero, this.sources, this.engine, this.g.crypto, this.g.plainText)
+            return new DocumentBridge(this.g.Zotero, this.sources, this.engine, this.g.crypto, this.g.plainText, this.textViews?.opener(window, locale))
                 .dispatch({ op: 'documents.open', notebook_id: message.notebook_id, snapshot_id: message.snapshot_id, evidence_id: evidence.id });
         }
         return this.#scoped(message, async (request, check) => {

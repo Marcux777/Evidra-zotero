@@ -98,6 +98,8 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
         "entities": "text/xml",
     }[format]
     expected = "decisive finding café\r\nsecond result"
+    if format == "plain":
+        expected = "prefix 😀 " * 1800 + expected
     data = expected.encode("utf-16" if format == "utf16" else "utf-8")
     if format in {"html", "xhtml", "xml"}:
         data = (
@@ -222,6 +224,28 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
         assert text.index("decisive finding") < text.index("second result")
         if format in {"plain", "utf16", "csv", "markdown"}:
             assert text == expected
+        original = {"evidence_id": evidence["id"], "path": str(path)}
+        view_response = client.post(prefix + "/documents/text-view", headers=HEADERS, json=original)
+        assert view_response.status_code == 200, view_response.text
+        view = view_response.json()
+        assert view["evidence"] == evidence and view["media_type"] == media_type
+        assert view["text"] == text[view["offset"] : view["offset"] + len(view["text"])]
+        assert view["offset"] <= evidence["start"] < view["offset"] + len(view["text"])
+        assert view["total"] == len(text) and len(view["text"]) <= 16000
+        restored = ""
+        while len(restored) < len(text):
+            segment = client.post(
+                prefix + "/documents/text-view", headers=HEADERS,
+                json=original | {"offset": len(restored)},
+            ).json()
+            assert segment["offset"] == len(restored) and segment["text"]
+            restored += segment["text"]
+        assert restored == text
+        wrong = client.post(
+            prefix + "/documents/text-view", headers=HEADERS,
+            json=original | {"path": str(tmp_path / "other")},
+        )
+        assert wrong.status_code == 409 and wrong.json()["code"] == "DOCUMENT_STALE"
         assert unit["coverage"][0]["document_version_id"] == result["document_version_id"]
         assert unit["coverage"][0]["reason"] is None and unit["coverage"][0]["chunks_total"] > 0
         if format == "epub":
@@ -232,6 +256,8 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
             )
             assert bounded["state"] == "PAUSED" and bounded["reason"] == "PAGE_LIMIT"
         path.write_bytes(b"changed original")
+        refused_view = client.post(prefix + "/documents/text-view", headers=HEADERS, json=original)
+        assert refused_view.status_code == 409 and refused_view.json()["code"] == "DOCUMENT_STALE"
         changed = finished(client, prefix, ingest(client, prefix, document, key="changed"))
         assert changed["reason"] == "DOCUMENT_STALE" and changed["document_version_id"] is None
         assert (
@@ -245,6 +271,9 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
         assert (
             client.get(prefix + "/evidence/" + evidence["id"], headers=HEADERS).status_code == 403
         )
+        assert client.post(
+            prefix + "/documents/text-view", headers=HEADERS, json=original
+        ).status_code == 403
 
 
 def test_registered_pdf_becomes_verifiable_scoped_evidence(tmp_path: Path):

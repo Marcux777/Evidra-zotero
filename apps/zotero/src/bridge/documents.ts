@@ -1,6 +1,7 @@
 import type { NativeReader, NativeSourceItem, NativeZotero } from './native-types';
 import type { SourceBridge, SourceTransport } from './sources';
-import type { ConversationCommand, DocumentCommand, DocumentOperation, Evidence, RegisteredDocument, Source, SourceContent, TextStage } from './types';
+import type { ConversationCommand, DocumentCommand, DocumentOperation, Evidence, EvidenceTextView, RegisteredDocument, Source, SourceContent, TextStage } from './types';
+import type { TextAttachmentOpener } from './text-view';
 import { conversationCommand } from './conversations';
 import { matrixCommand } from './matrix';
 import { jobCommand } from './jobs';
@@ -16,7 +17,8 @@ export interface IndexResult { document: RegisteredDocument; operation: Document
 /** Only native-authorized content can supply paths/text; UI sends scoped IDs and bounded settings. */
 export class DocumentBridge {
     constructor(private api: NativeZotero, private sources: SourceBridge, private engine: SourceTransport,
-        private crypto: Crypto, private plainText: (html: string) => string) {}
+        private crypto: Crypto, private plainText: (html: string) => string,
+        private openText?: TextAttachmentOpener) {}
 
     async #item(source: Source, content: SourceContent, check: () => void): Promise<NativeSourceItem> {
         check();
@@ -115,10 +117,17 @@ export class DocumentBridge {
                 }
                 case 'documents.open': {
                     const evidence = await request('GET', `/evidence/${message.evidence_id}`) as Evidence;
-                    if (evidence.source_kind !== 'pdf' || evidence.page_index === null) throw new Error('UNSUPPORTED_DOCUMENT');
+                    if (evidence.source_kind !== 'text_attachment' && (evidence.source_kind !== 'pdf' || evidence.page_index === null)) throw new Error('UNSUPPORTED_DOCUMENT');
                     const source = sources.find(s => s.id === evidence.source_id && identityKey(s.identity) === identityKey(evidence.source_identity));
                     const registered = documents.get(`${evidence.source_id}:${evidence.content_key}`);
                     if (!source || !registered || registered.path === false) throw new Error('SOURCE_REVOKED');
+                    if (evidence.source_kind === 'text_attachment') {
+                        if (!this.openText) throw new Error('NATIVE_TEXT_VIEW_UNAVAILABLE');
+                        const view = await this.#textPage(evidence, source, registered.item, registered.path, null, request, check);
+                        await this.openText(view, offset => this.#readTextPage(message, offset));
+                        check();
+                        return view.evidence;
+                    }
                     const verified = await request('POST', '/documents/verify', { evidence_id: evidence.id, path: registered.path }) as Evidence;
                     check();
                     // Open without applying any old page/offset to a possibly cached Reader.
@@ -154,6 +163,36 @@ export class DocumentBridge {
                     return verified;
                 }
             }
+        });
+    }
+
+    async #textPage(evidence: Evidence, source: Source, item: NativeSourceItem, path: string,
+        offset: number | null, request: (method: 'GET' | 'POST', path: string, body?: unknown) => Promise<unknown>, check: () => void): Promise<EvidenceTextView> {
+        const content = source.contents?.find(value => value.key === evidence.content_key && value.kind === 'text_attachment');
+        if (!content || evidence.source_kind !== 'text_attachment') throw new Error('SOURCE_REVOKED');
+        const view = await request('POST', '/documents/text-view', { evidence_id: evidence.id, path, offset }) as EvidenceTextView;
+        await this.#item(source, content, check);
+        if (await item.getFilePathAsync() !== path) throw new Error('DOCUMENT_STALE');
+        check();
+        return view;
+    }
+
+    async #readTextPage(message: Extract<DocumentCommand, { op: 'documents.evidence' | 'documents.open' }>, offset: number): Promise<EvidenceTextView> {
+        // Each later segment reacquires current native authorization, including after notifications.
+        return this.sources.withDocuments(message.notebook_id, message.snapshot_id, async (sources, check) => {
+            const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
+            const request = async (method: 'GET' | 'POST', path: string, body?: unknown) => {
+                check(); const result = await this.engine.request(method, prefix + path, body); check(); return result;
+            };
+            const evidence = await request('GET', `/evidence/${message.evidence_id}`) as Evidence;
+            const source = sources.find(value => value.id === evidence.source_id && identityKey(value.identity) === identityKey(evidence.source_identity));
+            const content = source?.contents?.find(value => value.key === evidence.content_key && value.kind === 'text_attachment');
+            if (!source || !content || evidence.source_kind !== 'text_attachment') throw new Error('SOURCE_REVOKED');
+            const item = await this.#item(source, content, check);
+            const path = await item.getFilePathAsync(); check();
+            if (path === false) throw new Error('MISSING_FILE');
+            await request('POST', '/documents/register', { source_id: source.id, content_key: content.key, path });
+            return this.#textPage(evidence, source, item, path, offset, request, check);
         });
     }
 

@@ -74,7 +74,7 @@ export class Lifecycle {
         this.#dialogs.set(window, dialog);
         this.#dialogCleanup.set(window, cleanup);
     }
-    removeWindow(window: Window) { this.#dialogs.get(window)?.close(); this.#dialogCleanup.get(window)?.(); for (const [body, cleanup] of this.#sections) {
+    removeWindow(window: Window) { this.#bridge.closeWindow(window); this.#dialogs.get(window)?.close(); this.#dialogCleanup.get(window)?.(); for (const [body, cleanup] of this.#sections) {
         if (body.ownerDocument.defaultView === window) {
             cleanup();
             this.#sections.delete(body);

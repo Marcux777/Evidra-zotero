@@ -8,6 +8,8 @@ from evidra.domain.documents import (
     DocumentTargetRequest,
     Evidence,
     EvidenceFileCheck,
+    EvidenceTextRequest,
+    EvidenceTextView,
     IngestRequest,
     Operation,
     PagePreview,
@@ -103,6 +105,14 @@ def verify_evidence_file(
 ) -> Evidence:
     service, context = services(request, notebook_id, snapshot_id)
     return service.evidence.verify_file(context, body)
+
+
+@router.post("/documents/text-view", response_model=EvidenceTextView)
+def read_original_attachment_text(
+    notebook_id: str, snapshot_id: str, body: EvidenceTextRequest, request: Request
+) -> EvidenceTextView:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.evidence.text_view(context, body)
 
 
 @router.post("/search", response_model=SearchPage)

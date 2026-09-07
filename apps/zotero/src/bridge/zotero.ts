@@ -2,6 +2,7 @@ import { EngineController } from '../bootstrap/engine';
 import { nativeEngine } from '../bootstrap/native-engine';
 import { SourceBridge } from './sources';
 import { DocumentBridge } from './documents';
+import { TextAttachmentViews } from './text-view';
 import { NoteBridge } from './notes';
 import { McpCredentials } from './mcp';
 import { ExportBridge } from './exports';
@@ -24,6 +25,7 @@ export class ZoteroBridge {
     #profile = '';
     #setupError: string | null = null;
     #frames = new Set<() => void>();
+    #textViews = new TextAttachmentViews();
     #open: (window: Window) => void;
     constructor(globals: NativeGlobals, open: (window: Window) => void) { this.#g = globals; this.#open = open; }
     pref(key: string): string | null { const value = this.#g.Zotero.Prefs.get(PREFIX + key, true); return typeof value === 'string' ? value : null; }
@@ -70,7 +72,7 @@ export class ZoteroBridge {
                 error => this.#g.Zotero.logError(new Error(JSON.stringify(nativeDiagnostic(error)))));
         };
         if (message.op.startsWith('exports.') || message.op.startsWith('imports.')) {
-            this.#exports ??= new ExportBridge(this.#g, sources(), engine, this.#profile);
+            this.#exports ??= new ExportBridge(this.#g, sources(), engine, this.#profile, this.#textViews);
             return this.#exports.dispatch(message as import('./types').ExportCommand, window, this.locale);
         }
         if (message.op.startsWith('mcp.')) {
@@ -89,7 +91,7 @@ export class ZoteroBridge {
             return this.#notes.publish(message);
         }
         if (message.op.startsWith('documents.') || message.op.startsWith('conversation.') || message.op.startsWith('matrix.') || message.op.startsWith('jobs.') || message.op.startsWith('research.')) {
-            return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText)
+            return new DocumentBridge(this.#g.Zotero, sources(), engine, this.#g.crypto, this.#g.plainText, this.#textViews.opener(window, this.locale))
                 .dispatch(message as import('./types').DocumentCommand | import('./types').ConversationCommand | import('./types').MatrixCommand | import('./types').JobCommand | Exclude<import('./types').ResearchCommand, { op: 'research.notes.publish' }>);
         }
         if (message.op.startsWith('provider.')) return providerCommand(message as import('./types').ProviderCommand, engine);
@@ -130,6 +132,7 @@ export class ZoteroBridge {
             }
             case 'engine.verify': return engine.verify();
             case 'engine.start':
+                this.#textViews.shutdown();
                 this.#sources?.shutdown(); this.#sources = null; this.#notes = null; this.#exports = null;
                 this.#mcpCredentials?.clear();
                 await engine.start(message.fingerprint, message.consent);
@@ -234,7 +237,8 @@ export class ZoteroBridge {
         this.#frames.add(cleanup);
         return cleanup;
     }
-    async shutdown() { for (const cleanup of this.#frames)
+    closeWindow(window: Window) { this.#textViews.closeWindow(window); }
+    async shutdown() { this.#textViews.shutdown(); for (const cleanup of this.#frames)
         cleanup(); this.#sources?.shutdown(); this.#sources = null; this.#mcpCredentials?.clear(); await this.#engine?.stop(); this.#engine = null; }
 }
 export function publicCode(error: unknown): string { return error instanceof Error && /^[A-Z_]{1,80}$/.test(error.message) ? error.message : 'OPERATION_FAILED'; }

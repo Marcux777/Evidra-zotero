@@ -215,6 +215,19 @@ class EvidenceFileCheck(StrictModel):
     path: str = Field(min_length=1, max_length=32767, repr=False)
 
 
+class EvidenceTextRequest(EvidenceFileCheck):
+    offset: int | None = Field(default=None, ge=0, le=20_000_000)
+
+
+class EvidenceTextView(StrictModel):
+    evidence: Evidence
+    title: str
+    media_type: str
+    text: str = Field(max_length=16000)
+    offset: int = Field(ge=0)
+    total: int = Field(ge=0, le=20_000_000)
+
+
 class DocumentCommandScope(StrictModel):
     notebook_id: str = Field(
         pattern=r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"

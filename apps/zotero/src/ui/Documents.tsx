@@ -101,7 +101,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
     }); }
     function openEvidence() { if (!evidence) return; void action(async current => {
         await bridge.request({ op: 'documents.open', ...scope, evidence_id: evidence.id });
-        if (current()) setNotice(d.opened);
+        if (current()) setNotice(evidence.source_kind === 'text_attachment' ? d.textOpened : d.opened);
     }); }
     function renderPreview() { if (!version) return; void action(async current => {
         const values = region.trim() ? region.split(',').map(value => Number(value.trim())) : null;
@@ -162,6 +162,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
             {evidence.page_index !== null && <p>{d.page}: {evidence.page_index + 1} · {d.label}: {evidence.page_label ?? '—'}</p>}
             {evidence.precision === 'page' && <p>{d.pageOnly}</p>}
             {evidence.source_kind === 'text_attachment' && <p>{d.textOnly}</p>}
+            {evidence.source_kind === 'text_attachment' && <button type="button" disabled={busy} onClick={openEvidence}>{d.openText}</button>}
             {evidence.source_kind === 'pdf' && <button type="button" disabled={busy} onClick={openEvidence}>{evidence.precision === 'rectangles' ? d.openExcerpt : d.openPage}</button>}
             {onAsk && <button type="button" disabled={busy} onClick={() => onAsk({ kind: 'excerpt', id: evidence.id, label: evidence.content_key, nonce: key() })}>{t.chat.askExcerpt}</button>}
         </aside>}

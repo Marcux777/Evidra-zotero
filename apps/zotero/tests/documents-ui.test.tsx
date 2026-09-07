@@ -20,9 +20,9 @@ test('the document panel exposes pause/cancel, literal evidence, precision and o
         if (message.op === 'documents.list') return { items: [row], offset: 0, limit: 50, total: 1 };
         if (message.op === 'documents.search') return { items: [{ evidence_id: 'c'.repeat(64), source_id: row.source_id, content_key: row.content_key,
             source_kind: 'pdf', excerpt: '<img src="https://outside.invalid/x"> literal result', page_index: 1, page_label: 'vii', historical: false, score: -1 }], offset: 0, limit: 40, total: 1, documents_retrieved: 1 };
-        if (message.op === 'documents.evidence') return { id: 'c'.repeat(64), source_id: row.source_id, source_kind: 'pdf', content_key: row.content_key,
-            document_version_id: row.document_version_id, excerpt: 'literal result', start: 10, end: 24, page_index: 1, page_label: 'vii',
-            precision: 'page', rectangles: [], historical: false, parser_version: 'verified-parser' };
+        if (message.op === 'documents.evidence') return { id: 'c'.repeat(64), source_id: row.source_id, source_kind: row.source_kind, content_key: row.content_key,
+            document_version_id: row.document_version_id, excerpt: 'literal result', start: 10, end: 24, page_index: row.source_kind === 'pdf' ? 1 : null, page_label: row.source_kind === 'pdf' ? 'vii' : null,
+            precision: row.source_kind === 'pdf' ? 'page' : 'text', rectangles: [], historical: false, parser_version: 'verified-parser' };
         if (message.op === 'documents.open') return { precision: 'page' };
         if (message.op === 'documents.index') {
             if (++indexes === 1) throw new Error('ENGINE_TIMEOUT');
@@ -76,6 +76,11 @@ test('the document panel exposes pause/cancel, literal evidence, precision and o
         const { catalog } = await import('../src/ui/i18n');
         expect(host.querySelector('.source-list')?.textContent).toContain(catalog('en-US').evidence.preview + ' ·');
         expect([...host.querySelectorAll('.source-list button')].some(b => b.textContent === 'Reindex text')).toBe(true);
+        await click('Inspect excerpt');
+        await click('Open original attachment text');
+        expect(messages.at(-1)).toMatchObject({ op: 'documents.open', evidence_id: 'c'.repeat(64), ...scope });
+        expect(host.textContent).toContain('Original attachment text opened in a native read-only view.');
+        expect(host.querySelector('.evidence-panel')?.textContent).not.toContain('Open page');
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
 

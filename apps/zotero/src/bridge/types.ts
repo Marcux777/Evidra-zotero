@@ -110,6 +110,7 @@ export type DocumentStatus = components['schemas']['DocumentStatus'];
 export type RegisteredDocument = components['schemas']['RegisteredDocument'];
 export type DocumentOperation = components['schemas']['Operation'];
 export type Evidence = components['schemas']['Evidence'];
+export type EvidenceTextView = components['schemas']['EvidenceTextView'];
 export type SearchPage = components['schemas']['SearchPage'];
 export type ParserLimits = components['schemas']['ParserLimits'];
 export type PagePreview = components['schemas']['PagePreview'];

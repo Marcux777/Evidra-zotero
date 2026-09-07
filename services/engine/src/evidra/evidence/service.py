@@ -10,6 +10,8 @@ from evidra.domain.documents import (
     DocumentStatus,
     Evidence,
     EvidenceFileCheck,
+    EvidenceTextRequest,
+    EvidenceTextView,
     Operation,
     ParsedPage,
 )
@@ -90,7 +92,7 @@ class EvidenceService:
                 "SELECT * FROM document_versions WHERE id=?", (evidence.document_version_id,)
             ).fetchone()
             document = dict(self.registry.require(connection, context, version["document_id"]))
-            if evidence.source_kind != "pdf" or os.path.normcase(
+            if evidence.source_kind not in {"pdf", "text_attachment"} or os.path.normcase(
                 str(Path(body.path))
             ) != os.path.normcase(document["path"]):
                 raise EvidraError(
@@ -111,6 +113,42 @@ class EvidenceService:
                 if current["revision"] != document["revision"]:
                     raise EvidraError("DOCUMENT_STALE", "The registered attachment changed.")
                 return self.from_connection(connection, context, body.evidence_id)
+
+    def text_view(self, context: ScopeContext, body: EvidenceTextRequest) -> EvidenceTextView:
+        """Native-only bounded view of original extraction, after actual file verification."""
+        evidence = self.verify_file(
+            context, EvidenceFileCheck(evidence_id=body.evidence_id, path=body.path)
+        )
+        if evidence.source_kind != "text_attachment":
+            raise EvidraError("UNSUPPORTED_DOCUMENT", "This attachment is not unpaginated text.")
+        with self.scopes.guarded(context) as connection:
+            current = self.from_connection(connection, context, body.evidence_id)
+            if current != evidence:
+                raise EvidraError("DOCUMENT_STALE", "The cited attachment changed.")
+            source, content = self.registry.content(
+                connection, context, evidence.source_id, evidence.content_key
+            )
+            if not content.media_type:
+                raise EvidraError("SCOPE_STALE", "The attachment MIME provenance is missing.")
+            # SQLite substr counts Unicode code points, matching immutable excerpt offsets.
+            # Text attachments have one unpaginated unit; these are text segments, not pages.
+            offset = body.offset if body.offset is not None else max(0, evidence.start - 1000)
+            row = connection.execute(
+                "SELECT length(json_extract(payload,'$.original_text')) AS total,"
+                "substr(json_extract(payload,'$.original_text'),?,16000) AS text "
+                "FROM document_pages WHERE version_id=? AND page_index=0",
+                (offset + 1, evidence.document_version_id),
+            ).fetchone()
+            if row is None or not 0 <= offset < row["total"]:
+                raise EvidraError("INVALID_TEXT_OFFSET", "The original text offset is unavailable.")
+            return EvidenceTextView(
+                evidence=evidence,
+                title=content.title or source.title or evidence.content_key,
+                media_type=content.media_type,
+                text=row["text"],
+                offset=offset,
+                total=row["total"],
+            )
 
     def documents(self, context: ScopeContext, offset: int, limit: int) -> DocumentPage:
         with self.scopes.guarded(context) as connection:

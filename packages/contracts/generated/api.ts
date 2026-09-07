@@ -307,6 +307,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/documents/text-view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read Original Attachment Text */
+        post: operations["read_original_attachment_text_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_text_view_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/search": {
         parameters: {
             query?: never;
@@ -2908,6 +2925,29 @@ export interface components {
              */
             kind: "evidence";
             data: components["schemas"]["Evidence"];
+        };
+        /** EvidenceTextRequest */
+        EvidenceTextRequest: {
+            /** Evidence Id */
+            evidence_id: string;
+            /** Path */
+            path: string;
+            /** Offset */
+            offset?: number | null;
+        };
+        /** EvidenceTextView */
+        EvidenceTextView: {
+            evidence: components["schemas"]["Evidence"];
+            /** Title */
+            title: string;
+            /** Media Type */
+            media_type: string;
+            /** Text */
+            text: string;
+            /** Offset */
+            offset: number;
+            /** Total */
+            total: number;
         };
         /** ExperimentalResult */
         ExperimentalResult: {
@@ -9357,6 +9397,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Evidence"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    read_original_attachment_text_v1_notebooks__notebook_id__snapshots__snapshot_id__documents_text_view_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvidenceTextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceTextView"];
                 };
             };
             /** @description Unauthorized */

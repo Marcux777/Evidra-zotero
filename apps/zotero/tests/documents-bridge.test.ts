@@ -4,24 +4,26 @@ import { URL as NodeURL } from 'node:url';
 import { expect, test } from 'vitest';
 import { parseUiMessage } from '../src/security/messages';
 import { SourceBridge } from '../src/bridge/sources';
+import type { TextAttachmentOpener } from '../src/bridge/text-view';
 
 const scope = { notebook_id: '11111111-1111-4111-8111-111111111111', snapshot_id: 'a'.repeat(32) };
 
 // Native APIs and engine IO are controlled; resolver, notification adapter, epoch,
 // preview and DocumentBridge continuations below are the production implementations.
-async function readerNotifications(incompleteObservation = false) {
+async function readerNotifications(incompleteObservation = false, mediaType = 'application/pdf', openText?: TextAttachmentOpener) {
     const { DocumentBridge } = await import('../src/bridge/documents');
     const bytes = new TextEncoder().encode('unchanged authorized PDF');
     const identity = { profile_instance_id: 'p1', library_id: 1, item_key: 'PARENT1' };
+    const sourceKind = mediaType === 'application/pdf' ? 'pdf' : 'text_attachment';
     const evidence: any = { id: 'c'.repeat(64), source_id: 'b'.repeat(64), source_identity: identity, content_key: 'PDFKEY1',
-        source_kind: 'pdf', page_index: 1, precision: 'page', rectangles: [], document_bytes: bytes.length,
+        source_kind: sourceKind, page_index: sourceKind === 'pdf' ? 1 : null, precision: sourceKind === 'pdf' ? 'page' : 'text', rectangles: [], document_bytes: bytes.length,
         document_sha256: createHash('sha256').update(bytes).digest('hex') };
     const parent: any = { id: 1, key: 'PARENT1', libraryID: 1, parentID: false, parentKey: false, itemTypeID: 1,
         version: 1, deleted: false, getField: (name: string) => name === 'dateModified' ? 'stamp' : name === 'title' ? 'Title' : '',
         getTags: () => [], isRegularItem: () => true, isNote: () => false, isAnnotation: () => false,
         isAttachment: () => false, loadAllData: async () => {}, getAttachments: () => { throw new Error('UNAUTHORIZED_SIBLING_SCAN'); } };
     const pdf: any = { ...parent, id: 2, key: 'PDFKEY1', parentID: 1, parentKey: 'PARENT1', itemTypeID: 2,
-        attachmentContentType: 'application/pdf', attachmentPath: 'C:/authorized/only.pdf', attachmentLinkMode: 2,
+        attachmentContentType: mediaType, attachmentPath: 'C:/authorized/only.pdf', attachmentLinkMode: 2,
         attachmentCharset: null, attachmentSyncState: 0, attachmentSyncedModificationTime: null,
         attachmentSyncedHash: null, attachmentLastProcessedModificationTime: 0, attachmentLastRead: null,
         isRegularItem: () => false, isAttachment: () => true, isFileAttachment: () => true,
@@ -35,7 +37,7 @@ async function readerNotifications(incompleteObservation = false) {
     const library = { libraryID: 1, libraryType: 'user', libraryTypeID: null, archived: false };
     const fetched: (number | string)[] = [], invalidated: unknown[] = [], locations: unknown[] = [], errors: unknown[] = [];
     let observer: any, exists = true, verifyCount = 0;
-    const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true, runAccess: async () => {} };
+    const hooks = { beforeSecondVerify: async () => {}, navigate: async () => {}, processed: true, runAccess: async () => {}, textView: async () => {} };
     const requests: { path: string; body: any }[] = [];
     const nativeItems = new Map([[1, parent], [2, pdf], [3, note], [4, annotation], [5, { ...parent, id: 5, key: 'PARENT2' }]]);
     const lookup = (id: number) => { fetched.push(id); if (!nativeItems.has(id)) throw new Error('UNAUTHORIZED_ITEM_READ'); return nativeItems.get(id); };
@@ -46,6 +48,7 @@ async function readerNotifications(incompleteObservation = false) {
         } }, ItemTypes: { getName: () => 'journalArticle' },
         Notifier: { registerObserver: (value: any) => { observer = value; return 'observer'; }, unregisterObserver() {} },
         Reader: { open: async () => {
+            if (sourceKind !== 'pdf') throw new Error('TEXT_SENT_TO_PDF_READER');
             if (hooks.processed) pdf.attachmentLastProcessedModificationTime = 1700000000;
             return { itemID: 2, _initPromise: Promise.resolve(), _internalReader: { _lastView: {
                 initializedPromise: Promise.resolve(), _iframeWindow: { PDFViewerApplication: { pdfDocument: {
@@ -74,13 +77,17 @@ async function readerNotifications(incompleteObservation = false) {
         if (path.endsWith('/cancel')) return { id: 'f'.repeat(32), state: 'RUNNING' };
         if (path.endsWith('/events?cursor=0')) return { items: [], cursor: 0, state: 'RUNNING' };
         if (path.includes('/snapshots?')) return { items: [{ selection: {} }], total: 1, offset: 0, limit: 1 };
-        if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind: 'pdf' },
+        if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind: sourceKind },
             { key: 'NOTE1', kind: 'human_note' }, { key: 'ANNOT1', kind: 'human_annotation' }] }], total: 1, offset: 0, limit: 100 };
         if (path.endsWith('/sources/sync')) return { items: body.items.map((s: any) => ({ ...s, id: 'b'.repeat(64), version_id: 'v', year_state: 'missing' })),
             total: 1, offset: 0, limit: 1, stage_id: body.purpose === 'selection' ? preview.stage_id : body.stage_id };
         if (path.endsWith('/sources/preview') || path.includes('/sources/previews/')) return preview;
         if (path.endsWith('/documents/register')) return { id: 'd'.repeat(32) };
         if (path.includes('/evidence/')) return evidence;
+        if (path.endsWith('/documents/text-view')) {
+            await hooks.textView();
+            return { evidence, title: 'Original text', media_type: mediaType, offset: body.offset ?? 0, text: 'verified text', total: 40000 };
+        }
         if (path.endsWith('/documents/verify')) { if (++verifyCount === 2) await hooks.beforeSecondVerify(); return evidence; }
         if (path === '/v1/sources/invalidate') { invalidated.push(body); return { invalidated_count: 1 }; }
         throw new Error(`Unexpected reader route ${path}`);
@@ -88,7 +95,7 @@ async function readerNotifications(incompleteObservation = false) {
     const sources = new SourceBridge(api, engine, 'p1', error => errors.push(error));
     await sources.preview(scope.notebook_id, { include_selected_containers: false, include_descendants: false,
         include_notes: true, include_annotations: true, tag_mode: 'AND', pdf_only: false }, { getSelectedItems: () => [pdf, note, annotation] } as any);
-    const bridge = new DocumentBridge(api, sources, engine, webcrypto as unknown as Crypto, value => value);
+    const bridge = new DocumentBridge(api, sources, engine, webcrypto as unknown as Crypto, value => value, openText);
     const notify = (ids = [2], extra: any = { '2': { changed: {} } }, event = 'modify', type = 'item') => observer.notify(event, type, ids, extra);
     return { pdf, note, annotation, library, sources, evidence, hooks, locations, invalidated, errors, fetched, notify, requests,
         events: () => bridge.dispatch({ op: 'conversation.events', ...scope, run_id: 'f'.repeat(32), cursor: 0 }),
@@ -99,6 +106,35 @@ async function readerNotifications(incompleteObservation = false) {
         open: () => bridge.dispatch({ op: 'documents.open', ...scope, evidence_id: evidence.id }),
         preview: () => sources.previewPage(scope.notebook_id, preview.id, 0) };
 }
+
+test('text attachment opening and later segments verify current scoped originals without entering the PDF Reader', async () => {
+    let opened = 0, read!: Parameters<TextAttachmentOpener>[1];
+    const f = await readerNotifications(false, 'text/html', async (view, next) => {
+        ++opened; read = next;
+        expect(view.evidence.source_kind).toBe('text_attachment');
+        expect(view.evidence.page_index).toBeNull();
+    });
+    try {
+        await f.open();
+        expect(opened).toBe(1);
+        expect(f.requests.find(value => value.path.endsWith('/documents/text-view'))?.body).toEqual({
+            evidence_id: f.evidence.id, path: 'C:/authorized/only.pdf', offset: null,
+        });
+        f.requests.length = 0;
+        expect((await read(16000)).offset).toBe(16000);
+        expect(f.requests.some(value => value.path.includes('/identities?'))).toBe(true);
+        expect(f.requests.some(value => value.path.endsWith('/documents/register'))).toBe(true);
+        f.hooks.textView = async () => { f.pdf.attachmentPath = 'C:/changed/other.html'; };
+        await expect(f.open()).rejects.toThrow('DOCUMENT_STALE');
+        expect(opened).toBe(1);
+        f.hooks.textView = async () => { throw new Error('DOCUMENT_STALE'); };
+        await expect(read(0)).rejects.toThrow('DOCUMENT_STALE');
+        f.removeLibrary();
+        const calls = f.requests.filter(value => value.path.endsWith('/documents/text-view')).length;
+        await expect(read(0)).rejects.toThrow();
+        expect(f.requests.filter(value => value.path.endsWith('/documents/text-view'))).toHaveLength(calls);
+    } finally { f.sources.shutdown(); }
+});
 
 test('run continuation preserves authorized sibling sync and cancellation bypasses blocked content preflight', async () => {
     const f = await readerNotifications();
