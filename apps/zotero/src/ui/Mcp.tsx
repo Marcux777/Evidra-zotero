@@ -26,10 +26,10 @@ export function Mcp(props: ResearchScope) {
     const proposalActions = useResearchActions(bridge, () => setNotes(null));
     function load(connectionOffset = connections?.offset ?? 0, noteOffset = notes?.offset ?? 0) {
         actions.read(async current => {
+            const authorized = authorization.current;
             const page = await bridge.request({ op: 'mcp.connections', ...scope, offset: connectionOffset }) as ConnectionPage;
-            if (!current()) return; setConnections(page);
+            if (!current() || authorized !== authorization.current) return; setConnections(page);
             proposalActions.read(async proposalCurrent => {
-                const authorized = authorization.current;
                 try {
                     const proposals = await bridge.request({ op: 'mcp.notes', ...scope, offset: noteOffset }) as ExternalNotePage;
                     if (proposalCurrent() && authorized === authorization.current) setNotes(proposals);
@@ -48,7 +48,9 @@ export function Mcp(props: ResearchScope) {
     }, [open, connections?.offset, notes?.offset]);
     function create() {
         if (!label.trim()) return;
+        const authorized = authorization.current;
         actions.write({ op: 'mcp.create', ...scope, request: { label: label.trim(), allow_proposals: propose, expires_in_seconds: expires, idempotency_key: researchKey() } }, value => {
+            if (authorized !== authorization.current) return;
             setSetup(value);
             setConnections(old => old && old.offset === 0 ? { ...old, items: [value.connection, ...old.items.filter(c => c.id !== value.connection.id)].slice(0, old.limit), total: old.total + (old.items.some(c => c.id === value.connection.id) ? 0 : 1) } : old);
         });

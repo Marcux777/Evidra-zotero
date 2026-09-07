@@ -14,11 +14,12 @@ test('MCP panel keeps uncertain connection creation stable and shows external ev
     const note: any = { id: 'c'.repeat(32), artifact_id: 'd'.repeat(32), revision: 1, origin: 'EXTERNAL_CLIENT', connection_id: record.id, declared_model: 'Client model claim', text: '<script>untrusted draft</script>', review_state: 'UNREVIEWED', author: 'mcp:test', created_at: record.created_at,
         evidence: [{ id: 'e'.repeat(64), source_id: 'f'.repeat(64), source_identity: { profile_instance_id: 'fixture', library_id: 1, item_key: 'STUDY001' }, content_key: 'STUDY001', source_kind: 'abstract', excerpt: 'Exact original quotation', document_version_id: '1'.repeat(64), start: 0, end: 24, page_index: null, historical: false }] };
     const requests: any[] = []; let fail = true, notesFailure = '', connectionsFailure = '';
-    let heldNotes: Promise<void> | null = null;
+    let heldNotes: Promise<void> | null = null, heldConnections: Promise<void> | null = null, heldCreate: Promise<void> | null = null;
     const bridge: any = { request: async (command: any) => {
         parseUiMessage(command); requests.push(command);
         if (command.op === 'mcp.connections') {
             if (connectionsFailure) throw new Error(connectionsFailure);
+            if (heldConnections) await heldConnections;
             return { items: [record], offset: command.offset, limit: 20, total: 1 };
         }
         if (command.op === 'mcp.notes') {
@@ -28,6 +29,7 @@ test('MCP panel keeps uncertain connection creation stable and shows external ev
         }
         if (command.op === 'mcp.create') {
             if (fail) { fail = false; throw new Error('ENGINE_HTTP_ERROR'); }
+            if (heldCreate) await heldCreate;
             return { connection: record, connection_file: 'C:\\Private\\connection.json', executable: 'C:\\Evidra\\evidra-engine.exe' };
         }
         if (command.op === 'mcp.review') return { ...note, revision: 2, review_state: 'APPROVED' };
@@ -102,4 +104,27 @@ test('MCP panel keeps uncertain connection creation stable and shows external ev
     expect(button('Revoke connection')).toBeUndefined();
     await act(async () => releaseNotes());
     expect(node.textContent).not.toContain('Exact original quotation');
+    for (const lifecycle of ['metadata', 'setup']) {
+        connectionsFailure = ''; notesFailure = '';
+        let denyNotes!: (error: Error) => void, releaseLifecycle!: () => void;
+        heldNotes = new Promise<void>((_resolve, reject) => { denyNotes = reject; });
+        await act(async () => button('Refresh clients and proposals').click());
+        expect(button('Revoke connection').disabled).toBe(false);
+        const response = new Promise<void>(resolve => { releaseLifecycle = resolve; });
+        if (lifecycle === 'metadata') heldConnections = response;
+        else heldCreate = response;
+        await act(async () => button(lifecycle === 'metadata' ? 'Refresh clients and proposals' : 'Create connection').click());
+        expect(requests.at(-1).op).toBe(lifecycle === 'metadata' ? 'mcp.connections' : 'mcp.create');
+        await act(async () => denyNotes(new Error('UNAUTHENTICATED')));
+        expect(button('Revoke connection')).toBeUndefined();
+        expect(node.textContent).not.toContain('codex mcp add evidra --');
+        const noteCalls = requests.filter(r => r.op === 'mcp.notes').length;
+        heldNotes = new Promise<void>(() => {}); // A stale continuation must not start another proposal read.
+        await act(async () => releaseLifecycle());
+        expect(button('Revoke connection'), 'Late lifecycle success must not restore invalidated metadata').toBeUndefined();
+        expect(node.textContent).not.toContain('codex mcp add evidra --');
+        expect(node.textContent).toContain('UNAUTHENTICATED');
+        expect(requests.filter(r => r.op === 'mcp.notes')).toHaveLength(noteCalls);
+        heldConnections = null; heldCreate = null; heldNotes = null;
+    }
 });
