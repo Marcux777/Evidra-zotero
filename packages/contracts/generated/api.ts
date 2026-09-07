@@ -5680,6 +5680,8 @@ export interface components {
              * @default
              */
             version: string;
+            /** Media Type */
+            media_type?: string | null;
         };
         /** SourceIdentity */
         SourceIdentity: {

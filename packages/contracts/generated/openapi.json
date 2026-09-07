@@ -27629,6 +27629,19 @@
             "maxLength": 200,
             "title": "Version",
             "default": ""
+          },
+          "media_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Media Type"
           }
         },
         "additionalProperties": false,

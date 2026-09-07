@@ -68,6 +68,14 @@ test('the document panel exposes pause/cancel, literal evidence, precision and o
         await click('Refresh documents');
         expect(host.querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,AAAA');
         expect(messages.filter(m => m.op === 'documents.preview')).toHaveLength(1);
+        row.source_kind = 'text_attachment';
+        row.coverage = 'PARTIAL_TEXT'; operation.reason = 'file_changed'; operation.kind = 'preview';
+        await click('Refresh documents');
+        expect(host.querySelector('.source-list')?.textContent).toContain('The attachment file changed.');
+        expect(host.querySelector('.source-list')?.textContent).toContain('(file_changed)');
+        const { catalog } = await import('../src/ui/i18n');
+        expect(host.querySelector('.source-list')?.textContent).toContain(catalog('en-US').evidence.preview + ' ·');
+        expect([...host.querySelectorAll('.source-list button')].some(b => b.textContent === 'Reindex text')).toBe(true);
     } finally { await act(async () => root.unmount()); host.remove(); }
 });
 

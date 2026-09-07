@@ -1,7 +1,10 @@
 """Task4 boundaries: actual files, PDFium child processes, SQLite FTS and scopes."""
 
 import hashlib
+import io
+import json
 import time
+import zipfile
 from pathlib import Path
 
 import pytest
@@ -53,6 +56,195 @@ def finished(client, prefix, operation):
             return result
         time.sleep(0.02)
     raise AssertionError("Owned parser did not finish within the bounded test wait")
+
+
+@pytest.mark.parametrize(
+    "format",
+    [
+        "plain",
+        "utf16",
+        "csv",
+        "markdown",
+        "html",
+        "xhtml",
+        "xml",
+        "epub",
+        "binary",
+        "unsupported",
+        "entities",
+        "epub_limit",
+        "epub_empty",
+        "missing_mime",
+        "text_limit",
+    ],
+)
+def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_path, format):
+    """Actual file/worker/SQLite ingestion, never PDF relabeling or a parser mock."""
+    media_type = {
+        "plain": "text/plain",
+        "utf16": "text/plain",
+        "csv": "text/csv",
+        "markdown": "text/markdown",
+        "html": "text/html",
+        "xhtml": "application/xhtml+xml",
+        "xml": "text/xml",
+        "epub": "application/epub+zip",
+        "epub_limit": "application/epub+zip",
+        "epub_empty": "application/epub+zip",
+        "missing_mime": None,
+        "text_limit": "text/plain",
+        "binary": "text/plain",
+        "unsupported": "text/rtf",
+        "entities": "text/xml",
+    }[format]
+    expected = "decisive finding café\r\nsecond result"
+    data = expected.encode("utf-16" if format == "utf16" else "utf-8")
+    if format in {"html", "xhtml", "xml"}:
+        data = (
+            b"<html><head><title>Ignored title</title></head><body>"
+            b"<p>decisive <b>finding</b></p><p>second result</p></body></html>"
+        )
+    if format.startswith("epub"):
+        with io.BytesIO() as output:
+            with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                archive.writestr(
+                    "mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED
+                )
+                archive.writestr(
+                    "META-INF/container.xml",
+                    '<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container">'
+                    '<rootfiles><rootfile full-path="OPS/book.opf" '
+                    'media-type="application/oebps-package+xml"/></rootfiles></container>',
+                )
+                archive.writestr(
+                    "OPS/book.opf",
+                    '<package xmlns="http://www.idpf.org/2007/opf"><manifest>'
+                    '<item id="b" href="b.xhtml" media-type="application/xhtml+xml"/>'
+                    '<item id="a" href="a.xhtml" media-type="application/xhtml+xml"/>'
+                    '</manifest><spine><itemref idref="a"/><itemref idref="b"/></spine></package>',
+                )
+                archive.writestr(
+                    "OPS/a.xhtml",
+                    '<html xmlns="http://www.w3.org/1999/xhtml"><body>'
+                    "<p>decisive finding</p></body></html>",
+                )
+                archive.writestr(
+                    "OPS/b.xhtml",
+                    '<html xmlns="http://www.w3.org/1999/xhtml"><body>'
+                    + (
+                        "<p>second result</p>"
+                        if format != "epub_empty"
+                        else '<img src="image.png"/>'
+                    )
+                    + "</body></html>",
+                )
+                if format == "epub_limit":
+                    archive.writestr("oversized.txt", "x" * 10000)
+            data = output.getvalue()
+    if format == "binary":
+        data = b"decisive finding\x00\xff"
+    if format == "entities":
+        data = b'<!DOCTYPE a [<!ENTITY x SYSTEM "file:///private">]><a>&x;</a>'
+    if format == "text_limit":
+        data = b"x" * 2_100_000
+    path = tmp_path / "attachment"  # MIME, never filename guessing, selects the parser.
+    path.write_bytes(data)
+    item = source()
+    item["contents"] = [
+        {"key": "TEXT1", "kind": "text_attachment", "version": "1", "media_type": media_type}
+    ]
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        notebook, snapshot, preview, prefix = document_scope(client, [item])
+        sid = preview["items"][0]["id"]
+        document = register(client, prefix, sid, path, "TEXT1")
+        if format == "missing_mime":
+            response = client.post(
+                prefix + "/documents/ingest",
+                headers=HEADERS,
+                json={"document_id": document["id"], "idempotency_key": "missing"},
+            )
+            assert response.status_code == 409 and response.json()["code"] == "SCOPE_STALE"
+            return
+        limits = {"max_file_bytes": len(data) + 100} if format == "epub_limit" else {}
+        result = finished(client, prefix, ingest(client, prefix, document, limits=limits))
+        failures = {
+            "binary": "TEXT_ENCODING_ERROR",
+            "unsupported": "UNSUPPORTED_TEXT_FORMAT",
+            "entities": "UNSUPPORTED_TEXT_FORMAT",
+            "epub_limit": "FILE_LIMIT",
+            "epub_empty": "INCOMPLETE_TEXT",
+            "text_limit": "TEXT_LIMIT",
+        }
+        # The real full-scan planner selects its document and all chunks, without starting a model.
+        from test_conversations import profile
+        from test_jobs import prepare
+
+        fields = client.get(prefix + "/forms/template", headers=HEADERS).json()
+        form_response = client.post(
+            prefix + "/forms",
+            headers=HEADERS,
+            json={
+                "name": "Text",
+                "fields": [dict(fields[0], key="result")],
+                "expected_revision": 0,
+                "idempotency_key": "text-form",
+            },
+        )
+        assert form_response.status_code == 201, form_response.text
+        profile(client)
+        job = prepare(client, prefix, form_response.json())
+        unit = client.get(prefix + "/jobs/" + job["id"] + "/units", headers=HEADERS).json()[
+            "items"
+        ][0]
+        if format in failures:
+            assert result["reason"] == failures[format], result
+            assert unit["coverage"][0]["reason"] == failures[format]
+            assert result["state"] in {"FAILED", "PAUSED"} and result["document_version_id"] is None
+            with app.state.services.database.transaction() as conn:
+                assert conn.execute("SELECT count(*) FROM document_versions").fetchone()[0] == 0
+            return
+        assert result["state"] == "COMPLETE" and result["coverage"] == "FULL_TEXT_PARSED", result
+        assert result["sha256"] == hashlib.sha256(data).hexdigest()
+        assert result["bytes_processed"] == len(data)
+        hit = client.post(
+            prefix + "/search", headers=HEADERS, json={"query": "decisive finding"}
+        ).json()["items"][0]
+        evidence = client.get(prefix + "/evidence/" + hit["evidence_id"], headers=HEADERS).json()
+        assert evidence["source_kind"] == "text_attachment"
+        assert evidence["precision"] == "text" and evidence["page_index"] is None
+        assert evidence["rectangles"] == [] and evidence["document_sha256"] == result["sha256"]
+        with app.state.services.database.transaction() as conn:
+            text = json.loads(conn.execute("SELECT payload FROM document_pages").fetchone()[0])[
+                "original_text"
+            ]
+        assert text[evidence["start"] : evidence["end"]] == evidence["excerpt"]
+        assert text.index("decisive finding") < text.index("second result")
+        if format in {"plain", "utf16", "csv", "markdown"}:
+            assert text == expected
+        assert unit["coverage"][0]["document_version_id"] == result["document_version_id"]
+        assert unit["coverage"][0]["reason"] is None and unit["coverage"][0]["chunks_total"] > 0
+        if format == "epub":
+            bounded = finished(
+                client,
+                prefix,
+                ingest(client, prefix, document, key="cached-spine-limit", limits={"max_pages": 1}),
+            )
+            assert bounded["state"] == "PAUSED" and bounded["reason"] == "PAGE_LIMIT"
+        path.write_bytes(b"changed original")
+        changed = finished(client, prefix, ingest(client, prefix, document, key="changed"))
+        assert changed["reason"] == "DOCUMENT_STALE" and changed["document_version_id"] is None
+        assert (
+            client.post(
+                f"/v1/notebooks/{notebook}/sources/{sid}/revoke",
+                headers=HEADERS,
+                json={"expected_revision": snapshot["revision"]},
+            ).status_code
+            == 200
+        )
+        assert (
+            client.get(prefix + "/evidence/" + evidence["id"], headers=HEADERS).status_code == 403
+        )
 
 
 def test_registered_pdf_becomes_verifiable_scoped_evidence(tmp_path: Path):
@@ -379,7 +571,9 @@ def test_preview_limit_preserves_extraction_and_rotated_region(tmp_path: Path):
         ).json()
         paused = finished(client, prefix, limited)
         assert (paused["state"], paused["reason"], paused["page_count"]) == (
-            "PAUSED", "PAGE_LIMIT", 2
+            "PAUSED",
+            "PAGE_LIMIT",
+            2,
         ), paused
         listing = client.get(prefix + "/documents", headers=HEADERS).json()
         assert listing["items"][0]["coverage"] == "FULL_TEXT_PARSED"
@@ -512,9 +706,7 @@ def test_changed_attachment_does_not_stale_its_unchanged_authorized_sibling(tmp_
                 client, prefix, ingest(client, prefix, registered[content_key], key=content_key)
             )
             assert parsed["state"] == "COMPLETE", parsed
-        changed = item | {
-            "contents": [item["contents"][0], item["contents"][1] | {"version": "2"}]
-        }
+        changed = item | {"contents": [item["contents"][0], item["contents"][1] | {"version": "2"}]}
         response = sync(
             client, notebook, [changed], purpose="revalidation", snapshot_id=snapshot["id"]
         )
@@ -524,9 +716,9 @@ def test_changed_attachment_does_not_stale_its_unchanged_authorized_sibling(tmp_
             "FIRSTPDF": ("FULL_TEXT_PARSED", False),
             "SECONDPDF": ("STALE", True),
         }
-        hits = client.post(
-            prefix + "/search", headers=HEADERS, json={"query": "evidence"}
-        ).json()["items"]
+        hits = client.post(prefix + "/search", headers=HEADERS, json={"query": "evidence"}).json()[
+            "items"
+        ]
         evidence = [
             client.get(prefix + "/evidence/" + hit["evidence_id"], headers=HEADERS).json()
             for hit in hits

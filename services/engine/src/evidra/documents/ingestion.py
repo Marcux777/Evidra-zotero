@@ -15,6 +15,7 @@ from typing import Any, BinaryIO
 from evidra.documents.chunking import POLICY_VERSION, chunks, normalize
 from evidra.documents.parser_worker import PARSER_VERSION, diagnostic, run_worker
 from evidra.documents.registry import DocumentRegistry, open_verified
+from evidra.documents.text_parser import TEXT_FILE_PARSER_VERSION
 from evidra.domain.documents import (
     IngestRequest,
     Operation,
@@ -141,8 +142,17 @@ class IngestionService:
             if self._closed:
                 raise EvidraError("ENGINE_STOPPING", "The engine is stopping.")
             document = self.registry.require(connection, context, body.document_id, current=True)
-            if document["source_kind"] != "pdf":
-                raise EvidraError("UNSUPPORTED_DOCUMENT", "This operation requires a PDF document.")
+            if document["source_kind"] not in {"pdf", "text_attachment"}:
+                raise EvidraError(
+                    "UNSUPPORTED_DOCUMENT", "This operation requires a file attachment."
+                )
+            _, content = self.registry.content(
+                connection, context, document["source_id"], document["content_key"], current=True
+            )
+            if content.kind == "text_attachment" and not content.media_type:
+                raise EvidraError(
+                    "SCOPE_STALE", "Recapture the textual attachment with its native MIME type."
+                )
             request = body.model_dump_json()
             prior = connection.execute(
                 "SELECT * FROM document_operations WHERE notebook_id=? AND snapshot_id=? "
@@ -179,6 +189,7 @@ class IngestionService:
             )
             event = self._cancel[operation.id] = threading.Event()
             frozen = dict(document)
+            frozen["media_type"] = content.media_type
             self._executor.submit(
                 self._ingest, context, body, operation, frozen, event
             ).add_done_callback(lambda future: self._observe(operation.id, future))
@@ -214,12 +225,12 @@ class IngestionService:
                 yield ParsedPage.model_validate(record["page"])
 
     @staticmethod
-    def _validate_output(output: BinaryIO, operation: Operation) -> str:
+    def _validate_output(output: BinaryIO, operation: Operation, parser_version: str) -> str:
         header = json.loads(output.readline())
         if header["type"] == "limit":
             operation.page_count = header["page_count"]
             raise EvidraError("PAGE_LIMIT", "The PDF exceeds its configured page limit.")
-        if header["type"] != "header" or header["parser_version"] != PARSER_VERSION:
+        if header["type"] != "header" or header["parser_version"] != parser_version:
             raise EvidraError("PARSER_PROTOCOL", "The parser header is invalid.")
         operation.page_count = header["page_count"]
         qualities = []
@@ -263,8 +274,13 @@ class IngestionService:
                     raise EvidraError("FILE_LIMIT", "The file exceeds its configured byte limit.")
                 operation.sha256 = opened.digest(check)
                 operation.bytes_processed = opened.size
+                parser_version = (
+                    TEXT_FILE_PARSER_VERSION
+                    if frozen["source_kind"] == "text_attachment"
+                    else PARSER_VERSION
+                )
                 version_id = hashlib.sha256(
-                    f"{operation.document_id}:{operation.sha256}:{PARSER_VERSION}:{POLICY_VERSION}".encode()
+                    f"{operation.document_id}:{operation.sha256}:{parser_version}:{POLICY_VERSION}".encode()
                 ).hexdigest()
                 with self.scopes.guarded(context, capability="commit") as connection:
                     current = self.registry.require(
@@ -275,7 +291,9 @@ class IngestionService:
                     cached = connection.execute(
                         "SELECT * FROM document_versions WHERE id=?", (version_id,)
                     ).fetchone()
-                    if cached:
+                    # EPUB's spine bound is not its unpaginated storage unit count;
+                    # rerun textual parsing to honor the caller's current limits.
+                    if cached and frozen["source_kind"] == "pdf":
                         if cached["page_count"] > body.limits.max_pages:
                             operation.page_count = cached["page_count"]
                             raise EvidraError(
@@ -287,9 +305,19 @@ class IngestionService:
                     self._save(connection, operation)
                 opened.stream.seek(0)
                 with run_worker(
-                    opened.stream, {"kind": "ingest"}, body.limits, check, lambda _: None
+                    opened.stream,
+                    {
+                        "kind": "ingest",
+                        "source_kind": frozen["source_kind"],
+                        "media_type": frozen["media_type"],
+                    },
+                    body.limits,
+                    check,
+                    lambda _: None,
                 ) as output:
-                    coverage = self._validate_output(output, operation)
+                    coverage = self._validate_output(output, operation, parser_version)
+                    if frozen["source_kind"] == "text_attachment" and coverage == "NEEDS_OCR":
+                        coverage = "METADATA_ONLY"
                     check()
                     opened.recheck()
                     with self.scopes.guarded(context, capability="commit") as connection:
@@ -300,13 +328,16 @@ class IngestionService:
                             raise EvidraError(
                                 "DOCUMENT_STALE", "The registered attachment changed."
                             )
+                        if cached:
+                            self._complete(connection, operation, cached, cache_hit=True)
+                            return
                         connection.execute(
                             "INSERT INTO document_versions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                             (
                                 version_id,
                                 operation.document_id,
                                 operation.sha256,
-                                PARSER_VERSION,
+                                parser_version,
                                 POLICY_VERSION,
                                 opened.identity,
                                 coverage,
@@ -369,6 +400,7 @@ class IngestionService:
     ) -> None:
         reason = error.code if isinstance(error, EvidraError) else "PARSER_PROTOCOL"
         paused = {
+            "TEXT_LIMIT",
             "FILE_LIMIT",
             "PAGE_LIMIT",
             "PARSER_TIMEOUT",
@@ -386,7 +418,14 @@ class IngestionService:
         operation.reason = reason
         if reason in {"MISSING_FILE", "DOCUMENT_STALE"}:
             operation.coverage = "MISSING_FILE" if reason == "MISSING_FILE" else "STALE"
-        elif operation.kind == "ingest" and reason in {"PARSER_FAILED", "PARSER_PROTOCOL"}:
+        elif operation.kind == "ingest" and reason in {
+            "PARSER_FAILED",
+            "PARSER_PROTOCOL",
+            "TEXT_ENCODING_ERROR",
+            "INVALID_TEXT_DOCUMENT",
+            "UNSUPPORTED_TEXT_FORMAT",
+            "INCOMPLETE_TEXT",
+        }:
             operation.coverage = "UNREADABLE"
         logger.error(
             "Document operation %s failed: %s",

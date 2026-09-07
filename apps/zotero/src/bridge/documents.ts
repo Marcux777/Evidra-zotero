@@ -26,6 +26,8 @@ export class DocumentBridge {
             || `${item.version}:${item.getField('dateModified')}` !== content.version) throw new Error('SCOPE_STALE');
         if (content.kind === 'pdf' && !item.isPDFAttachment() || content.kind === 'human_note' && !item.isNote()
             || content.kind === 'human_annotation' && !item.isAnnotation()) throw new Error('SCOPE_STALE');
+        if (content.kind === 'text_attachment' && (!item.isFileAttachment()
+            || !content.media_type || content.media_type !== item.attachmentContentType)) throw new Error('SCOPE_STALE');
         return item;
     }
 
@@ -53,9 +55,9 @@ export class DocumentBridge {
                 check(); const value = await this.engine.request(method, prefix + path, body); check(); return value;
             };
             // Local availability is re-observed before cache reads and ranking, independently
-            // for each exact PDF content key. No parent/sibling traversal or byte hashing here.
+            // for each exact attachment key. No parent/sibling traversal or byte hashing here.
             for (const source of sources) for (const content of source.contents ?? []) {
-                if (content.kind !== 'pdf') continue;
+                if (content.kind !== 'pdf' && content.kind !== 'text_attachment') continue;
                 if (dependencies && !dependencies.has(`${source.id}:${content.key}`)) continue;
                 const item = await this.#item(source, content, check);
                 const path = await item.getFilePathAsync(); check();
@@ -81,7 +83,7 @@ export class DocumentBridge {
                     const source = sources.find(s => s.id === message.source_id);
                     const content = source?.contents?.find(c => c.key === message.content_key);
                     if (!source || !content) throw new Error('SOURCE_REVOKED');
-                    if (content.kind === 'pdf') {
+                    if (content.kind === 'pdf' || content.kind === 'text_attachment') {
                         const registered = documents.get(`${source.id}:${content.key}`)!;
                         if (registered.path === false) throw new Error('MISSING_FILE');
                         const operation = await request('POST', '/documents/ingest', { document_id: registered.document.id,

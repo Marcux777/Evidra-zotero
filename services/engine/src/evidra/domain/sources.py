@@ -29,7 +29,12 @@ class SourceIdentity(StrictModel):
 
 
 SourceKind = Literal[
-    "pdf", "abstract", "human_note", "human_annotation", "ai_artifact", "approved_data",
+    "pdf",
+    "abstract",
+    "human_note",
+    "human_annotation",
+    "ai_artifact",
+    "approved_data",
     "text_attachment",
 ]
 
@@ -48,6 +53,7 @@ class SourceContent(ContentIdentity):
     role: Literal["unassigned", "principal", "supplement"] = "unassigned"
     title: str = Field(default="", max_length=2000)
     version: str = Field(default="", max_length=200)
+    media_type: str | None = Field(default=None, min_length=1, max_length=200)
 
 
 class SourceInput(StrictModel):
@@ -250,7 +256,10 @@ def metadata_version(source: SourceInput) -> str:
 
 
 def content_version(content: SourceContent) -> str:
-    return hashlib.sha256(content.model_dump_json(exclude={"role"}).encode()).hexdigest()
+    # Existing immutable content identities predate MIME provenance. Absence must
+    # not change their digest; textual ingestion requires explicit native MIME.
+    excluded = {"role"} | ({"media_type"} if content.media_type is None else set())
+    return hashlib.sha256(content.model_dump_json(exclude=excluded).encode()).hexdigest()
 
 
 def filtered(source: Source, spec: SelectionSpec) -> tuple[Source | None, str | None]:

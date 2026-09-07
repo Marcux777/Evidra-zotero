@@ -123,7 +123,13 @@ class ExtractionRunner:
                         elif doc and doc["coverage"] in {"MISSING_FILE", "STALE"}:
                             item = item.model_copy(update={"reason": doc["coverage"]})
                         elif not doc or not doc["current_version_id"]:
-                            item = item.model_copy(update={"reason": "NOT_INDEXED"})
+                            item = item.model_copy(
+                                update={
+                                    "reason": doc["reason"]
+                                    if doc and doc["reason"]
+                                    else "NOT_INDEXED"
+                                }
+                            )
                         else:
                             version = doc["current_version_id"]
                             pages = conn.execute(

@@ -22,7 +22,11 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
     useEffect(() => { onPreview?.(preview && previewOp ? { operation_id: previewOp.id, image: preview } : null); }, [preview, previewOp?.id]);
     useEffect(() => { alive.current = true; return () => { alive.current = false; ++generation.current; }; }, []);
 
-    function reason(value: string | null | undefined) { return value ? d.reasons[value as keyof typeof d.reasons] ?? value : ''; }
+    function reason(value: string | null | undefined) {
+        if (!value) return '';
+        const label = d.reasons[value as keyof typeof d.reasons] ?? d.coverage[value as keyof typeof d.coverage];
+        return label ? `${label} (${value})` : value;
+    }
     async function action(work: (current: () => boolean) => Promise<void>) {
         if (running.current) return;
         running.current = true; setBusy(true); setError('');
@@ -125,11 +129,11 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
         </div></fieldset></details>
         <button type="button" disabled={busy} onClick={() => { setPolling(true); void action(current => load(page?.offset ?? 0, current)); }}>{d.refresh}</button>
         <ul className="source-list">{page?.items.map(row => {
-            const operation = row.operation, supported = ['pdf', 'abstract', 'human_note', 'human_annotation'].includes(row.source_kind);
+            const operation = row.operation, supported = ['pdf', 'text_attachment', 'abstract', 'human_note', 'human_annotation'].includes(row.source_kind);
             return <li key={`${row.source_id}:${row.content_key}`}><div className="source-heading"><strong>{row.title || row.content_key}</strong><span>{d.coverage[row.coverage]}</span></div>
                 <p className="source-meta">{t.sources.kinds[row.source_kind]} · {row.content_key} {row.historical && `· ${d.historical}`}</p>
                 {row.reason && <p>{reason(row.reason)}</p>}
-                {operation && <p role={active(operation) ? 'status' : undefined}>{d.states[operation.state]} {reason(operation.reason)}<br/>
+                {operation && <p role={active(operation) ? 'status' : undefined}>{operation.kind === 'preview' ? d.preview : d.index} · {d.states[operation.state]} {reason(operation.reason)}<br/>
                     {d.bytes}: {operation.bytes_processed ?? 0} · {d.processed}: {operation.pages_processed ?? 0} / {operation.page_count ?? '—'} {operation.cache_hit && `· ${d.cache}`}</p>}
                 {['NEEDS_OCR', 'UNREADABLE', 'PARTIAL_TEXT'].includes(row.coverage) && <p>{d.ocr}</p>}
                 {supported ? <div className="actions"><button type="button" disabled={busy || !!active(operation) || row.historical} onClick={() => index(row)}>
@@ -157,6 +161,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
             <p>{d.offsets}: {evidence.start}–{evidence.end} · {evidence.parser_version}</p>
             {evidence.page_index !== null && <p>{d.page}: {evidence.page_index + 1} · {d.label}: {evidence.page_label ?? '—'}</p>}
             {evidence.precision === 'page' && <p>{d.pageOnly}</p>}
+            {evidence.source_kind === 'text_attachment' && <p>{d.textOnly}</p>}
             {evidence.source_kind === 'pdf' && <button type="button" disabled={busy} onClick={openEvidence}>{evidence.precision === 'rectangles' ? d.openExcerpt : d.openPage}</button>}
             {onAsk && <button type="button" disabled={busy} onClick={() => onAsk({ kind: 'excerpt', id: evidence.id, label: evidence.content_key, nonce: key() })}>{t.chat.askExcerpt}</button>}
         </aside>}

@@ -197,7 +197,7 @@ class DocumentRegistry:
             raise EvidraError("SOURCE_REVOKED", "This document version is outside the snapshot.")
         if row["coverage"] == "MISSING_FILE":
             raise EvidraError("MISSING_FILE", "The authorized local attachment is missing.")
-        if row["source_kind"] == "pdf" and not row["file_identity"]:
+        if row["source_kind"] in {"pdf", "text_attachment"} and not row["file_identity"]:
             raise EvidraError(
                 row["reason"], "The authorized attachment has no verified local file."
             )
@@ -213,13 +213,14 @@ class DocumentRegistry:
             # File availability belongs to the current exact content identity. An old
             # snapshot may observe it, while start() separately rejects stale ingestion.
             _, content = self.content(connection, context, body.source_id, body.content_key)
-            if content.kind != "pdf":
+            if content.kind not in {"pdf", "text_attachment"}:
                 raise EvidraError(
-                    "UNSUPPORTED_DOCUMENT", "Only authorized PDF files use file registration."
+                    "UNSUPPORTED_DOCUMENT",
+                    "Only authorized file attachments use file registration.",
                 )
         try:
             with open_verified(Path(body.path)) as opened:
-                if opened.stream.read(5) != b"%PDF-":
+                if content.kind == "pdf" and opened.stream.read(5) != b"%PDF-":
                     raise EvidraError(
                         "INVALID_DOCUMENT_TYPE", "The attachment does not have a PDF header."
                     )
@@ -260,9 +261,9 @@ class DocumentRegistry:
             context, source_id=body.source_id, content_key=body.content_key, capability="commit"
         ) as connection:
             _, content = self.content(connection, context, body.source_id, body.content_key)
-            if content.kind != "pdf":
+            if content.kind not in {"pdf", "text_attachment"}:
                 raise EvidraError(
-                    "UNSUPPORTED_DOCUMENT", "Only PDF content has a local file observation."
+                    "UNSUPPORTED_DOCUMENT", "Only file attachments have a local file observation."
                 )
             return self._unavailable(
                 connection, body.source_id, content, "MISSING_FILE", "MISSING_FILE"
@@ -284,8 +285,16 @@ class DocumentRegistry:
         if row is None:
             connection.execute(
                 "INSERT INTO documents (id,source_id,content_key,content_version,source_kind,"
-                "path,file_identity,revision,coverage,reason) VALUES (?,?,?,?,'pdf','','',1,?,?)",
-                (document_id, source_id, content.key, content_version(content), coverage, reason),
+                "path,file_identity,revision,coverage,reason) VALUES (?,?,?,?,?,'','',1,?,?)",
+                (
+                    document_id,
+                    source_id,
+                    content.key,
+                    content_version(content),
+                    content.kind,
+                    coverage,
+                    reason,
+                ),
             )
         elif row["coverage"] != coverage or row["reason"] != reason or row["file_identity"]:
             revision += 1

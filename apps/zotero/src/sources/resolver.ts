@@ -160,11 +160,12 @@ async function resolve(api: NativeSourceAPI, profile: string, spec: SelectionSpe
                 kind = 'human_note';
             } else if (item.isAnnotation()) kind = 'human_annotation';
             else if (item.isPDFAttachment()) kind = 'pdf';
-            else if (item.isFileAttachment() && /^(text\/|application\/(epub\+zip|xhtml\+xml))/.test(item.attachmentContentType)) kind = 'text_attachment';
+            else if (item.isFileAttachment() && /^(text\/[^;\s]+|application\/(epub\+zip|xhtml\+xml))(?:\s*;|$)/i.test(item.attachmentContentType)) kind = 'text_attachment';
             else return;
             if (entry.allowed && !entry.allowed.some(c => c.key === item.key && c.kind === kind)) return;
             if (kind === 'pdf') readerItems.set(item.id, item);
-            contents.set(item.key, { key: item.key, kind, role: 'unassigned', title: String(item.getField('title')), version: `${item.version}:${item.getField('dateModified')}` });
+            contents.set(item.key, { key: item.key, kind, role: 'unassigned', title: String(item.getField('title')), version: `${item.version}:${item.getField('dateModified')}`,
+                ...(kind === 'text_attachment' ? { media_type: item.attachmentContentType } : {}) });
             if (entry.all && spec.include_annotations && item.isFileAttachment()) {
                 for (const annotation of item.getAnnotations(false)) await addContent(annotation);
             }

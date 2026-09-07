@@ -136,7 +136,7 @@ def collect(evidence: EvidenceService, context: ScopeContext) -> PortableNoteboo
                     ).fetchone()
                     if document and (
                         document["coverage"] == "MISSING_FILE"
-                        or kind == "pdf"
+                        or kind in {"pdf", "text_attachment"}
                         and not document["file_identity"]
                     ):
                         source_complete = False

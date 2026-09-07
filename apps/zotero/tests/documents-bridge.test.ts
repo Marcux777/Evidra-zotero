@@ -229,7 +229,7 @@ test('document commands accept only generated bounded payloads, never renderer p
     expect(() => parseUiMessage({ op: 'documents.preview', ...scope, request: { document_version_id: 'c'.repeat(64), page_index: 0, region: [10, 20, 0, 0], idempotency_key: 'preview' } })).toThrow('INVALID_UI_MESSAGE');
 });
 
-test('production document bridge revalidates exact content before resolving its path and fails on an intervening native notification', async () => {
+test.each(['pdf', 'text_attachment'])('production document bridge revalidates exact %s content before resolving its path and fails on an intervening native notification', async kind => {
     const url = new NodeURL('../src/bridge/documents.ts', import.meta.url);
     expect(existsSync(url), 'document bridge is missing').toBe(true);
     const { DocumentBridge } = await import(/* @vite-ignore */ url.href);
@@ -240,11 +240,11 @@ test('production document bridge revalidates exact content before resolving its 
         version: 1, deleted: false, getField: (name: string) => name === 'dateModified' ? 'stamp' : '',
         getTags: () => [], isRegularItem: () => true, isNote: () => false, isAnnotation: () => false,
         isAttachment: () => false, loadAllData: async () => {}, getAttachments: () => { throw new Error('sibling scan'); } };
-    const pdf: any = { ...parent, id: 2, key: 'PDFKEY1', parentID: 1, parentKey: 'PARENT1', attachmentContentType: 'application/pdf',
+    const pdf: any = { ...parent, id: 2, key: 'PDFKEY1', parentID: 1, parentKey: 'PARENT1', attachmentContentType: kind === 'pdf' ? 'application/pdf' : 'text/plain',
         attachmentPath: 'C:/authorized/only.pdf', attachmentLinkMode: 2, attachmentCharset: null,
         attachmentSyncState: 0, attachmentSyncedModificationTime: null, attachmentSyncedHash: null,
         attachmentLastProcessedModificationTime: 0, attachmentLastRead: null, getFilePath: () => 'C:/authorized/only.pdf',
-        isRegularItem: () => false, isAttachment: () => true, isFileAttachment: () => true, isPDFAttachment: () => true,
+        isRegularItem: () => false, isAttachment: () => true, isFileAttachment: () => true, isPDFAttachment: () => kind === 'pdf',
         getFilePathAsync: async () => { calls.push('native.path'); if (changed) await observer.notify('modify', 'item', [2], {}); return 'C:/authorized/only.pdf'; } };
     const badPdf = { ...pdf, id: 3, key: 'BADPDF1' };
     const api: any = { Libraries: { exists: () => true, get: () => ({ libraryID: 1, libraryType: 'user', libraryTypeID: null, archived: false }) },
@@ -252,10 +252,10 @@ test('production document bridge revalidates exact content before resolving its 
             getAsync: async (id: number) => id === 1 ? parent : id === 2 ? pdf : false },
         ItemTypes: { getName: () => 'journalArticle' },
         Notifier: { registerObserver: (value: any) => { observer = value; return 'observer'; }, unregisterObserver() {} } };
-    const document = { id: 'd'.repeat(32), source_id: 'b'.repeat(64), content_key: 'PDFKEY1', source_kind: 'pdf', revision: 1 };
+    const document = { id: 'd'.repeat(32), source_id: 'b'.repeat(64), content_key: 'PDFKEY1', source_kind: kind, revision: 1 };
     const engine = { stop: async () => {}, request: async (_: string, path: string, body?: any) => {
         calls.push(path);
-        if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind: 'pdf' }, { key: 'BADPDF1', kind: 'pdf' }] }], total: 1, offset: 0, limit: 100 };
+        if (path.includes('/identities?')) return { items: [{ identity, contents: [{ key: 'PDFKEY1', kind }, { key: 'BADPDF1', kind }] }], total: 1, offset: 0, limit: 100 };
         if (path.endsWith('/sources/sync')) return { items: body.items.map((s: any) => ({ ...s, id: 'b'.repeat(64), version_id: 'v', year_state: 'missing' })), total: 1, offset: 0, limit: 1, stage_id: null };
         if (path.endsWith('/documents/register')) {
             if (body.content_key === 'BADPDF1') return { ...document, id: 'f'.repeat(32), content_key: 'BADPDF1', coverage: 'UNREADABLE', reason: 'INVALID_DOCUMENT_TYPE' };

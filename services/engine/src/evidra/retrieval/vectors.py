@@ -39,7 +39,7 @@ class VectorSearch:
                     "INSERT OR IGNORE INTO vector_allowed SELECT current_version_id FROM documents "
                     "WHERE source_id=? AND content_key=? AND content_version=? "
                     "AND current_version_id IS NOT NULL AND coverage!='MISSING_FILE' "
-                    "AND (source_kind!='pdf' OR file_identity!='')",
+                    "AND (source_kind NOT IN ('pdf','text_attachment') OR file_identity!='')",
                     (source.id, content.key, content_version(content)),
                 )
         return [

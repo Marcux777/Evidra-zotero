@@ -34,6 +34,12 @@ from evidra.domain.errors import EvidraError
 
 PARSER_VERSION = "pypdfium2-5.13.0/pdfium-153.0.7999.0/evidra-1"
 CHILD_CODES = {
+    "INCOMPLETE_TEXT",
+    "TEXT_LIMIT",
+    "TEXT_ENCODING_ERROR",
+    "INVALID_TEXT_DOCUMENT",
+    "UNSUPPORTED_TEXT_FORMAT",
+    "PAGE_LIMIT",
     "INVALID_PAGE",
     "INVALID_REGION",
     "PREVIEW_PIXEL_LIMIT",
@@ -469,10 +475,6 @@ def _preview(pdf: Any, request: dict[str, Any], limits: ParserLimits) -> PagePre
 def worker_main() -> None:
     """Private stdin protocol; no socket, shell, document actions or host database access."""
     try:
-        import pypdfium2 as pdfium
-
-        if str(pdfium.PDFIUM_INFO) != "153.0.7999.0":
-            raise EvidraError("PARSER_VERSION_MISMATCH", "The bundled PDFium version differs.")
         request = json.loads(sys.stdin.buffer.read(65537))
         limits = ParserLimits.model_validate(request["limits"])
         fd = msvcrt.open_osfhandle(request["handle"], os.O_RDONLY | os.O_BINARY)
@@ -480,6 +482,28 @@ def worker_main() -> None:
             size = os.fstat(fd).st_size
             if size > limits.max_file_bytes:
                 raise EvidraError("FILE_LIMIT", "The file exceeds its configured byte limit.")
+            if request.get("source_kind") == "text_attachment":
+                from evidra.documents.text_parser import TEXT_FILE_PARSER_VERSION, parse_text
+
+                if request["kind"] != "ingest":
+                    raise EvidraError("UNSUPPORTED_TEXT_FORMAT", "Text files have no PDF preview.")
+                page = parse_text(stream, request["media_type"], limits)
+                print(
+                    json.dumps(
+                        {
+                            "type": "header",
+                            "page_count": 1,
+                            "parser_version": TEXT_FILE_PARSER_VERSION,
+                        }
+                    )
+                )
+                print(json.dumps({"type": "page", "page": page.model_dump()}, ensure_ascii=True))
+                print(json.dumps({"type": "done", "page_count": 1}))
+                return
+            import pypdfium2 as pdfium
+
+            if str(pdfium.PDFIUM_INFO) != "153.0.7999.0":
+                raise EvidraError("PARSER_VERSION_MISMATCH", "The bundled PDFium version differs.")
             with pdfium.PdfDocument(stream) as pdf:
                 count = len(pdf)
                 if count > limits.max_pages:
