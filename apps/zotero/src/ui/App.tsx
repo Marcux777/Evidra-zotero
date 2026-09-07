@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BridgeStatus, Locale, Mode, Notebook, NotebookPage, Theme, UiBridge } from '../bridge/types';
 import { catalog } from './i18n';
+import { Diagnostic } from './Diagnostic';
 import { Onboarding } from './onboarding';
 import { Sources } from './Sources';
 import { ProviderSettings } from './ProviderSettings';
@@ -98,7 +99,7 @@ export function App({ bridge, compact = false }: {
         endAction();
     } }
     return <><a className="skip" href="#main">{t.skip}</a><header className="top"><strong>Evidra</strong><span role="status">{status ? t[status.state] : t.loading}</span><button onClick={() => void bridge.request({ op: compact ? 'workspace.open' : 'workspace.close' }).catch(onError)}>{compact ? t.reopen : t.close}</button></header>
-    <div role="status" className="notice">{notice}</div>{error && <p role="alert" className="error">{t.error}: {error}{error in t.diagnostics && <> — {t.diagnostics[error as keyof typeof t.diagnostics]}</>}</p>}
+    <div role="status" className="notice">{notice}</div>{error && <p role="alert" className="error">{t.error}: <Diagnostic code={error} locale={locale}/></p>}
     <div className="layout"><aside><h2>{t.notebooks}</h2>{page.items.length === 0 && <p>{t.empty}</p>}<ul className="notebooks">{page.items.map(n => <li key={n.id}><button disabled={busy} aria-current={status?.selected?.id === n.id ? 'page' : undefined} onClick={() => void select(n.id)}>{n.name}</button></li>)}</ul>
       {page.total > page.limit && <nav aria-label={t.notebooks} className="actions"><button disabled={busy || page.offset === 0} onClick={() => void navigate(Math.max(0, page.offset - page.limit))}>{t.previous}</button><button disabled={busy || page.offset + page.limit >= page.total} onClick={() => void navigate(page.offset + page.limit)}>{t.next}</button></nav>}
       <details><summary>{t.settings}</summary><label>{t.language}<select value={locale} onChange={e => setLocale(e.target.value as Locale)}><option value="pt-BR">Português (Brasil)</option><option value="en-US">English (US)</option></select></label><label>{t.theme}<select value={theme} onChange={e => setTheme(e.target.value as Theme)}><option value="system">{t.system}</option><option value="light">{t.light}</option><option value="dark">{t.dark}</option></select></label><label>{t.mode}<select value={mode} onChange={e => setMode(e.target.value as Mode)}><option value="LOCAL">{t.local}</option><option value="API">{t.api}</option></select></label>{mode === 'API' && <p>{t.apiBlocked}</p>}<button disabled={busy} onClick={() => void preferences()}>{t.apply}</button></details></aside>

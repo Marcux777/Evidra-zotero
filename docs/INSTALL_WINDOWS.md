@@ -24,7 +24,7 @@ Fechar a última superfície do plugin encerra o processo próprio. Se o bridge 
 | `PROTOCOL_MISMATCH`, `INVALID_CONNECTION_RECEIPT` | Use os dois artefatos da mesma distribuição. Não aponte para a API do Zotero. |
 | `ACL_ERROR`, `NATIVE_COMMAND_FAILED`, `UNSAFE_NATIVE_PATH` | Use uma pasta local da sua conta e confira os diagnósticos nativos de permissões/caminho. Não altere permissões globais nem desative proteções. |
 | `ENGINE_EXITED` | Leia a cadeia causal sanitizada no diagnóstico local e confira a integridade do pacote. |
-| `MODEL_NOT_FOUND` | Confira serviço, nome e instalação do modelo selecionado. Nenhum outro provedor será usado automaticamente. |
+| `PROVIDER_HTTP_ERROR` | Confira adaptador, endereço do serviço e nome ou disponibilidade do modelo. O erro HTTP sozinho não identifica a causa; um endpoint incorreto também pode recusá-lo. |
 | `PREVIEW_EVICTED` | Renderize a prévia novamente. O texto original e as decisões continuam armazenados. |
 | `BRIDGE_TIMEOUT` durante um diálogo de salvar | O resultado pode ser incerto. Confira o destino e use “Repetir a mesma operação” para reconciliar o recibo; não crie outra exportação para contornar a trava. |
 

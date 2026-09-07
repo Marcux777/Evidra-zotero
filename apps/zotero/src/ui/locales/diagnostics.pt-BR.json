@@ -14,5 +14,7 @@
   "NATIVE_COMMAND_FAILED": "A verificação local de caminho ou permissões falhou. Confira o diagnóstico nativo e use uma pasta local de sua conta.",
   "ENGINE_EXITED": "O engine encerrou durante a inicialização. Confira o diagnóstico local, as permissões e a integridade do pacote.",
   "HEARTBEAT_FAILED": "A conexão com o engine expirou ou falhou. Reabra o espaço de pesquisa e confira o estado antes de reiniciar.",
-  "MODEL_NOT_FOUND": "O modelo configurado não está disponível no serviço escolhido. Confira o nome e os modelos instalados; nada será baixado automaticamente."
+  "PROVIDER_HTTP_ERROR": "O serviço recusou a solicitação. Confira o adaptador escolhido, o endereço do serviço e o nome ou a disponibilidade do modelo. O erro HTTP, por si só, não identifica qual configuração causou a falha.",
+  "PROVIDER_TRANSPORT_ERROR": "Não foi possível acessar o serviço. Confira se ele está em execução e se o endereço configurado está correto. Revise o estado da operação antes de tentar novamente.",
+  "PROVIDER_TIMEOUT": "O serviço não respondeu dentro do prazo. Confira seu estado e revise a operação antes de tentar novamente."
 }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Locale, UiBridge, UiMessage } from '../bridge/types';
 import { catalog } from './i18n';
+import { Diagnostic } from './Diagnostic';
 export const researchKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
 const invalidates = new Set(['SCOPE_STALE', 'SOURCE_REVOKED', 'DOCUMENT_STALE', 'MISSING_FILE', 'FORBIDDEN', 'NOT_FOUND', 'BRIDGE_EXPIRED', 'UNAUTHENTICATED']);
 const confirmed = new Set([...invalidates, 'REVISION_CONFLICT', 'IDEMPOTENCY_CONFLICT', 'INVALID_REQUEST', 'INVALID_OUTPUT', 'CONTEXT_LIMIT', 'BODY_TOO_LARGE', 'INVALID_UI_MESSAGE', 'INVALID_ENGINE_ROUTE', 'RUN_BUSY', 'PROVIDER_PAUSED', 'API_BLOCKED', 'CONSENT_REQUIRED', 'CAPABILITY_UNSUPPORTED', 'NO_EVIDENCE', 'BILLING_UNKNOWN', 'ENGINE_STOPPING', 'BUDGET_EXCEEDED', 'LIBRARY_NOT_EDITABLE', 'OUTBOX_UNCERTAIN', 'OUTBOX_NOTE_CHANGED', 'OUTBOX_NOTE_MISSING', 'OUTBOX_AMBIGUOUS', 'OUTBOX_RECONCILIATION_LIMIT', 'OUTBOX_RECONCILE_REQUIRED']);
@@ -43,6 +44,6 @@ export function useResearchActions(bridge: UiBridge, invalidate: () => void, add
 }
 export function ResearchFeedback({ actions, locale }: { actions: ReturnType<typeof useResearchActions>; locale: Locale }) {
     const t = catalog(locale).research;
-    return <>{actions.busy && <p role="status">{t.busy}</p>}{actions.error && <p role="alert">{actions.error}</p>}
+    return <>{actions.busy && <p role="status">{t.busy}</p>}{actions.error && <p role="alert"><Diagnostic code={actions.error} locale={locale}/></p>}
         {actions.uncertain && <div role="alert"><p>{t.uncertain}</p><button type="button" disabled={actions.busy} onClick={() => void actions.retry()}>{t.retry}</button></div>}</>;
 }

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { Locale, ModelPage, ProfilePage, ProfileSpec, ProviderProfile, ProviderSettings as Settings,
     SecretReceipt, UiBridge } from '../bridge/types';
 import { catalog } from './i18n';
+import { Diagnostic } from './Diagnostic';
 
 export const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
 const capabilityNames = ['generation', 'streaming', 'images', 'structured_output', 'embeddings', 'token_counting', 'cancellation', 'catalog'] as const;
@@ -52,7 +53,7 @@ export function ProviderSettings({ bridge, locale, onChanged }: { bridge: UiBrid
     return <section className="provider-settings" aria-label={c.models}>
         <button type="button" aria-expanded={open} onClick={() => { setOpen(!open); if (!open) void action(() => load()); }}>{c.models}</button>
         {open && <div className="settings-body" aria-busy={busy}>
-            {error && <p role="alert" className="source-error">{error}</p>}<p role="status">{notice}</p>
+            {error && <p role="alert" className="source-error"><Diagnostic code={error} locale={locale}/></p>}<p role="status">{notice}</p>
             <p>{c.localTrust}</p>
             <label className="source-check"><input type="checkbox" checked={block} disabled={busy} onChange={e => setBlock(e.target.checked)}/>{c.blockPaid}</label>
             <button type="button" disabled={busy || !settings} onClick={() => void action(async () => {

@@ -12,16 +12,16 @@ Portable decisions preserve two separate concepts: the latest review event and t
 
 | Component | Responsibility | Current implementation state |
 |---|---|---|
-| Zotero plugin | Resolve native source objects, present the local interface, mediate human approval, own the engine process | Task 2 pending |
-| Typed UI bridge | Permit named operations from the renderer without exposing Zotero objects, paths, credentials or generic network access | Task 2 pending |
+| Zotero plugin | Resolve native source objects, present the local interface, mediate human approval, own the engine process | Task 2 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Typed UI bridge | Permit named operations from the renderer without exposing Zotero objects, paths, credentials or generic network access | Task 2 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
 | Loopback engine | Own sessions, domain services and one Evidra database | Task 1 implemented and independently reviewed |
-| Scope service | Intersect snapshot membership, current notebook grants and current source access at every read/commit | Task 3 pending |
-| Document/evidence services | Parse authorized files in subprocesses; retain immutable versions and verified locations | Task 4 pending |
-| Provider services | Native protocols, explicit capability provenance, consent and budget accounting | Task 5 pending |
-| Retrieval/conversations | Authorized lexical/vector retrieval, draft streams and validated promotion | Task 6 pending |
-| Matrix/jobs/research | Proposals distinct from human decisions; persistent units and approved-note outbox | Tasks 7–9 pending |
-| MCP bridge | Restricted stdio client of the running engine, with a separate scoped credential | Task 10 pending |
-| Exports/distribution | Current-access filtering, validated backup/import and bundled Windows runtime | Tasks 11–12 pending |
+| Scope service | Intersect snapshot membership, current notebook grants and current source access at every read/commit | Task 3 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Document/evidence services | Parse authorized files in subprocesses; retain immutable versions and verified locations | Task 4 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Provider services | Native protocols, explicit capability provenance, consent and budget accounting | Task 5 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Retrieval/conversations | Authorized lexical/vector retrieval, draft streams and validated promotion | Task 6 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Matrix/jobs/research | Proposals distinct from human decisions; persistent units and approved-note outbox | Tasks 7–9 implemented and scoped source reviewed; native model failures remain documented |
+| MCP bridge | Restricted stdio client of the running engine, with a separate scoped credential | Task 10 implemented and scoped source reviewed; live limits in ACCEPTANCE_MATRIX.md |
+| Exports/distribution | Current-access filtering, validated backup/import and bundled Windows runtime | Task 11 scoped source reviewed; Task 12 distribution implemented, final review/native gates pending |
 
 The engine never opens `zotero.sqlite`. Zotero source identity is the compound profile/library/item key; document attachments have their own compound identity. Zotero writes occur through the plugin after a human-approved intent and a fresh native permission check.
 
@@ -35,7 +35,7 @@ The receipt identifies protocol, host, negotiated port and profile. Health revea
 
 ## Content authorization
 
-The planned `ScopeService.resolve` creates an immutable server-owned context from the authenticated principal, notebook, snapshot and requested capability. The permitted set is the intersection of immutable membership, current notebook grants and current source/library access. Retrieval restricts that set before top-k. A UUID is an identifier, never proof of authorization.
+`ScopeService.resolve` creates an immutable server-owned context from the authenticated principal, notebook, snapshot and requested capability. The permitted set is the intersection of immutable membership, current notebook grants and current source/library access. Retrieval restricts that set before top-k. A UUID is an identifier, never proof of authorization.
 
 Services recheck current access and scope revision before committing asynchronous results. Removal or revocation also affects historical reads, cached results, exports and MCP. Frozen snapshots preserve composition and document references; they do not guarantee that an old original PDF still exists. Human decisions are durable records, not discardable derived cache.
 

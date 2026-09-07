@@ -1,5 +1,11 @@
 # Evidra test report
 
+## Task 12 review correction I1/M1 — 2026-09-07
+
+The current UI routes known machine codes through a shared localized diagnostic renderer in App, Conversation, ProviderSettings and ResearchFeedback (including Exports/ImportBackup). Original codes and causal error handling remain intact. `PROVIDER_HTTP_ERROR` gives endpoint/adapter/model troubleshooting without claiming that HTTP404 proves a missing model; actual transport/timeout codes also have guidance. The unused `MODEL_NOT_FOUND` entry was removed. One focused component regression covers actual provider and import failure surfaces in both locales, alongside existing locale parity/onboarding checks: 5 passed; existing typecheck passed. Saved outputs: `.local/task12/workflow-runs/task12-fix1-diagnostics-checks-4f47c6694bef4676a3745d090789feaf/logs/`. The initial two regression cases failed before the correction, showing raw PROVIDER_HTTP_ERROR alone.
+
+Architecture component statuses now describe implemented/scoped-reviewed layers. Minor M2 warning cleanup remains tracked: original React act-environment and Starlette/AnyIO warnings are preserved; no unrelated test-environment or dependency work was added. Package 2 and its source/smoke/benchmark receipts remain historical immutable evidence. This UI correction requires a new XPI; the successor distribution target is `.local/task12/package-3/`, with exact outcomes, source and artifact hashes recorded in its release/package manifests and the Task 12 fix report. No new native/model or backend/benchmark run is claimed. Native staging still awaits scoped re-review.
+
 Updated: 2026-09-07. Task 12 local distribution and bounded acceptance evidence are available. Native final regression and independent review remain pending; this is not complete-v1 acceptance. Earlier dated results below remain historical evidence.
 
 ## Task 12 final local evidence

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { BudgetWrite, Consent, ConversationPage, ConversationRecord, Locale, PagePreview, ProfilePage, ProviderProfile,
     ProviderSettings, RunPage, RunPrepare, RunRecord, UiBridge, UsagePage, VectorJob } from '../bridge/types';
 import { catalog } from './i18n';
+import { Diagnostic } from './Diagnostic';
 import { EvidencePanel } from './EvidencePanel';
 import { newKey } from './ProviderSettings';
 import { readRunStream } from './stream';
@@ -202,7 +203,7 @@ export function Conversation({ bridge, notebook_id, snapshot_id, locale, profile
         <header className="conversation-status"><h2>{c.title}</h2><p role="status">{stateLabel}{busy ? ` · ${t.loading}` : ''}</p>
             <p>{run ? `${run.profile.mode} · ${run.profile.adapter} · ${run.profile.model}` : profile ? `${profile.mode} · ${profile.model}` : c.noModel}</p>
             <p>{c.usage}: {usage?.total ?? c.unknown} · {c.cost}: {usage?.items.find(call => call.call_id === run?.id)?.cost ?? c.unknown}</p></header>
-        {error && <p role="alert" className="source-error">{error}{/BRIDGE_|TRANSPORT|TIMEOUT/.test(error) && <><br/>{c.transportUncertain}</>}</p>}
+        {error && <p role="alert" className="source-error"><Diagnostic code={error} locale={locale}/>{/BRIDGE_|TRANSPORT|TIMEOUT/.test(error) && <><br/>{c.transportUncertain}</>}</p>}
         <details><summary>{c.history}</summary><div className="actions"><button type="button" disabled={busy || active(run)} onClick={() => void action(async () => { await newConversation(); })}>{c.new}</button><button type="button" disabled={busy} onClick={() => void action(() => list())}>{t.sources.refresh}</button></div>
             <ul className="compact-list">{conversations?.items.map(value => <li key={value.id}><button type="button" disabled={busy || active(run)} aria-pressed={value.id === conversation?.id} onClick={() => void action(() => selectConversation(value))}>{value.id} · {t.revision} {value.revision}</button></li>)}</ul>
             {conversations && conversations.total > conversations.limit && <nav className="actions" aria-label={c.history}><button disabled={busy || !conversations.offset} onClick={() => void action(() => list(Math.max(0, conversations.offset - conversations.limit)))}>{t.previous}</button><button disabled={busy || conversations.offset + conversations.items.length >= conversations.total} onClick={() => void action(() => list(conversations.offset + conversations.items.length))}>{t.next}</button></nav>}

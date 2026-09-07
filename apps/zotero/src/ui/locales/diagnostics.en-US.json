@@ -14,5 +14,7 @@
   "NATIVE_COMMAND_FAILED": "Local path or permission verification failed. Inspect the native diagnostic and use a local folder belonging to your account.",
   "ENGINE_EXITED": "The engine exited during startup. Inspect the local diagnostic, permissions and package integrity.",
   "HEARTBEAT_FAILED": "The engine connection expired or failed. Reopen the workspace and check its state before restarting.",
-  "MODEL_NOT_FOUND": "The configured model is unavailable in the selected service. Check its name and installed models; nothing will be downloaded automatically."
+  "PROVIDER_HTTP_ERROR": "The service rejected the request. Check the selected adapter, endpoint address and model name or availability. The HTTP error alone does not identify which setting caused the failure.",
+  "PROVIDER_TRANSPORT_ERROR": "The service could not be reached. Check that it is running and that its configured address is correct. Review the operation state before retrying.",
+  "PROVIDER_TIMEOUT": "The service did not respond within the time limit. Check its status and review the operation state before retrying."
 }

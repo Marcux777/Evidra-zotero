@@ -2,6 +2,9 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, test } from 'vitest';
 import { App } from '../src/ui/App';
+import { Conversation } from '../src/ui/Conversation';
+import { ProviderSettings } from '../src/ui/ProviderSettings';
+import { Exports } from '../src/ui/Exports';
 import { catalog } from '../src/ui/i18n';
 import type { Locale } from '../src/bridge/types';
 
@@ -18,6 +21,44 @@ test('complete catalogs have identical semantic keys and authored UTF-8 Portugue
         expect(value.trim(), key).not.toBe('');
         expect(value, key).not.toMatch(/\uFFFD|Ã[\u0080-\u00BF]|Â[\u0080-\u00BF]|â€|ðŸ/);
     }
+});
+
+test.each(['pt-BR', 'en-US'] as Locale[])('actual failure panels in %s retain machine codes and show actionable diagnostics', async locale => {
+    (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
+    const host = document.createElement('div'); document.body.append(host); const root = createRoot(host);
+    const t = catalog(locale), scope = { notebook_id: 'notebook', snapshot_id: 'snapshot', locale };
+    const cause = new Error('HTTP 404 from configured provider endpoint');
+    const providerFailure = new Error('PROVIDER_HTTP_ERROR', { cause });
+    const importFailure = new Error('INVALID_BACKUP', { cause: new Error('Unresolved decision proposal') });
+    const commands: string[] = [];
+    const bridge = { request: async (message: {op: string}) => {
+        commands.push(message.op);
+        if (message.op === 'provider.list') throw providerFailure;
+        if (message.op === 'sources.read' || message.op === 'imports.list') return { items: [], offset: 0, limit: 0, total: 0 };
+        if (message.op === 'imports.choose') throw importFailure;
+        throw new Error(`Unexpected operation: ${message.op}`);
+    } };
+    const click = async (label: string) => {
+        const button = [...host.querySelectorAll('button')].find(item => item.textContent === label);
+        expect(button, label).toBeTruthy(); await act(async () => button!.click());
+    };
+    try {
+        await act(async () => root.render(<><Conversation bridge={bridge} {...scope}/><ProviderSettings bridge={bridge} locale={locale}/><Exports bridge={bridge} {...scope}/></>));
+        await click(t.chat.open); await click(t.chat.models); await click(t.exports.open); await click(t.exports.choose);
+        for (const name of [t.chat.title, t.chat.models]) {
+            const panel = [...host.querySelectorAll('section')].find(item => item.getAttribute('aria-label') === name)!;
+            const alert = panel.querySelector('[role=alert]')!;
+            expect(alert.textContent).toContain('PROVIDER_HTTP_ERROR');
+            expect(alert.textContent).toMatch(locale === 'pt-BR' ? /endereço.*modelo/i : /endpoint.*model/i);
+            expect(alert.textContent).not.toContain('MODEL_NOT_FOUND');
+            expect(alert.textContent).not.toContain(cause.message);
+        }
+        const imported = [...host.querySelectorAll('section')].find(item => item.getAttribute('aria-label') === t.exports.importTitle)!;
+        expect(imported.querySelector('[role=alert]')?.textContent).toContain('INVALID_BACKUP');
+        expect(imported.querySelector('[role=alert]')?.textContent).toContain(t.diagnostics.INVALID_BACKUP);
+        expect(providerFailure.message).toBe('PROVIDER_HTTP_ERROR'); expect(providerFailure.cause).toBe(cause);
+        expect(commands.filter(op => op === 'imports.choose')).toHaveLength(1);
+    } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
 test.each(['pt-BR', 'en-US'] as Locale[])('onboarding in %s has named controls, semantic landmarks and an actionable package diagnostic', async locale => {

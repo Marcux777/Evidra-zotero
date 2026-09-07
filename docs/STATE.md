@@ -1,5 +1,11 @@
 # Evidra implementation state
 
+## Task 12 review correction I1/M1 — 2026-09-07
+
+The current UI routes known machine codes through a shared localized diagnostic renderer in App, Conversation, ProviderSettings and ResearchFeedback (including Exports/ImportBackup). Original codes and causal error handling remain intact. `PROVIDER_HTTP_ERROR` gives endpoint/adapter/model troubleshooting without claiming that HTTP404 proves a missing model; actual transport/timeout codes also have guidance. The unused `MODEL_NOT_FOUND` entry was removed. One focused component regression covers actual provider and import failure surfaces in both locales, alongside existing locale parity/onboarding checks: 5 passed; existing typecheck passed. Saved outputs: `.local/task12/workflow-runs/task12-fix1-diagnostics-checks-4f47c6694bef4676a3745d090789feaf/logs/`. The initial two regression cases failed before the correction, showing raw PROVIDER_HTTP_ERROR alone.
+
+Architecture component statuses now describe implemented/scoped-reviewed layers. Minor M2 warning cleanup remains tracked: original React act-environment and Starlette/AnyIO warnings are preserved; no unrelated test-environment or dependency work was added. Package 2 and its source/smoke/benchmark receipts remain historical immutable evidence. This UI correction requires a new XPI; the successor distribution target is `.local/task12/package-3/`, with exact outcomes, source and artifact hashes recorded in its release/package manifests and the Task 12 fix report. No new native/model or backend/benchmark run is claimed. Native staging still awaits scoped re-review.
+
 Updated: 2026-09-07. Owner: current Codex task in C:/p/evidra-zotero. Branch: codex/implement-evidra.
 
 The full v1 acceptance is not complete. Tasks 1–11 have passed their scoped source reviews. Task12 now provides UI/cache/export corrections, root check/package runners, a real Windows distribution with dependency notices, a16-check packaged-process smoke and the measured1,000-source/50,000-chunk CPU benchmark. Final independent review and corrected native Zotero flow remain pending. The supplied SPEC.md is preserved unchanged.
