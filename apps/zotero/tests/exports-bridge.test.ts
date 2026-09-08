@@ -3,6 +3,7 @@ import { parseUiMessage } from '../src/security/messages';
 import { ExportBridge } from '../src/bridge/exports';
 import { createHash, webcrypto } from 'node:crypto';
 import { mkdtemp, readFile, writeFile, stat, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 
 const scope = { notebook_id: '11111111-1111-4111-8111-111111111111', snapshot_id: 'a'.repeat(32) };
@@ -21,7 +22,7 @@ test('generated export commands admit explicit actions and reject file, translat
 });
 
 test('picker-owned real file transfers verify checksums, bounded chunks, cancellations and changed scope', async () => {
-    const owned = resolve('.local/task11'), directory = await mkdtemp(join(owned, 'bridge-files-'));
+    const owned = resolve(tmpdir()), directory = await mkdtemp(join(owned, 'evidra-bridge-files-'));
     const bytes = Buffer.from('exact original export\n'.repeat(2600)), hash = (data: Uint8Array) => createHash('sha256').update(data).digest('hex');
     const artifact = { id: 'c'.repeat(32), filename: 'notebook.json', media_type: 'application/json', bytes: bytes.length, sha256: hash(bytes) };
     const paths = { output: join(directory, 'chosen.json'), input: join(directory, 'chosen.zip') }, requests: { method: string; path: string; body: any }[] = [];

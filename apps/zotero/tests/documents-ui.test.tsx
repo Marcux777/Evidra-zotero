@@ -77,9 +77,9 @@ test('the document panel exposes pause/cancel, literal evidence, precision and o
         expect(host.querySelector('.source-list')?.textContent).toContain(catalog('en-US').evidence.preview + ' ·');
         expect([...host.querySelectorAll('.source-list button')].some(b => b.textContent === 'Reindex text')).toBe(true);
         await click('Inspect excerpt');
-        await click('Open original attachment text');
+        await click('Open original attachment');
         expect(messages.at(-1)).toMatchObject({ op: 'documents.open', evidence_id: 'c'.repeat(64), ...scope });
-        expect(host.textContent).toContain('Original attachment text opened in a native read-only view.');
+        expect(host.textContent).toContain('Original attachment opened in the native read-only view.');
         expect(host.querySelector('.evidence-panel')?.textContent).not.toContain('Open page');
     } finally { await act(async () => root.unmount()); host.remove(); }
 });

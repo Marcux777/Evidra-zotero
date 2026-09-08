@@ -32,21 +32,21 @@ for provider_model in (GenerationEvent, GenerationRequest, EmbeddingBatch, Event
     for name, definition in provider_schema.pop("$defs", {}).items():
         schema["components"]["schemas"].setdefault(name, definition)
     schema["components"]["schemas"][provider_model.__name__] = provider_schema
-(destination / "original-structure.schema.json").write_text(json.dumps(OriginalStructure.model_json_schema(), indent=2) + "\n", encoding="utf-8")
+(destination / "original-structure.schema.json").write_text(json.dumps(OriginalStructure.model_json_schema(), indent=2) + "\n", encoding="utf-8", newline="\n")
 documents = TypeAdapter(DocumentCommand).json_schema()
-(destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8")
+(destination / "document-command.schema.json").write_text(json.dumps(documents, indent=2) + "\n", encoding="utf-8", newline="\n")
 schema["components"]["schemas"].update(documents.pop("$defs"))
 schema["components"]["schemas"]["DocumentCommand"] = documents
 for name, command in [("conversation", ConversationCommand), ("provider", ProviderCommand), ("matrix", MatrixCommand), ("job", JobCommand), ("research", ResearchCommand), ("mcp", McpCommand), ("export", ExportCommand)]:
     commands = TypeAdapter(command).json_schema()
-    (destination / f"{name}-command.schema.json").write_text(json.dumps(commands, indent=2) + "\n", encoding="utf-8")
+    (destination / f"{name}-command.schema.json").write_text(json.dumps(commands, indent=2) + "\n", encoding="utf-8", newline="\n")
     schema["components"]["schemas"].update(commands.pop("$defs"))
     schema["components"]["schemas"][name.title() + "Command"] = commands
-(destination / "selection.schema.json").write_text(json.dumps(SelectionSpec.model_json_schema(), indent=2) + "\n", encoding="utf-8")
+(destination / "selection.schema.json").write_text(json.dumps(SelectionSpec.model_json_schema(), indent=2) + "\n", encoding="utf-8", newline="\n")
 manifest = EngineManifest.model_json_schema()
-(destination / "engine-manifest.schema.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+(destination / "engine-manifest.schema.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 schema["components"]["schemas"]["EngineManifest"] = EngineManifest.model_json_schema()
 definitions = schema["components"]["schemas"]["EngineManifest"].pop("$defs")
 schema["components"]["schemas"].update(definitions)
 text = json.dumps(schema, ensure_ascii=False, indent=2).replace("#/$defs/", "#/components/schemas/")
-(destination / "openapi.json").write_text(text + "\n", encoding="utf-8")
+(destination / "openapi.json").write_text(text + "\n", encoding="utf-8", newline="\n")
