@@ -1,6 +1,16 @@
 # Evidra implementation state
 
-## Current package-5 handoff — 2026-09-07 23:42Z
+## Current package-6 HTTP reader correction — 2026-09-08
+
+Source `fa43920277657b7e593165a1205801234408cdfe` fixes incremental provider response budgets. JSON and streaming now enforce 8,000,000 total bytes before accumulation, plus 1,000,000 content bytes per NDJSON line/SSE event. Cancellation, response ownership and total operation deadlines are covered by the real production-reader regression tests. The focused provider/accounting suite passes 156 cases on Python 3.12.11/HTTPX 0.28.1; Ruff and scoped mypy pass. See [the protocol limits](PROVIDER_PROTOCOL_REFERENCE.md#incremental-response-budgets).
+
+The newly compiled Windows engine is `.local/http-bounds/package-6/evidra-engine-0.1.0-windows-x64.zip`, SHA-256 `a72fe55777d9e7389236370a458508cc897a562b9eeb171b3c937a016cd0632d`. The XPI is byte-identical to package5, SHA-256 `9a513efb403294ee1de7e358d8988b97334cd780310143cbe716f56305a15d25`. The engine was recompiled with PyInstaller from 300 verified source inputs; its 597 manifest entries passed the actual verifier. **The previous engine, including package5, still has the reported reader defect and must not be distributed as the corrected version.** Select the new engine manifest and approve its new fingerprint in Evidra.
+
+The real packaged-process smoke passed 17 checks. Its added loopback HTTP probe offered 16,000,026 bytes; the engine returned HTTP413/PROVIDER_RESPONSE_TOO_LARGE and closed the connection while the server had sent 8,126,488 bytes. That server count includes socket buffering and is not the application's consumed-byte count. Both packaged sessions exited normally, and no test-owned engine remained. The source regression separately verifies consumption bounded by the configured limit plus one transport chunk. Summary: `.local/http-bounds/controller-summary.json`, SHA-256 `c9aa35753efd3a82fb1edc45235736b246a9de52d4271a2b75a8e88931425895`.
+
+Acceptance totals remain 27 fixture-verified, six bounded native, and three partial (A25/A29/A33). This correction does not claim a new native Zotero run or clean-Windows acceptance. Package source/binary manifests retain the compilation revision; final documentation is bound separately. All package5 and older checkpoints below are historical.
+
+## Historical package-5 handoff — 2026-09-07 23:42Z
 
 All currently feasible authorized host work is finished. Full v1 acceptance remains incomplete: **27 VERIFIED_WITH_FIXTURES, six bounded VERIFIED_LIVE, three PARTIAL**. The remaining gates are A25 execution with external networking blocked, A29 an actual Windows file symlink (WinError1314), and A33 a clean Windows host without development runtimes. The user has only this host; no security/privilege changes or VM were authorized. See [ACCEPTANCE_MATRIX.md](ACCEPTANCE_MATRIX.md).
 

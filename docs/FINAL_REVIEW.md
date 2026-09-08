@@ -1,5 +1,11 @@
 # Final source and native review — 2026-09-07
 
+## Subsequent HTTP reader correction — 2026-09-08
+
+The user-reported read-budget defect is corrected in fa43920 after reproduction against production methods in Python 3.12.11. Controller review confirms byte limits precede body/line/event accumulation, response ownership survives header cancellation, buffered frames observe cancellation, and timeout/cleanup errors retain causal exceptions. The scoped provider/accounting suite passed 156 cases; Ruff and mypy passed. This bounded fix has controller review, not another independent whole-branch review.
+
+Package6 contains a newly compiled engine and passed 17 real packaged-process checks, including HTTP413 and early disconnect from a 16 MB loopback response. Earlier engine packages remain affected. [STATE.md](STATE.md) and [TEST_REPORT.md](TEST_REPORT.md) bind the new source, ZIP hash, regression failures and final execution evidence. The three environment acceptance gaps remain unchanged; no complete-v1 or new native-Zotero acceptance is claimed.
+
 ## Final host review and package-5 handoff — 2026-09-07
 
 **All feasible work on the authorized development host is complete; full v1 acceptance is still blocked by A25/A29/A33.** The final classification is27 fixture-verified, six bounded live and three partial. A36 now has successful native extraction, persisted unreviewed proposals, unchanged approved matrix, original PDF evidence and a real saved JSON export. This is a bounded synthetic flow; no scientific endorsement of model output is implied.
