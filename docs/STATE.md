@@ -1,6 +1,14 @@
 # Evidra implementation state
 
-## Current package-6 HTTP reader correction — 2026-09-08
+## Current development workflow without RTK — 2026-09-08
+
+The official PowerShell wrappers and `scripts/check.sh` call npm/uv directly. Installation instructions document Git, PowerShell, Node/npm, Python 3.12 and uv; RTK is not a project prerequisite. Source `f405b63f4fcdc04c81050b1e047eb2fb3248b904` also fixes two existing test assumptions and makes generated contract line endings deterministic.
+
+A fresh local Git clone, initially without node_modules or an engine virtual environment, completed `dev.ps1`, `check.ps1` and `package.ps1` with RTK unavailable on every child process PATH. Results: **107 TypeScript tests passed; 325 Python tests passed, one skipped**; typecheck, Ruff, mypy and contract regeneration passed. The package verifier accepted all 553 engine payload files; inputs remained unchanged and the clone remained clean. The complete receipt, artifact hashes and paths are indexed in `.local/no-rtk/summary.json`. See [the test report](TEST_REPORT.md#fresh-checkout-without-rtk--2026-09-08) for the retained first-run failures and environment details.
+
+This validates the development workflow on this host using its installed tools and download caches. It does not change native acceptance totals or establish a clean Windows installation. The packaging run has no new frozen-process or native Zotero smoke; the package-6 HTTP smoke below remains separate evidence.
+
+## Package-6 HTTP reader correction — 2026-09-08
 
 Source `fa43920277657b7e593165a1205801234408cdfe` fixes incremental provider response budgets. JSON and streaming now enforce 8,000,000 total bytes before accumulation, plus 1,000,000 content bytes per NDJSON line/SSE event. Cancellation, response ownership and total operation deadlines are covered by the real production-reader regression tests. The focused provider/accounting suite passes 156 cases on Python 3.12.11/HTTPX 0.28.1; Ruff and scoped mypy pass. See [the protocol limits](PROVIDER_PROTOCOL_REFERENCE.md#incremental-response-budgets).
 
