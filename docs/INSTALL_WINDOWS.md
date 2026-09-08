@@ -32,19 +32,12 @@ Dados próprios ficam em `%LOCALAPPDATA%\Evidra\profiles\<profile_instance_id>`.
 
 ## Desenvolvimento
 
-Node >=22.12, Python >=3.12,<3.13 e uv são ferramentas de desenvolvimento. Na raiz:
+Para desenvolver e empacotar no Windows, use Git, PowerShell, Node >=22.12 com npm, Python >=3.12,<3.13 e uv. RTK não é necessário. Em um checkout novo, execute na raiz:
 
 ```powershell
-rtk proxy npm ci
-rtk proxy uv sync --project services/engine --frozen
-rtk proxy npm run typecheck
-rtk proxy npm test
-rtk proxy npm run build:plugin
-rtk proxy uv run --project services/engine ruff check services/engine
-rtk proxy uv run --project services/engine pytest services/engine/tests
-rtk proxy uv run --project services/engine mypy --config-file services/engine/pyproject.toml services/engine/src/evidra
-rtk proxy powershell -NoProfile -File scripts/check.ps1
-rtk proxy powershell -NoProfile -File scripts/package.ps1
+powershell -NoProfile -File scripts/dev.ps1
+powershell -NoProfile -File scripts/check.ps1
+powershell -NoProfile -File scripts/package.ps1
 ```
 
 `scripts/check.sh` oferece o mesmo runner. A seleção Python usa o diretório real `services/engine/tests`; não existe uma pasta de testes Python na raiz e o pytest não varre testes TypeScript. O suporte de runtime/parser continua Windows: executar verificações em outro SO não valida esse alvo.

@@ -8,7 +8,7 @@ O alvo é Windows x64 com Zotero 10.0.x a partir de 10.0.1. A interface usa Type
 
 Consulte [instalação Windows](docs/INSTALL_WINDOWS.md), [privacidade e limites](docs/PRIVACY_AND_LIMITS.md) e [licenças](docs/THIRD_PARTY_NOTICES.md). Instale o XPI, extraia o ZIP completo e selecione `engine-manifest.json` na integração. A conferência dos arquivos precede a autorização do executável; hashes não equivalem a assinatura digital.
 
-Para desenvolver, use Node/npm e uv com Python 3.12. Execute na raiz:
+Para desenvolver e empacotar no Windows, use Git, PowerShell, Node >=22.12 com npm e uv com Python 3.12. RTK não é necessário. Execute na raiz:
 
 ```powershell
 npm ci
