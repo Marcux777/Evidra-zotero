@@ -1,0 +1,1 @@
+timing_id,unit_id,paper_id,config_id,attempt_id,reviewer_id,mode,assignment_block,order_index,prior_exposure,started_at_utc,finished_at_utc,active_seconds,model_wait_seconds,diagnosis_seconds,correction_seconds,manual_completion_seconds,final_quality_verified,incomplete_reason

@@ -28,6 +28,8 @@ O smoke do pacote é executado com `uv run --project services/engine python scri
 
 O benchmark reproduzível usa `scripts/benchmark.py --hardware <recibo-json>`. São 1.000 fontes e 50.000 páginas curtas sintéticas, indexadas pela implementação real; vetores aleatórios com seed 7 medem a busca em CPU sem alegar qualidade semântica. Os resultados e as lacunas de aceitação ficam no relatório de testes.
 
+A avaliação científica está em preparação no [piloto de 20 artigos de aprendizado por reforço](docs/evaluation/README.md). O protocolo separa validade estrutural, correção científica, sustentação e tempo de revisão, incluindo tentativas que falham. A referência humana e a execução real ainda estão pendentes; o benchmark sintético não substitui essa avaliação.
+
 O arquivo [updates.json](updates.json) é o manifesto HTTPS exigido pelo Zotero. Sua lista de atualizações está vazia; nenhum release ou download é oferecido por ele.
 
 Não instale os artefatos de desenvolvimento em uma biblioteca pessoal. Os testes nativos deste projeto usam perfil e dados sintéticos separados.
