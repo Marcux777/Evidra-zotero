@@ -22,6 +22,46 @@ from evidra.providers.models import (
     SchemaPlan,
 )
 
+MAX_RESPONSE_BYTES = 8_000_000
+MAX_FRAME_BYTES = 1_000_000
+JSON_TIMEOUT_SECONDS = 30
+GENERATION_TIMEOUT_SECONDS = 300
+CLEANUP_TIMEOUT_SECONDS = 5
+
+
+async def close_response(response: httpx.Response) -> None:
+    try:
+        # Closing has its own short budget, including after an operation deadline.
+        async with asyncio.timeout(CLEANUP_TIMEOUT_SECONDS):
+            await response.aclose()
+    except Exception as exc:
+        raise fail("PROVIDER_CLEANUP_FAILED") from exc
+
+
+async def bounded_bytes(
+    response: httpx.Response, cancel: asyncio.Event | None = None
+) -> AsyncIterator[bytes]:
+    # Request identity encoding and reject a server that ignores it, before HTTPX's
+    # decompressor can allocate an unbounded decoded chunk. Transport reads may
+    # cross the limit by one chunk; none of that chunk enters our accumulators.
+    if response.headers.get("content-encoding", "identity").strip().lower() != "identity":
+        raise fail("PROVIDER_PROTOCOL_ERROR")
+    chunks = response.aiter_bytes()
+    size = 0
+    while True:
+        try:
+            chunk = (
+                await anext(chunks)
+                if cancel is None
+                else await cancellable(anext(chunks), cancel)
+            )
+        except StopAsyncIteration:
+            return
+        size += len(chunk)
+        if size > MAX_RESPONSE_BYTES:
+            raise fail("PROVIDER_RESPONSE_TOO_LARGE")
+        yield chunk
+
 
 class GenerationProvider(Protocol):
     def generate(
@@ -168,28 +208,34 @@ class NativeProvider:
     async def json_request(
         self, method: str, path: str, body: dict[str, Any] | None = None
     ) -> dict[str, Any]:
+        response = None
         try:
-            response = await self.client.request(
-                method,
-                self.profile.base_url.rstrip("/") + path,
-                json=body,
-                headers=self.headers(),
-                follow_redirects=False,
-                timeout=30,
-            )
-            status(response)
-            if len(response.content) > 8_000_000:
-                raise fail("PROVIDER_RESPONSE_TOO_LARGE")
-            result = response.json()
-            if not isinstance(result, dict):
-                raise fail("PROVIDER_PROTOCOL_ERROR")
-            return result
-        except httpx.TimeoutException as exc:
+            async with asyncio.timeout(JSON_TIMEOUT_SECONDS):
+                outbound = self.client.build_request(
+                    method,
+                    self.profile.base_url.rstrip("/") + path,
+                    json=body,
+                    headers={**self.headers(), "Accept-Encoding": "identity"},
+                    timeout=30,
+                )
+                response = await self.client.send(outbound, stream=True, follow_redirects=False)
+                status(response)
+                content = bytearray()
+                async for chunk in bounded_bytes(response):
+                    content.extend(chunk)
+                result = json.loads(content)
+                if not isinstance(result, dict):
+                    raise fail("PROVIDER_PROTOCOL_ERROR")
+                return result
+        except (httpx.TimeoutException, TimeoutError) as exc:
             raise fail("PROVIDER_TIMEOUT") from exc
         except httpx.HTTPError as exc:
             raise fail("PROVIDER_TRANSPORT_ERROR") from exc
         except ValueError as exc:
             raise fail("PROVIDER_PROTOCOL_ERROR") from exc
+        finally:
+            if response is not None:
+                await close_response(response)
 
     def schema(self, request: GenerationRequest) -> tuple[dict[str, Any] | None, str, SchemaMode]:
         plan = self.plan_schema(self.profile, request.system, request.output_schema)
@@ -287,25 +333,58 @@ class NativeProvider:
     async def frames(
         self, response: httpx.Response, cancel: asyncio.Event
     ) -> AsyncIterator[dict[str, Any] | str]:
-        buffer = ""
-        lines = response.aiter_lines()
-        size = 0
-        while True:
-            try:
-                line = await cancellable(anext(lines), cancel)
-            except StopAsyncIteration:
-                break
-            size += len(line)
-            if size > 8_000_000:
+        line = bytearray()
+        buffer = bytearray()
+        frame_size = 0
+        skip_lf = False
+        ndjson = self.profile.adapter == "ollama"
+
+        def append(fragment: memoryview) -> None:
+            nonlocal frame_size
+            # Frame content excludes CR/LF; the response budget includes every byte.
+            frame_size += len(fragment)
+            if frame_size > MAX_FRAME_BYTES:
                 raise fail("PROVIDER_RESPONSE_TOO_LARGE")
-            if self.profile.adapter == "ollama":
-                if line:
-                    yield json.loads(line)
-            elif line.startswith("data:"):
-                buffer += line[5:].lstrip() + "\n"
-            elif line == "" and buffer:
-                data, buffer = buffer.strip(), ""
-                yield data if data == "[DONE]" else json.loads(data)
+            line.extend(fragment)
+
+        async for chunk in bounded_bytes(response, cancel):
+            # Only ASCII CR/LF delimit protocol lines. UTF-8 is decoded once a
+            # bounded line is complete, including when code points span reads.
+            start = 1 if skip_lf and chunk.startswith(b"\n") else 0
+            position = start
+            skip_lf = False
+            view = memoryview(chunk)
+            for ending in re.finditer(rb"\r\n|\r|\n", chunk[start:]):
+                if cancel.is_set():
+                    raise fail("CANCELLED")
+                left, right = ending.start() + start, ending.end() + start
+                # Offsets below are relative to the unchanged search slice.
+                append(view[position:left])
+                text = line.decode("utf-8")
+                line.clear()
+                if ndjson:
+                    frame_size = 0
+                    if text:
+                        yield json.loads(text)
+                elif not text:
+                    frame_size = 0
+                    if buffer:
+                        data = buffer.decode("utf-8").strip()
+                        buffer.clear()
+                        yield data if data == "[DONE]" else json.loads(data)
+                elif text.startswith("data:"):
+                    buffer.extend(text[5:].lstrip().encode("utf-8"))
+                    buffer.extend(b"\n")
+                position = right
+                skip_lf = ending.group() == b"\r" and right == len(chunk)
+            append(view[position:])
+        if line:
+            if cancel.is_set():
+                raise fail("CANCELLED")
+            if ndjson:
+                yield json.loads(line.decode("utf-8"))
+            elif line.startswith(b"data:"):
+                raise fail("STREAM_INCOMPLETE")
         if buffer:
             raise fail("STREAM_INCOMPLETE")
 
@@ -326,17 +405,21 @@ class NativeProvider:
         state: dict[str, Any] = {"terminal": False, "text": "", "input": None, "output": None}
         saw_done = False
         try:
-            async with asyncio.timeout(300):
+            async with asyncio.timeout(GENERATION_TIMEOUT_SECONDS):
                 outbound = self.client.build_request(
                     "POST",
                     self.profile.base_url.rstrip("/") + path,
                     json=body,
-                    headers=self.headers(),
+                    headers={**self.headers(), "Accept-Encoding": "identity"},
                     timeout=30,
                 )
-                response = await cancellable(
-                    self.client.send(outbound, stream=True, follow_redirects=False), cancel_event
-                )
+                async def send() -> None:
+                    nonlocal response
+                    # Own the response even if cancellation wins at header arrival.
+                    response = await self.client.send(outbound, stream=True, follow_redirects=False)
+
+                await cancellable(send(), cancel_event)
+                assert response is not None
                 status(response)
                 async for frame in self.frames(response, cancel_event):
                     if frame == "[DONE]":
@@ -382,10 +465,7 @@ class NativeProvider:
             raise fail("PROVIDER_PROTOCOL_ERROR") from exc
         finally:
             if response is not None:
-                try:
-                    await response.aclose()
-                except Exception as exc:
-                    raise fail("PROVIDER_CLEANUP_FAILED") from exc
+                await close_response(response)
 
 
 def usage(
