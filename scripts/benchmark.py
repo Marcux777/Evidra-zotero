@@ -309,6 +309,36 @@ def main():
                 for name in ("lexical", "vector", "fusion", "combined")
             }
             report["warm_p95_under_2_seconds"] = report["retrieval"]["combined"]["p95_seconds"] < 2
+            # Any-term (OR) ranking can match far more chunks than the former AND. Measure
+            # the query shapes that stress it: terms present in every chunk, natural
+            # questions, phrases, strict mode and a query near the 64-term limit.
+            mix = [
+                ("every_chunk_terms", "synthetic evidence accuracy percent", "any"),
+                ("natural_en", "Which method reports the best accuracy for topic7?", "any"),
+                ("natural_pt", "Qual método informa a melhor acurácia no topic7?", "any"),
+                ("rare_term", "topic7", "any"),
+                ("phrase", '"synthetic paper" method3', "any"),
+                ("strict_all", "topic7 method2 accuracy", "all"),
+                ("near_limit", " ".join(f"topic{i} method{i % 5} term{i}" for i in range(21)), "any"),
+            ]
+            report["lexical_query_mix"] = {}
+            for label, query, match in mix:
+                times, total = [], 0
+                for attempt in range(6):
+                    began = time.perf_counter()
+                    page = services.lexical.search(
+                        context, SearchRequest(query=query, limit=40, match=match)
+                    )
+                    if attempt:  # the first call warms the page cache
+                        times.append(time.perf_counter() - began)
+                    total = page.total
+                report["lexical_query_mix"][label] = {
+                    "query": query,
+                    "match": match,
+                    "matching_chunks": total,
+                    **metric(times),
+                }
+                print(json.dumps({"phase": "query_mix", "label": label}), flush=True)
         restart_start = time.perf_counter()
         restarted = make_app(database_dir, [0.0])
         with TestClient(restarted, base_url="http://127.0.0.1:49200") as client:

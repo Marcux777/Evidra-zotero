@@ -89,9 +89,50 @@ def system_prompt(protocol: ProtocolVersion, kind: str) -> str:
     return SYSTEM + (RELEVANCE if kind == "SCREENING" and relevance(protocol) else "")
 
 
-def screening_schema(protocol: ProtocolVersion, stage: str | None) -> dict[str, Any]:
+def grammar_schema(schema: dict[str, Any], evidence_ids: list[str] | None) -> dict[str, Any]:
+    """Express the relevance contract in the keyword subset structured decoding supports.
+
+    `const` becomes a one-value enum; regex `pattern`, string length bounds (thousands of
+    repetitions exceed llama.cpp grammar limits) and `default` annotations are dropped
+    because every output is still parsed and validated against the full typed model.
+    Evidence arrays are bounded to the exact prepared IDs, which is stricter than the
+    64-hex pattern they replace. Grammar-constrained decoding keeps a small model from
+    answering with the schema itself or with prose around the JSON.
+    """
+
+    def clean(value: Any, key: str | None = None) -> Any:
+        if isinstance(value, dict):
+            result: dict[str, Any] = {}
+            for name, child in value.items():
+                if name in {"pattern", "default", "minLength", "maxLength"}:
+                    continue
+                if name == "const":
+                    result["enum"] = [child]
+                    continue
+                result[name] = clean(child, name)
+            if key == "evidence_ids" and evidence_ids is not None:
+                result["items"] = {"$ref": "#/$defs/EvidenceId"}
+                if not evidence_ids:
+                    result["maxItems"] = 0
+            return result
+        if isinstance(value, list):
+            return [clean(child) for child in value]
+        return value
+
+    properties = {k: clean(v, k) for k, v in schema["properties"].items()}
+    result: dict[str, Any] = clean(schema)
+    result["properties"] = properties
+    if evidence_ids:
+        result.setdefault("$defs", {})["EvidenceId"] = {"type": "string", "enum": evidence_ids}
+    return result
+
+
+def screening_schema(
+    protocol: ProtocolVersion, stage: str | None, evidence_ids: list[str] | None = None
+) -> dict[str, Any]:
     """Screening output schema. With a rubric, relevance fields become required and bounded
-    to the applicable criteria and rubric grades; without one the original shape is kept."""
+    to the applicable criteria and rubric grades, in the structured-decoding subset; without
+    one the original shape is kept."""
     schema = ScreeningOutput.model_json_schema()
     properties, defs = schema["properties"], schema.get("$defs", {})
     extra = ["verdicts", "relevance_grade", "reusable", "concerns", "card"]
@@ -128,12 +169,14 @@ def screening_schema(protocol: ProtocolVersion, stage: str | None) -> dict[str, 
         defs.pop("PaperCard")
         defs.pop("AnchoredPoint")
     schema["required"] = required
-    return schema
+    return grammar_schema(schema, evidence_ids)
 
 
-def output_schema(protocol: ProtocolVersion, body: ResearchPrepare) -> dict[str, Any]:
+def output_schema(
+    protocol: ProtocolVersion, body: ResearchPrepare, evidence_ids: list[str] | None = None
+) -> dict[str, Any]:
     if body.kind == "SCREENING":
-        return screening_schema(protocol, body.stage)
+        return screening_schema(protocol, body.stage, evidence_ids)
     model = SynthesisOutput if body.kind == "SYNTHESIS" else AuditOutput
     return model.model_json_schema()
 
@@ -144,7 +187,9 @@ def excerpt_budget(body: ResearchPrepare, protocol: ProtocolVersion) -> int:
     window = body.context_tokens
     if body.ollama_options and body.ollama_options.num_ctx:
         window = min(window, body.ollama_options.num_ctx)
-    schema = json.dumps(output_schema(protocol, body))
+    # Selection happens before the evidence IDs exist; allow their enum at the 40-chunk cap.
+    enum = 72 * 40 if body.kind == "SCREENING" and relevance(protocol) else 0
+    schema = json.dumps(output_schema(protocol, body)) + " " * enum
     fixed = (
         len(system_prompt(protocol, body.kind).encode())
         + 2 * len(schema.encode())  # prompt-mode plans repeat the schema in the system text
@@ -401,7 +446,9 @@ class ResearchPlanner:
     ) -> ResearchPreview:
         protocol = inputs.protocol
         schema = NativeProvider.plan_schema(
-            profile, system_prompt(protocol, body.kind), output_schema(protocol, body)
+            profile,
+            system_prompt(protocol, body.kind),
+            output_schema(protocol, body, [e.id for e in inputs.evidence]),
         )
         prompt = json.dumps(
             {

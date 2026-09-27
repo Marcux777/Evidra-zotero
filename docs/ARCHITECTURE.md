@@ -12,6 +12,8 @@ Both CSV orientations project local cells only from the selected snapshot. Revis
 
 Textual file attachments use the same registered-file and isolated-worker boundary as PDFs, with native snapshot MIME provenance, original file hashes and unpaginated text evidence. [Supported formats and limitations](TEXT_ATTACHMENTS.md) distinguish complete extraction, explicit format failures and unavailable verified native text navigation. No schema migration or new parser dependency is required.
 
+Relevance triage ([ADR 0003](adr/0003-relevance-triage.md)) adds a project description and an explicit relevance rubric to protocol versions, rubric-bound screening output (per-criterion verdicts, grade, reusable items, concerns and a full-text paper card), directed full-text excerpt selection within the context budget, and `TriageService` batches. A batch is a sequence of ordinary research runs sharing the batch as their provider job identity; it never bypasses a run's consent, checkpoint, cancellation or billing-uncertainty rules. Lexical queries rank any content term by BM25 unless the caller asks for all terms. Migration 016 stores batches and their commands.
+
 ## Components and ownership
 
 | Component | Responsibility | Current implementation state |

@@ -286,6 +286,61 @@ def test_schema_requires_relevance_fields_only_with_a_rubric():
     assert full["properties"]["relevance_grade"]["anyOf"][0]["enum"] == [0, 3]
 
 
+def test_relevance_schema_uses_the_structured_decoding_subset():
+    """A small model answered with the schema itself in prompt mode; grammar mode prevents it."""
+    from evidra.providers.base import NativeProvider
+    from evidra.providers.models import ProviderProfile
+
+    rubric = ProtocolVersion.model_validate(
+        {
+            "id": "a" * 32,
+            "notebook_id": "n",
+            "revision": 1,
+            "question": "q",
+            "objective": "o",
+            "review_type": "EXPLORATORY",
+            "form_version_id": "b" * 32,
+            "author": "a",
+            "created_at": "2026-09-27T00:00:00Z",
+            "criteria": [
+                {"id": "atari", "text": "t", "kind": "INCLUSION", "applicability": "BOTH"}
+            ],
+            "rubric": [
+                {"grade": 0, "label": "a", "definition": "b"},
+                {"grade": 3, "label": "c", "definition": "d"},
+            ],
+        }
+    )
+    evidence = ["e" * 64, "f" * 64]
+    schema = screening_schema(rubric, "FULL_TEXT", evidence)
+    text = json.dumps(schema)
+    for keyword in ['"pattern"', '"default"', '"const"', '"minLength"', '"maxLength"']:
+        assert keyword not in text, keyword
+    assert schema["$defs"]["EvidenceId"] == {"type": "string", "enum": evidence}
+    assert schema["properties"]["evidence_ids"]["items"] == {"$ref": "#/$defs/EvidenceId"}
+    card = schema["$defs"]["AnchoredPoint"]["properties"]["evidence_ids"]["items"]
+    assert card == {"$ref": "#/$defs/EvidenceId"}
+    assert schema["properties"]["kind"]["enum"] == ["SCREENING"]
+    empty = screening_schema(rubric, "TITLE_ABSTRACT", [])
+    assert empty["properties"]["evidence_ids"]["maxItems"] == 0
+    profile = ProviderProfile.model_validate(
+        {
+            "id": "q",
+            "revision": 1,
+            "adapter": "ollama",
+            "mode": "LOCAL",
+            "purpose": "generation",
+            "base_url": "http://127.0.0.1:11434",
+            "model": "qwen3:4b",
+            "capabilities": {
+                name: {"supported": True, "provenance": "USER_DECLARED"}
+                for name in ["generation", "structured_output"]
+            },
+        }
+    )
+    assert NativeProvider.plan_schema(profile, "system", schema).mode == "native"
+
+
 def test_relevance_output_validation_refuses_incoherent_proposals(tmp_path):
     app = make_app(tmp_path / "engine", [0.0])
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:
