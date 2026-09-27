@@ -20,6 +20,7 @@ ValueState = Literal[
 ]
 ReviewState = Literal["UNREVIEWED", "APPROVED", "CORRECTED", "REJECTED"]
 FieldKind = Literal["text", "number", "boolean", "enum", "list", "experimental_result"]
+SearchTerm = Annotated[str, Field(min_length=1, max_length=100, pattern=r'^[^"]*\S[^"]*$')]
 
 
 class NumericValue(StrictModel):
@@ -59,6 +60,8 @@ class FieldDefinition(StrictModel):
     options: list[Annotated[str, Field(min_length=1, max_length=200, pattern=r"\S")]] = Field(
         default_factory=list, max_length=50
     )
+    # Lexical SEARCH terms in the documents' language; the question stays for the model.
+    search_terms: list[SearchTerm] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def options_match(self) -> Self:

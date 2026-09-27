@@ -1,12 +1,50 @@
 """Offline FTS5 search: authorized version joins precede ranking and pagination."""
 
 import re
+from typing import Literal
 
 from evidra.documents.chunking import normalize
 from evidra.domain.documents import SearchHit, SearchPage, SearchRequest
 from evidra.domain.sources import content_version
 from evidra.evidence.service import EvidenceService
 from evidra.scope.service import ScopeContext
+
+WORD = re.compile(r"[^\W_]+", flags=re.UNICODE)
+PHRASE = re.compile(r'"([^"]*)"')
+MAX_TERMS = 32
+# Function words of the two interface languages. A natural-language question keeps only
+# its content terms; the original query text is never altered or used as FTS syntax.
+STOPWORDS = frozenset(
+    """a about above after again all also am an and any are as at be because been before
+    being between both but by can could did do does doing done during each either for from
+    had has have having he her here hers him his how i if in into is it its itself just me
+    more most my no nor not of off on once only or other our out over own same she should so
+    some such than that the their them then there these they this those through to too under
+    until up very was we were what when where which while who whom why will with would you
+    your study studies paper papers report reports reported article work
+    à às ao aos aquela aquele aquilo as até com como da das de dela dele deles do dos e é ela
+    ele eles em entre era essa esse esta está estão este eu foi foram há isso isto já la lhe
+    mais mas me mesmo meu minha muito na nas nem no nos nós o os ou para pela pelas pelo pelos
+    por qual quais quando que quem se sem ser seu sua são só também te tem têm um uma umas uns
+    você vocês informa informam sobre estudo estudos artigo artigos trabalho""".split()
+)
+
+
+def fts_query(text: str, match: Literal["any", "all"] = "any") -> str:
+    """Return FTS5 syntax built only from quoted Unicode word tokens and quoted phrases.
+
+    `any` ranks chunks containing any content term by BM25, so a natural question retrieves
+    passages sharing its rare terms. `all` requires every content term and phrase. Stopwords
+    are dropped unless the query has no other term.
+    """
+    normalized = normalize(text)[0]
+    phrases = [WORD.findall(p) for p in PHRASE.findall(normalized)]
+    words = WORD.findall(PHRASE.sub(" ", normalized))
+    content = [w for w in words if w not in STOPWORDS] or words
+    parts = [" ".join(p) for p in phrases if p] + content
+    unique = list(dict.fromkeys(parts))[:MAX_TERMS]
+    joiner = " AND " if match == "all" else " OR "
+    return joiner.join('"' + part.replace('"', '""') + '"' for part in unique)
 
 
 class LexicalSearch:
@@ -17,8 +55,7 @@ class LexicalSearch:
         self, context: ScopeContext, body: SearchRequest, *, document_version_id: str | None = None
     ) -> SearchPage:
         # All query syntax is data. Unicode word tokens are individually quoted, never SQL.
-        terms = re.findall(r"[^\W_]+", normalize(body.query)[0], flags=re.UNICODE)
-        query = " AND ".join('"' + term.replace('"', '""') + '"' for term in terms)
+        query = fts_query(body.query, body.match)
         with self.scopes.guarded(context, capability=context.capability) as connection:
             connection.execute(
                 "CREATE TEMP TABLE IF NOT EXISTS lexical_allowed (version_id TEXT PRIMARY KEY)"

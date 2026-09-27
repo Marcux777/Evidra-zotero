@@ -389,6 +389,17 @@
           "maxItems": 50,
           "title": "Options",
           "type": "array"
+        },
+        "search_terms": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[^\"]*\\S[^\"]*$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Search Terms",
+          "type": "array"
         }
       },
       "required": [

@@ -56,6 +56,7 @@
   "refreshModels": "Refresh saved profiles",
   "profile": "Generation profile",
   "embedding": "Local embedding profile",
+  "noEvidence": "No excerpt was retrieved for this question. Use keywords in the documents' language, select an excerpt, or configure a local embedding profile.",
   "lexicalOnly": "Lexical retrieval only",
   "buildIndex": "Build local semantic index",
   "building": "Semantic indexing",

@@ -13,7 +13,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
     const [open, setOpen] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
     const [page, setPage] = useState<DocumentPage | null>(null), [offsets, setOffsets] = useState<number[]>([]), [polling, setPolling] = useState(true);
     const [fileMB, setFileMB] = useState('200'), [maxPages, setMaxPages] = useState('1000'), [memoryMiB, setMemoryMiB] = useState('512'), [seconds, setSeconds] = useState('120');
-    const [query, setQuery] = useState(''), [search, setSearch] = useState<SearchPage | null>(null), [evidence, setEvidence] = useState<Evidence | null>(null);
+    const [query, setQuery] = useState(''), [matchAll, setMatchAll] = useState(false), [search, setSearch] = useState<SearchPage | null>(null), [evidence, setEvidence] = useState<Evidence | null>(null);
     const [version, setVersion] = useState<string | null>(null), [physicalPage, setPhysicalPage] = useState('1'), [region, setRegion] = useState(''), [scale, setScale] = useState('1');
     const [previewOp, setPreviewOp] = useState<DocumentOperation | null>(null), [preview, setPreview] = useState<PagePreview | null>(null);
     const pending = useRef(new Map<string, Extract<DocumentCommand, { op: 'documents.index' }>>());
@@ -91,7 +91,7 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
         if (current()) { setPolling(true); await load(page?.offset ?? 0, current); }
     }); }
     function searchText(offset = 0) { if (!query.trim()) return; void action(async current => {
-        const found = await bridge.request({ op: 'documents.search', ...scope, request: { query, offset, limit: 40 } }) as SearchPage;
+        const found = await bridge.request({ op: 'documents.search', ...scope, request: { query, offset, limit: 40, match: matchAll ? 'all' : 'any' } }) as SearchPage;
         if (current()) { setSearch(found); setEvidence(null); setPreview(null); }
     }); }
     function inspect(id: string) { void action(async current => {
@@ -148,9 +148,10 @@ export function Documents({ bridge, notebook_id, snapshot_id, locale, onAsk, onP
             <span>{page.offset + 1}–{page.offset + page.items.length} / {page.total}</span><button disabled={busy || page.offset + page.items.length >= page.total} onClick={() => void action(current => load(page.offset + page.items.length, current, 'next'))}>{t.next}</button></nav>}
         <label>{d.query}<input name="document_query" value={query} maxLength={2000} onChange={e => { setQuery(e.target.value); setSearch(null); setEvidence(null); }}
             onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && !busy) { e.preventDefault(); searchText(); } }}/></label>
+        <label className="source-check"><input name="document_match_all" type="checkbox" checked={matchAll} onChange={e => { setMatchAll(e.target.checked); setSearch(null); }}/>{d.matchAll}</label>
         <button type="button" disabled={busy || !query.trim()} onClick={() => searchText()}>{d.search}</button>
         {search && <div><p>{d.retrieved}: {search.documents_retrieved} · {d.matches}: {search.total}</p>
-            {!search.items.length && <p>{d.empty}</p>}<ul className="source-list">{search.items.map(hit => <li key={hit.evidence_id}>
+            {!search.items.length && <><p>{d.empty}</p><p className="source-meta">{d.emptyHint}</p></>}<ul className="source-list">{search.items.map(hit => <li key={hit.evidence_id}>
                 <blockquote>{hit.excerpt}</blockquote><p className="source-meta">{t.sources.kinds[hit.source_kind]} · {hit.content_key}
                     {hit.page_index !== null && ` · ${d.page} ${hit.page_index + 1}`} {hit.page_label !== null && `· ${hit.page_label}`} {hit.historical && `· ${d.historical}`}</p>
                 <button disabled={busy} type="button" onClick={() => inspect(hit.evidence_id)}>{d.inspect}</button></li>)}</ul>

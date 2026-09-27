@@ -38,11 +38,12 @@ var validate = validate20;
 var validate_matrix_command_generated_default = validate20;
 var pattern4 = new RegExp("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", "u");
 var pattern5 = new RegExp("^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$", "u");
-var schema36 = { "additionalProperties": false, "properties": { "key": { "pattern": "^[a-z][a-z0-9_]{0,63}$", "title": "Key", "type": "string" }, "label": { "maxLength": 200, "minLength": 1, "pattern": "\\S", "title": "Label", "type": "string" }, "kind": { "enum": ["text", "number", "boolean", "enum", "list", "experimental_result"], "title": "Kind", "type": "string" }, "question": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "title": "Question", "type": "string" }, "definition": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "title": "Definition", "type": "string" }, "unit": { "anyOf": [{ "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "type": "string" }, { "type": "null" }], "default": null, "title": "Unit" }, "rules": { "items": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "type": "string" }, "maxItems": 10, "title": "Rules", "type": "array" }, "required": { "default": false, "title": "Required", "type": "boolean" }, "options": { "items": { "maxLength": 200, "minLength": 1, "pattern": "\\S", "type": "string" }, "maxItems": 50, "title": "Options", "type": "array" } }, "required": ["key", "label", "kind", "question", "definition"], "title": "FieldDefinition", "type": "object" };
+var schema36 = { "additionalProperties": false, "properties": { "key": { "pattern": "^[a-z][a-z0-9_]{0,63}$", "title": "Key", "type": "string" }, "label": { "maxLength": 200, "minLength": 1, "pattern": "\\S", "title": "Label", "type": "string" }, "kind": { "enum": ["text", "number", "boolean", "enum", "list", "experimental_result"], "title": "Kind", "type": "string" }, "question": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "title": "Question", "type": "string" }, "definition": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "title": "Definition", "type": "string" }, "unit": { "anyOf": [{ "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "type": "string" }, { "type": "null" }], "default": null, "title": "Unit" }, "rules": { "items": { "maxLength": 2e3, "minLength": 1, "pattern": "\\S", "type": "string" }, "maxItems": 10, "title": "Rules", "type": "array" }, "required": { "default": false, "title": "Required", "type": "boolean" }, "options": { "items": { "maxLength": 200, "minLength": 1, "pattern": "\\S", "type": "string" }, "maxItems": 50, "title": "Options", "type": "array" }, "search_terms": { "items": { "maxLength": 100, "minLength": 1, "pattern": '^[^"]*\\S[^"]*$', "type": "string" }, "maxItems": 20, "title": "Search Terms", "type": "array" } }, "required": ["key", "label", "kind", "question", "definition"], "title": "FieldDefinition", "type": "object" };
 var func1 = require_ucs2length().default;
 var func5 = Object.prototype.hasOwnProperty;
 var pattern10 = new RegExp("\\S", "u");
 var pattern11 = new RegExp("^[a-z][a-z0-9_]{0,63}$", "u");
+var pattern18 = new RegExp('^[^"]*\\S[^"]*$', "u");
 function validate22(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -497,6 +498,58 @@ function validate22(data, { instancePath = "", parentData, parentDataProperty, r
                                                     } else {
                                                       var valid3 = true;
                                                     }
+                                                    if (valid3) {
+                                                      if (data4.search_terms !== void 0) {
+                                                        let data16 = data4.search_terms;
+                                                        const _errs40 = errors;
+                                                        if (errors === _errs40) {
+                                                          if (Array.isArray(data16)) {
+                                                            if (data16.length > 20) {
+                                                              validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms", schemaPath: "#/$defs/FieldDefinition/properties/search_terms/maxItems", keyword: "maxItems", params: { limit: 20 }, message: "must NOT have more than 20 items" }];
+                                                              return false;
+                                                            } else {
+                                                              var valid7 = true;
+                                                              const len3 = data16.length;
+                                                              for (let i3 = 0; i3 < len3; i3++) {
+                                                                let data17 = data16[i3];
+                                                                const _errs42 = errors;
+                                                                if (errors === _errs42) {
+                                                                  if (typeof data17 === "string") {
+                                                                    if (func1(data17) > 100) {
+                                                                      validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms/" + i3, schemaPath: "#/$defs/FieldDefinition/properties/search_terms/items/maxLength", keyword: "maxLength", params: { limit: 100 }, message: "must NOT have more than 100 characters" }];
+                                                                      return false;
+                                                                    } else {
+                                                                      if (func1(data17) < 1) {
+                                                                        validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms/" + i3, schemaPath: "#/$defs/FieldDefinition/properties/search_terms/items/minLength", keyword: "minLength", params: { limit: 1 }, message: "must NOT have fewer than 1 characters" }];
+                                                                        return false;
+                                                                      } else {
+                                                                        if (!pattern18.test(data17)) {
+                                                                          validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms/" + i3, schemaPath: "#/$defs/FieldDefinition/properties/search_terms/items/pattern", keyword: "pattern", params: { pattern: '^[^"]*\\S[^"]*$' }, message: 'must match pattern "^[^"]*\\S[^"]*$"' }];
+                                                                          return false;
+                                                                        }
+                                                                      }
+                                                                    }
+                                                                  } else {
+                                                                    validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms/" + i3, schemaPath: "#/$defs/FieldDefinition/properties/search_terms/items/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                                                    return false;
+                                                                  }
+                                                                }
+                                                                var valid7 = _errs42 === errors;
+                                                                if (!valid7) {
+                                                                  break;
+                                                                }
+                                                              }
+                                                            }
+                                                          } else {
+                                                            validate22.errors = [{ instancePath: instancePath + "/fields/" + i0 + "/search_terms", schemaPath: "#/$defs/FieldDefinition/properties/search_terms/type", keyword: "type", params: { type: "array" }, message: "must be array" }];
+                                                            return false;
+                                                          }
+                                                        }
+                                                        var valid3 = _errs40 === errors;
+                                                      } else {
+                                                        var valid3 = true;
+                                                      }
+                                                    }
                                                   }
                                                 }
                                               }
@@ -647,8 +700,8 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
 }
 validate21.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
 var schema38 = { "additionalProperties": false, "properties": { "form_version_id": { "pattern": "^[a-f0-9]{32}$", "title": "Form Version Id", "type": "string" }, "offset": { "maximum": 1e6, "minimum": 0, "title": "Offset", "type": "integer" }, "source_id": { "anyOf": [{ "pattern": "^[a-f0-9]{64}$", "type": "string" }, { "type": "null" }], "default": null, "title": "Source Id" }, "review_state": { "anyOf": [{ "enum": ["UNREVIEWED", "APPROVED", "CORRECTED", "REJECTED"], "type": "string" }, { "type": "null" }], "default": null, "title": "Review State" }, "value_state": { "anyOf": [{ "enum": ["FOUND", "NOT_FOUND_IN_SEARCH", "NOT_REPORTED_CANDIDATE", "NOT_APPLICABLE", "UNREADABLE", "CONFLICTING"], "type": "string" }, { "type": "null" }], "default": null, "title": "Value State" } }, "required": ["form_version_id", "offset"], "title": "MatrixQuery", "type": "object" };
-var pattern20 = new RegExp("^[a-f0-9]{32}$", "u");
-var pattern21 = new RegExp("^[a-f0-9]{64}$", "u");
+var pattern21 = new RegExp("^[a-f0-9]{32}$", "u");
+var pattern22 = new RegExp("^[a-f0-9]{64}$", "u");
 function validate25(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -754,7 +807,7 @@ function validate25(data, { instancePath = "", parentData, parentDataProperty, r
                             const _errs12 = errors;
                             if (errors === _errs12) {
                               if (typeof data4 === "string") {
-                                if (!pattern20.test(data4)) {
+                                if (!pattern21.test(data4)) {
                                   validate25.errors = [{ instancePath: instancePath + "/request/form_version_id", schemaPath: "#/$defs/MatrixQuery/properties/form_version_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                                   return false;
                                 }
@@ -801,7 +854,7 @@ function validate25(data, { instancePath = "", parentData, parentDataProperty, r
                                 const _errs18 = errors;
                                 if (errors === _errs18) {
                                   if (typeof data6 === "string") {
-                                    if (!pattern21.test(data6)) {
+                                    if (!pattern22.test(data6)) {
                                       const err0 = { instancePath: instancePath + "/request/source_id", schemaPath: "#/$defs/MatrixQuery/properties/source_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' };
                                       if (vErrors === null) {
                                         vErrors = [err0];
@@ -1119,7 +1172,7 @@ function validate27(data, { instancePath = "", parentData, parentDataProperty, r
                             const _errs12 = errors;
                             if (errors === _errs12) {
                               if (typeof data4 === "string") {
-                                if (!pattern20.test(data4)) {
+                                if (!pattern21.test(data4)) {
                                   validate27.errors = [{ instancePath: instancePath + "/request/form_version_id", schemaPath: "#/$defs/CellQuery/properties/form_version_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                                   return false;
                                 }
@@ -1138,7 +1191,7 @@ function validate27(data, { instancePath = "", parentData, parentDataProperty, r
                               const _errs14 = errors;
                               if (errors === _errs14) {
                                 if (typeof data5 === "string") {
-                                  if (!pattern21.test(data5)) {
+                                  if (!pattern22.test(data5)) {
                                     validate27.errors = [{ instancePath: instancePath + "/request/source_id", schemaPath: "#/$defs/CellQuery/properties/source_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' }];
                                     return false;
                                   }
@@ -2148,7 +2201,7 @@ function validate30(data, { instancePath = "", parentData, parentDataProperty, r
                   const _errs29 = errors;
                   if (errors === _errs29) {
                     if (typeof data7 === "string") {
-                      if (!pattern20.test(data7)) {
+                      if (!pattern21.test(data7)) {
                         validate30.errors = [{ instancePath: instancePath + "/form_version_id", schemaPath: "#/properties/form_version_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                         return false;
                       }
@@ -2167,7 +2220,7 @@ function validate30(data, { instancePath = "", parentData, parentDataProperty, r
                     const _errs31 = errors;
                     if (errors === _errs31) {
                       if (typeof data8 === "string") {
-                        if (!pattern21.test(data8)) {
+                        if (!pattern22.test(data8)) {
                           validate30.errors = [{ instancePath: instancePath + "/source_id", schemaPath: "#/properties/source_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' }];
                           return false;
                         }
@@ -2216,7 +2269,7 @@ function validate30(data, { instancePath = "", parentData, parentDataProperty, r
                                 const _errs37 = errors;
                                 if (errors === _errs37) {
                                   if (typeof data11 === "string") {
-                                    if (!pattern21.test(data11)) {
+                                    if (!pattern22.test(data11)) {
                                       validate30.errors = [{ instancePath: instancePath + "/evidence_ids/" + i2, schemaPath: "#/properties/evidence_ids/items/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{64}$" }, message: 'must match pattern "^[a-f0-9]{64}$"' }];
                                       return false;
                                     }
@@ -2249,7 +2302,7 @@ function validate30(data, { instancePath = "", parentData, parentDataProperty, r
                           const _errs41 = errors;
                           if (errors === _errs41) {
                             if (typeof data12 === "string") {
-                              if (!pattern20.test(data12)) {
+                              if (!pattern21.test(data12)) {
                                 const err25 = { instancePath: instancePath + "/run_id", schemaPath: "#/properties/run_id/anyOf/0/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' };
                                 if (vErrors === null) {
                                   vErrors = [err25];
@@ -2514,7 +2567,7 @@ function validate36(data, { instancePath = "", parentData, parentDataProperty, r
               const _errs4 = errors;
               if (errors === _errs4) {
                 if (typeof data1 === "string") {
-                  if (!pattern20.test(data1)) {
+                  if (!pattern21.test(data1)) {
                     validate36.errors = [{ instancePath: instancePath + "/proposal_id", schemaPath: "#/properties/proposal_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                     return false;
                   }
@@ -3271,7 +3324,7 @@ function validate41(data, { instancePath = "", parentData, parentDataProperty, r
                                   const _errs10 = errors;
                                   if (errors === _errs10) {
                                     if (typeof data3 === "string") {
-                                      if (!pattern20.test(data3)) {
+                                      if (!pattern21.test(data3)) {
                                         validate41.errors = [{ instancePath: instancePath + "/items/" + i0 + "/proposal_id", schemaPath: "#/$defs/BulkItem/properties/proposal_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                                         return false;
                                       }
@@ -3573,7 +3626,7 @@ function validate44(data, { instancePath = "", parentData, parentDataProperty, r
                               const _errs14 = errors;
                               if (errors === _errs14) {
                                 if (typeof data5 === "string") {
-                                  if (!pattern20.test(data5)) {
+                                  if (!pattern21.test(data5)) {
                                     validate44.errors = [{ instancePath: instancePath + "/request/preview_id", schemaPath: "#/$defs/BulkApprove/properties/preview_id/pattern", keyword: "pattern", params: { pattern: "^[a-f0-9]{32}$" }, message: 'must match pattern "^[a-f0-9]{32}$"' }];
                                     return false;
                                   }

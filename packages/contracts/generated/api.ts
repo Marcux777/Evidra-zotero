@@ -3296,6 +3296,8 @@ export interface components {
             required: boolean;
             /** Options */
             options?: string[];
+            /** Search Terms */
+            search_terms?: string[];
         };
         /** FormPage */
         FormPage: {
@@ -5489,6 +5491,12 @@ export interface components {
              * @default 40
              */
             limit: number;
+            /**
+             * Match
+             * @default any
+             * @enum {string}
+             */
+            match: "any" | "all";
         };
         /** SecretDelete */
         SecretDelete: {

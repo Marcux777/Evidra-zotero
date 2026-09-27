@@ -344,6 +344,15 @@
           "minimum": 1,
           "title": "Limit",
           "type": "integer"
+        },
+        "match": {
+          "default": "any",
+          "enum": [
+            "any",
+            "all"
+          ],
+          "title": "Match",
+          "type": "string"
         }
       },
       "required": [

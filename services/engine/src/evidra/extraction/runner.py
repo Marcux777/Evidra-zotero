@@ -69,6 +69,13 @@ def field_schema(field: FieldDefinition) -> dict[str, Any]:
     return schema
 
 
+def search_query(field: FieldDefinition) -> str:
+    """Declared search terms (phrases kept whole), else the field question."""
+    if not field.search_terms:
+        return field.question
+    return " ".join(f'"{term}"' if " " in term.strip() else term for term in field.search_terms)
+
+
 @dataclass(frozen=True)
 class PlannedUnit:
     unit: UnitRecord
@@ -164,7 +171,7 @@ class ExtractionRunner:
                             page = self.lexical.search(
                                 context,
                                 SearchRequest(
-                                    query=field.question,
+                                    query=search_query(field),
                                     limit=100,
                                 ),
                                 document_version_id=item.document_version_id,

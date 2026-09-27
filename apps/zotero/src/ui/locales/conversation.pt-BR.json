@@ -56,6 +56,7 @@
   "refreshModels": "Atualizar perfis salvos",
   "profile": "Perfil de geração",
   "embedding": "Perfil local de embeddings",
+  "noEvidence": "Nenhum trecho foi recuperado para esta pergunta. Use palavras-chave no idioma dos documentos, selecione um trecho ou configure um perfil local de embeddings.",
   "lexicalOnly": "Somente recuperação lexical",
   "buildIndex": "Construir índice semântico local",
   "building": "Indexação semântica",

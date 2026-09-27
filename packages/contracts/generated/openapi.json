@@ -20923,6 +20923,17 @@
             "maxItems": 50,
             "title": "Options",
             "type": "array"
+          },
+          "search_terms": {
+            "items": {
+              "maxLength": 100,
+              "minLength": 1,
+              "pattern": "^[^\"]*\\S[^\"]*$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Search Terms",
+            "type": "array"
           }
         },
         "required": [
@@ -27326,6 +27337,15 @@
             "minimum": 1,
             "title": "Limit",
             "type": "integer"
+          },
+          "match": {
+            "default": "any",
+            "enum": [
+              "any",
+              "all"
+            ],
+            "title": "Match",
+            "type": "string"
           }
         },
         "required": [

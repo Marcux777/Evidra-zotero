@@ -333,6 +333,7 @@ function validate21(data, { instancePath = "", parentData, parentDataProperty, r
   return errors === 0;
 }
 validate21.evaluated = { "props": true, "dynamicProps": false, "dynamicItems": false };
+var schema36 = { "additionalProperties": false, "properties": { "query": { "maxLength": 2e3, "minLength": 1, "title": "Query", "type": "string" }, "offset": { "default": 0, "maximum": 1e6, "minimum": 0, "title": "Offset", "type": "integer" }, "limit": { "default": 40, "maximum": 100, "minimum": 1, "title": "Limit", "type": "integer" }, "match": { "default": "any", "enum": ["any", "all"], "title": "Match", "type": "string" } }, "required": ["query"], "title": "SearchRequest", "type": "object" };
 function validate23(data, { instancePath = "", parentData, parentDataProperty, rootData = data, dynamicAnchors = {} } = {}) {
   let vErrors = null;
   let errors = 0;
@@ -426,7 +427,7 @@ function validate23(data, { instancePath = "", parentData, parentDataProperty, r
                       } else {
                         const _errs11 = errors;
                         for (const key1 in data3) {
-                          if (!(key1 === "query" || key1 === "offset" || key1 === "limit")) {
+                          if (!(key1 === "query" || key1 === "offset" || key1 === "limit" || key1 === "match")) {
                             validate23.errors = [{ instancePath: instancePath + "/request", schemaPath: "#/$defs/SearchRequest/additionalProperties", keyword: "additionalProperties", params: { additionalProperty: key1 }, message: "must NOT have additional properties" }];
                             return false;
                             break;
@@ -505,6 +506,23 @@ function validate23(data, { instancePath = "", parentData, parentDataProperty, r
                                 var valid2 = _errs16 === errors;
                               } else {
                                 var valid2 = true;
+                              }
+                              if (valid2) {
+                                if (data3.match !== void 0) {
+                                  let data7 = data3.match;
+                                  const _errs18 = errors;
+                                  if (typeof data7 !== "string") {
+                                    validate23.errors = [{ instancePath: instancePath + "/request/match", schemaPath: "#/$defs/SearchRequest/properties/match/type", keyword: "type", params: { type: "string" }, message: "must be string" }];
+                                    return false;
+                                  }
+                                  if (!(data7 === "any" || data7 === "all")) {
+                                    validate23.errors = [{ instancePath: instancePath + "/request/match", schemaPath: "#/$defs/SearchRequest/properties/match/enum", keyword: "enum", params: { allowedValues: schema36.properties.match.enum }, message: "must be equal to one of the allowed values" }];
+                                    return false;
+                                  }
+                                  var valid2 = _errs18 === errors;
+                                } else {
+                                  var valid2 = true;
+                                }
                               }
                             }
                           }

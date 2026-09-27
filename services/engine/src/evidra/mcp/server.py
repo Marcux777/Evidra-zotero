@@ -19,7 +19,8 @@ from evidra.mcp.models import TOOL_INPUTS
 DESCRIPTIONS = {
     "get_notebook_status": "Read authorized notebook identity, revision, coverage and limits.",
     "list_sources": "Page authorized sources. Advance by returned limit until total.",
-    "search_evidence": "Search authorized snapshot excerpts with offline lexical retrieval.",
+    "search_evidence": "Search authorized snapshot excerpts offline: BM25 over any content "
+    "term by default; match=all requires every term or quoted phrase.",
     "read_evidence": "Read one bounded original excerpt and its immutable version and locator.",
     "get_protocol": "Read the active authorized protocol and form; absent values are null.",
     "get_matrix": "Page the authorized matrix, with human states and versioned fields.",

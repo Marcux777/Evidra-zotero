@@ -24,22 +24,69 @@ def fingerprint(body: StrictModel) -> str:
 
 
 def computing_template() -> list[FieldDefinition]:
-    entries: list[tuple[str, str, FieldKind]] = [
-        ("problem", "Problema", "text"),
-        ("method", "Método", "text"),
-        ("claimed_contribution", "Contribuição alegada", "text"),
-        ("data", "Dados", "list"),
-        ("sample_size", "Tamanho da amostra/instâncias", "number"),
-        ("split", "Divisão de treino/validação/teste", "text"),
-        ("comparators", "Comparadores", "list"),
-        ("metrics", "Métricas", "list"),
-        ("results", "Resultados com contexto", "experimental_result"),
-        ("seeds", "Repetições/seeds", "text"),
-        ("ablations", "Ablações", "text"),
-        ("statistics", "Estatística reportada", "text"),
-        ("author_limitations", "Limitações dos autores", "list"),
-        ("reviewer_limitations", "Limitações propostas pelo revisor", "list"),
-        ("availability", "Disponibilidade de código/dados", "text"),
+    # English search terms: most computing literature is in English, while the questions
+    # follow the interface language. Terms only steer lexical SEARCH, never the answer.
+    entries: list[tuple[str, str, FieldKind, str]] = [
+        ("problem", "Problema", "text", "problem;challenge;task;motivation;address"),
+        ("method", "Método", "text", "method;approach;algorithm;propose;architecture;model"),
+        (
+            "claimed_contribution",
+            "Contribuição alegada",
+            "text",
+            "contribution;contributions;novel;introduce;we propose;we present",
+        ),
+        ("data", "Dados", "list", "dataset;datasets;data;benchmark;corpus;environment"),
+        (
+            "sample_size",
+            "Tamanho da amostra/instâncias",
+            "number",
+            "samples;instances;episodes;participants;examples;size",
+        ),
+        (
+            "split",
+            "Divisão de treino/validação/teste",
+            "text",
+            "train;training;validation;test;split;held-out",
+        ),
+        (
+            "comparators",
+            "Comparadores",
+            "list",
+            "baseline;baselines;compare;comparison;state of the art",
+        ),
+        ("metrics", "Métricas", "list", "metric;metrics;accuracy;score;reward;return;error"),
+        (
+            "results",
+            "Resultados com contexto",
+            "experimental_result",
+            "results;outperforms;achieves;table;improvement;performance",
+        ),
+        ("seeds", "Repetições/seeds", "text", "seeds;seed;runs;repetitions;trials;random"),
+        ("ablations", "Ablações", "text", "ablation;ablations;removing;variant;component"),
+        (
+            "statistics",
+            "Estatística reportada",
+            "text",
+            "confidence interval;standard deviation;standard error;significance;p-value",
+        ),
+        (
+            "author_limitations",
+            "Limitações dos autores",
+            "list",
+            "limitation;limitations;future work;drawback;fails",
+        ),
+        (
+            "reviewer_limitations",
+            "Limitações propostas pelo revisor",
+            "list",
+            "limitation;assumption;assume;generalization;threats",
+        ),
+        (
+            "availability",
+            "Disponibilidade de código/dados",
+            "text",
+            "code;github;available;open source;release;repository",
+        ),
     ]
     return [
         FieldDefinition(
@@ -50,8 +97,9 @@ def computing_template() -> list[FieldDefinition]:
             definition=label,
             rules=["Preservar evidências e contexto; usar estado explícito para ausência."],
             required=False,
+            search_terms=terms.split(";"),
         )
-        for k, label, kind in entries
+        for k, label, kind, terms in entries
     ]
 
 

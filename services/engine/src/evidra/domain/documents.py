@@ -108,6 +108,8 @@ class SearchRequest(StrictModel):
     query: str = Field(min_length=1, max_length=2000)
     offset: int = Field(default=0, ge=0, le=1_000_000)
     limit: int = Field(default=40, ge=1, le=100)
+    # any: BM25 over chunks sharing any content term; all: every term/phrase is required.
+    match: Literal["any", "all"] = "any"
 
 
 class SearchHit(StrictModel):
