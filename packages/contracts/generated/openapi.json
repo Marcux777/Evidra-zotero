@@ -12676,6 +12676,811 @@
         }
       }
     },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Prepare Batch",
+        "operationId": "prepare_batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreeningBatchPrepare"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningBatchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Batches",
+        "operationId": "batches_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningBatchPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches/{batch_id}": {
+      "get": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Batch",
+        "operationId": "batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__get",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningBatchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches/{batch_id}/control": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Batch Control",
+        "operationId": "batch_control_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__control_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          },
+          {
+            "name": "batch_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Batch Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreeningBatchControl"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningBatchView"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/queue": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Triage Queue",
+        "operationId": "triage_queue_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_queue_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreeningQueueRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningQueuePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/adopt": {
+      "post": {
+        "tags": [
+          "research"
+        ],
+        "summary": "Adopt",
+        "operationId": "adopt_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_adopt_post",
+        "parameters": [
+          {
+            "name": "notebook_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Notebook Id"
+            }
+          },
+          {
+            "name": "snapshot_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Snapshot Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScreeningAdopt"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScreeningDecision"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/mcp/connections": {
       "post": {
         "tags": [
@@ -16866,6 +17671,34 @@
   },
   "components": {
     "schemas": {
+      "AnchoredPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "text",
+          "evidence_ids"
+        ],
+        "title": "AnchoredPoint",
+        "type": "object"
+      },
       "Answer": {
         "properties": {
           "claims": {
@@ -18087,6 +18920,33 @@
         ],
         "title": "Claim"
       },
+      "Concern": {
+        "additionalProperties": false,
+        "description": "Why the study may not serve this project; anchors are optional for absences.",
+        "properties": {
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Text",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Evidence Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "Concern",
+        "type": "object"
+      },
       "ConnectionCreate": {
         "properties": {
           "idempotency_key": {
@@ -18854,6 +19714,40 @@
           "applicability"
         ],
         "title": "Criterion",
+        "type": "object"
+      },
+      "CriterionVerdict": {
+        "additionalProperties": false,
+        "properties": {
+          "criterion_id": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Criterion Id",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "MET",
+              "NOT_MET",
+              "UNCLEAR"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Evidence Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "criterion_id",
+          "verdict"
+        ],
+        "title": "CriterionVerdict",
         "type": "object"
       },
       "DecisionPage": {
@@ -20928,7 +21822,7 @@
             "items": {
               "maxLength": 100,
               "minLength": 1,
-              "pattern": "^[^\"]*\\S[^\"]*$",
+              "pattern": "^[^\"]*[^\"\\s][^\"]*$",
               "type": "string"
             },
             "maxItems": 20,
@@ -23902,6 +24796,63 @@
         "title": "PagePreviewRequest",
         "type": "object"
       },
+      "PaperCard": {
+        "additionalProperties": false,
+        "description": "Source guide generated with full-text screening; every point is a proposal.",
+        "properties": {
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Summary",
+            "type": "string"
+          },
+          "contributions": {
+            "items": {
+              "$ref": "#/components/schemas/AnchoredPoint"
+            },
+            "maxItems": 8,
+            "title": "Contributions",
+            "type": "array"
+          },
+          "strengths": {
+            "items": {
+              "$ref": "#/components/schemas/AnchoredPoint"
+            },
+            "maxItems": 8,
+            "title": "Strengths",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/AnchoredPoint"
+            },
+            "maxItems": 8,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "questions": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summary",
+          "contributions",
+          "strengths",
+          "limitations",
+          "questions"
+        ],
+        "title": "PaperCard",
+        "type": "object"
+      },
       "ParserLimits": {
         "additionalProperties": false,
         "properties": {
@@ -24696,6 +25647,75 @@
         "title": "ProfileWrite",
         "type": "object"
       },
+      "ProjectContext": {
+        "additionalProperties": false,
+        "description": "The researcher's own work, against which relevance and reuse are judged.",
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Description",
+            "type": "string"
+          },
+          "methods": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Methods",
+            "type": "array"
+          },
+          "data": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Data",
+            "type": "array"
+          },
+          "constraints": {
+            "items": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Constraints",
+            "type": "array"
+          },
+          "seeking": {
+            "items": {
+              "enum": [
+                "METHOD",
+                "DATASET",
+                "BASELINE",
+                "METRIC",
+                "CODE",
+                "ARGUMENT",
+                "FINDING",
+                "OTHER"
+              ],
+              "type": "string"
+            },
+            "maxItems": 8,
+            "title": "Seeking",
+            "type": "array"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "ProjectContext",
+        "type": "object"
+      },
       "ProposalPage": {
         "properties": {
           "items": {
@@ -25162,6 +26182,23 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rubric": {
+            "items": {
+              "$ref": "#/components/schemas/RubricLevel"
+            },
+            "type": "array",
+            "title": "Rubric"
           }
         },
         "additionalProperties": false,
@@ -25229,6 +26266,25 @@
             "minimum": 0,
             "title": "Expected Revision",
             "type": "integer"
+          },
+          "project": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "rubric": {
+            "items": {
+              "$ref": "#/components/schemas/RubricLevel"
+            },
+            "maxItems": 6,
+            "title": "Rubric",
+            "type": "array"
           }
         },
         "required": [
@@ -25644,7 +26700,8 @@
             "enum": [
               "MATRIX_COVERAGE",
               "STAGE_EXCERPTS_ONLY",
-              "RETRIEVED_CHUNKS_ONLY"
+              "RETRIEVED_CHUNKS_ONLY",
+              "DIRECTED_EXCERPTS"
             ],
             "title": "Reason"
           }
@@ -26309,6 +27366,58 @@
         "title": "ResumeWrite",
         "type": "object"
       },
+      "ReusableItem": {
+        "additionalProperties": false,
+        "description": "Something the researcher's project could adopt, and how, with its anchor.",
+        "properties": {
+          "kind": {
+            "enum": [
+              "METHOD",
+              "DATASET",
+              "BASELINE",
+              "METRIC",
+              "CODE",
+              "ARGUMENT",
+              "FINDING",
+              "OTHER"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Text",
+            "type": "string"
+          },
+          "use": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Use",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "text",
+          "use",
+          "evidence_ids"
+        ],
+        "title": "ReusableItem",
+        "type": "object"
+      },
       "Revocation": {
         "properties": {
           "expected_revision": {
@@ -26323,6 +27432,39 @@
           "expected_revision"
         ],
         "title": "Revocation"
+      },
+      "RubricLevel": {
+        "additionalProperties": false,
+        "description": "One explicit relevance grade; the only rule by which studies may be ordered.",
+        "properties": {
+          "grade": {
+            "maximum": 5,
+            "minimum": 0,
+            "title": "Grade",
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Label",
+            "type": "string"
+          },
+          "definition": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Definition",
+            "type": "string"
+          }
+        },
+        "required": [
+          "grade",
+          "label",
+          "definition"
+        ],
+        "title": "RubricLevel",
+        "type": "object"
       },
       "RunAccess": {
         "properties": {
@@ -26769,6 +27911,361 @@
         ],
         "title": "SchemaPlan"
       },
+      "ScreeningAdopt": {
+        "additionalProperties": false,
+        "description": "Record a human screening decision from an APPROVED/CORRECTED screening artifact.",
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "artifact_version_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Artifact Version Id",
+            "type": "string"
+          },
+          "reviewer": {
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Reviewer",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "artifact_version_id",
+          "reviewer",
+          "expected_revision"
+        ],
+        "title": "ScreeningAdopt",
+        "type": "object"
+      },
+      "ScreeningBatch": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "notebook_id": {
+            "type": "string",
+            "title": "Notebook Id"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "title": "Snapshot Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "protocol_version_id": {
+            "type": "string",
+            "title": "Protocol Version Id"
+          },
+          "stage": {
+            "type": "string",
+            "enum": [
+              "TITLE_ABSTRACT",
+              "FULL_TEXT"
+            ],
+            "title": "Stage"
+          },
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "PREPARED",
+              "RUNNING",
+              "PAUSED",
+              "COMPLETE",
+              "CANCELLED"
+            ],
+            "title": "State",
+            "default": "PREPARED"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScreeningBatchItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "estimated_input_tokens": {
+            "type": "integer",
+            "title": "Estimated Input Tokens"
+          },
+          "max_output_tokens": {
+            "type": "integer",
+            "title": "Max Output Tokens"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "notebook_id",
+          "snapshot_id",
+          "revision",
+          "protocol_version_id",
+          "stage",
+          "profile_id",
+          "items",
+          "estimated_input_tokens",
+          "max_output_tokens",
+          "created_at"
+        ],
+        "title": "ScreeningBatch"
+      },
+      "ScreeningBatchControl": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "action": {
+            "enum": [
+              "start",
+              "cancel"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "action",
+          "expected_revision"
+        ],
+        "title": "ScreeningBatchControl",
+        "type": "object"
+      },
+      "ScreeningBatchItem": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "skipped": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skipped"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "title",
+          "run_id"
+        ],
+        "title": "ScreeningBatchItem"
+      },
+      "ScreeningBatchPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScreeningBatch"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "ScreeningBatchPage"
+      },
+      "ScreeningBatchPrepare": {
+        "additionalProperties": false,
+        "description": "One consent for sequential screening: each study gets its own inspectable run.",
+        "properties": {
+          "idempotency_key": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "protocol_version_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Protocol Version Id",
+            "type": "string"
+          },
+          "profile_id": {
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+            "title": "Profile Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "TITLE_ABSTRACT",
+              "FULL_TEXT"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Question",
+            "type": "string"
+          },
+          "selection": {
+            "default": "ALL",
+            "enum": [
+              "ALL",
+              "NOT_HUMAN_EXCLUDED"
+            ],
+            "title": "Selection",
+            "type": "string"
+          },
+          "source_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "pattern": "^[a-f0-9]{64}$",
+                  "type": "string"
+                },
+                "maxItems": 1000,
+                "minItems": 1,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Ids"
+          },
+          "context_tokens": {
+            "default": 32768,
+            "maximum": 1000000,
+            "minimum": 1024,
+            "title": "Context Tokens",
+            "type": "integer"
+          },
+          "max_output_tokens": {
+            "default": 4096,
+            "maximum": 32768,
+            "minimum": 1,
+            "title": "Max Output Tokens",
+            "type": "integer"
+          },
+          "ollama_options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OllamaOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "protocol_version_id",
+          "profile_id",
+          "stage",
+          "question"
+        ],
+        "title": "ScreeningBatchPrepare",
+        "type": "object"
+      },
+      "ScreeningBatchView": {
+        "properties": {
+          "batch": {
+            "$ref": "#/components/schemas/ScreeningBatch"
+          },
+          "run_states": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Run States"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "batch",
+          "run_states"
+        ],
+        "title": "ScreeningBatchView"
+      },
       "ScreeningDecision": {
         "properties": {
           "id": {
@@ -26842,6 +28339,17 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "adopted_artifact_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Adopted Artifact Version Id"
           }
         },
         "additionalProperties": false,
@@ -26904,6 +28412,55 @@
             "pattern": "\\S",
             "title": "Rationale",
             "type": "string"
+          },
+          "verdicts": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionVerdict"
+            },
+            "maxItems": 30,
+            "title": "Verdicts",
+            "type": "array"
+          },
+          "relevance_grade": {
+            "anyOf": [
+              {
+                "maximum": 5,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Relevance Grade"
+          },
+          "reusable": {
+            "items": {
+              "$ref": "#/components/schemas/ReusableItem"
+            },
+            "maxItems": 12,
+            "title": "Reusable",
+            "type": "array"
+          },
+          "concerns": {
+            "items": {
+              "$ref": "#/components/schemas/Concern"
+            },
+            "maxItems": 8,
+            "title": "Concerns",
+            "type": "array"
+          },
+          "card": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaperCard"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
           }
         },
         "required": [
@@ -26966,6 +28523,223 @@
           "observed_decision_events"
         ],
         "title": "ScreeningPage"
+      },
+      "ScreeningQueuePage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ScreeningQueueRow"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "items",
+          "offset",
+          "limit",
+          "total"
+        ],
+        "title": "ScreeningQueuePage"
+      },
+      "ScreeningQueueRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "protocol_version_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Protocol Version Id",
+            "type": "string"
+          },
+          "stage": {
+            "enum": [
+              "TITLE_ABSTRACT",
+              "FULL_TEXT"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "sort": {
+            "default": "ATTENTION",
+            "enum": [
+              "GRADE",
+              "ATTENTION",
+              "TITLE"
+            ],
+            "title": "Sort",
+            "type": "string"
+          },
+          "offset": {
+            "default": 0,
+            "maximum": 1000000,
+            "minimum": 0,
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "default": 20,
+            "maximum": 50,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "protocol_version_id",
+          "stage"
+        ],
+        "title": "ScreeningQueueRequest",
+        "type": "object"
+      },
+      "ScreeningQueueRow": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "run_state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "PREPARED",
+                  "RUNNING",
+                  "PAUSED",
+                  "WAITING_PROVIDER",
+                  "BILLING_UNKNOWN",
+                  "COMPLETE",
+                  "PARTIAL",
+                  "FAILED",
+                  "CANCELLED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run State"
+          },
+          "run_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Reason"
+          },
+          "artifact_version_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifact Version Id"
+          },
+          "review_state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "UNREVIEWED",
+                  "APPROVED",
+                  "CORRECTED",
+                  "REJECTED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review State"
+          },
+          "artifact_available": {
+            "type": "boolean",
+            "title": "Artifact Available"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScreeningOutput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "human": {
+            "items": {
+              "$ref": "#/components/schemas/ScreeningDecision"
+            },
+            "type": "array",
+            "title": "Human"
+          },
+          "conflict": {
+            "type": "boolean",
+            "title": "Conflict"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "source_id",
+          "title",
+          "year",
+          "run_id",
+          "run_state",
+          "run_reason",
+          "artifact_version_id",
+          "review_state",
+          "artifact_available",
+          "output",
+          "human",
+          "conflict"
+        ],
+        "title": "ScreeningQueueRow"
       },
       "ScreeningRecord": {
         "properties": {
@@ -32076,6 +33850,37 @@
           }
         ]
       },
+      "AdoptCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "research.screening.adopt",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreeningAdopt"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "AdoptCommand",
+        "type": "object"
+      },
       "ArtifactReadCommand": {
         "additionalProperties": false,
         "properties": {
@@ -32184,6 +33989,107 @@
           "offset"
         ],
         "title": "ArtifactVersionsCommand",
+        "type": "object"
+      },
+      "BatchControlCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "research.batch.control",
+            "title": "Op",
+            "type": "string"
+          },
+          "batch_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreeningBatchControl"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "batch_id",
+          "request"
+        ],
+        "title": "BatchControlCommand",
+        "type": "object"
+      },
+      "BatchPrepareCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "research.batch.prepare",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreeningBatchPrepare"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "BatchPrepareCommand",
+        "type": "object"
+      },
+      "BatchReadCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "research.batch.read",
+            "title": "Op",
+            "type": "string"
+          },
+          "batch_id": {
+            "pattern": "^[a-f0-9]{32}$",
+            "title": "Batch Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "batch_id"
+        ],
+        "title": "BatchReadCommand",
         "type": "object"
       },
       "NoteApproveCommand": {
@@ -32382,6 +34288,37 @@
         "title": "ProtocolWriteCommand",
         "type": "object"
       },
+      "QueueCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "notebook_id": {
+            "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+            "title": "Notebook Id",
+            "type": "string"
+          },
+          "snapshot_id": {
+            "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+            "title": "Snapshot Id",
+            "type": "string"
+          },
+          "op": {
+            "const": "research.queue",
+            "title": "Op",
+            "type": "string"
+          },
+          "request": {
+            "$ref": "#/components/schemas/ScreeningQueueRequest"
+          }
+        },
+        "required": [
+          "notebook_id",
+          "snapshot_id",
+          "op",
+          "request"
+        ],
+        "title": "QueueCommand",
+        "type": "object"
+      },
       "ResearchControlCommand": {
         "additionalProperties": false,
         "properties": {
@@ -32436,7 +34373,8 @@
             "enum": [
               "research.protocols",
               "research.runs",
-              "research.notes.list"
+              "research.notes.list",
+              "research.batch.list"
             ],
             "title": "Op",
             "type": "string"
@@ -32599,6 +34537,10 @@
         "discriminator": {
           "mapping": {
             "research.artifact": "#/components/schemas/ArtifactReadCommand",
+            "research.batch.control": "#/components/schemas/BatchControlCommand",
+            "research.batch.list": "#/components/schemas/ResearchListCommand",
+            "research.batch.prepare": "#/components/schemas/BatchPrepareCommand",
+            "research.batch.read": "#/components/schemas/BatchReadCommand",
             "research.control": "#/components/schemas/ResearchControlCommand",
             "research.notes.approve": "#/components/schemas/NoteApproveCommand",
             "research.notes.list": "#/components/schemas/ResearchListCommand",
@@ -32610,10 +34552,12 @@
             "research.protocol.read": "#/components/schemas/ProtocolReadCommand",
             "research.protocol.write": "#/components/schemas/ProtocolWriteCommand",
             "research.protocols": "#/components/schemas/ResearchListCommand",
+            "research.queue": "#/components/schemas/QueueCommand",
             "research.review": "#/components/schemas/ArtifactReviewCommand",
             "research.run": "#/components/schemas/ResearchRunCommand",
             "research.runs": "#/components/schemas/ResearchListCommand",
             "research.screening": "#/components/schemas/ScreeningReadCommand",
+            "research.screening.adopt": "#/components/schemas/AdoptCommand",
             "research.screening.decide": "#/components/schemas/ScreeningWriteCommand",
             "research.versions": "#/components/schemas/ArtifactVersionsCommand"
           },
@@ -32664,6 +34608,21 @@
           },
           {
             "$ref": "#/components/schemas/NotePublishCommand"
+          },
+          {
+            "$ref": "#/components/schemas/BatchPrepareCommand"
+          },
+          {
+            "$ref": "#/components/schemas/BatchReadCommand"
+          },
+          {
+            "$ref": "#/components/schemas/BatchControlCommand"
+          },
+          {
+            "$ref": "#/components/schemas/QueueCommand"
+          },
+          {
+            "$ref": "#/components/schemas/AdoptCommand"
           }
         ]
       },

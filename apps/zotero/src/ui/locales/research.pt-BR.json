@@ -145,5 +145,108 @@
   "temperature": "Temperatura",
   "seed": "Semente",
   "numCtx": "Contexto do Ollama",
-  "saved": "Salvo"
+  "saved": "Salvo",
+  "project": "Seu projeto",
+  "projectHelp": "Descreva o trabalho que você está desenvolvendo. A triagem julga cada estudo em relação a ele.",
+  "projectDescription": "Descrição do projeto",
+  "projectMethods": "Métodos que você usa (um por linha)",
+  "projectData": "Dados que você usa (um por linha)",
+  "projectConstraints": "Restrições (uma por linha)",
+  "seeking": "O que você procura",
+  "reuseKinds": {
+    "METHOD": "Método",
+    "DATASET": "Conjunto de dados",
+    "BASELINE": "Baseline",
+    "METRIC": "Métrica",
+    "CODE": "Código",
+    "ARGUMENT": "Argumento",
+    "FINDING": "Achado",
+    "OTHER": "Outro"
+  },
+  "rubric": "Rubrica de relevância",
+  "rubricHelp": "Graus explícitos de 0 a 5. Com rubrica, a triagem propõe veredito por critério, grau, itens aproveitáveis e, no texto completo, a ficha do artigo. Sem rubrica, a triagem mantém o formato anterior.",
+  "rubricDefault": "Usar rubrica sugerida",
+  "rubricSuggested": [
+    [
+      "Fora do escopo",
+      "Não contribui para o projeto."
+    ],
+    [
+      "Contexto",
+      "Útil apenas como contexto ou motivação."
+    ],
+    [
+      "Componente útil",
+      "Traz método, dado, baseline, métrica, código ou argumento aproveitável."
+    ],
+    [
+      "Central",
+      "Diretamente comparável ou essencial ao projeto."
+    ]
+  ],
+  "grade": "Grau",
+  "gradeLabel": "Rótulo",
+  "gradeDefinition": "Definição",
+  "addGrade": "Adicionar grau",
+  "relevance": "Relevância",
+  "gradeNone": "Sem grau: informação insuficiente",
+  "verdicts": "Critérios",
+  "MET": "Atende",
+  "NOT_MET": "Não atende",
+  "UNCLEAR": "Sem informação suficiente",
+  "reusable": "O que aproveitar",
+  "use": "Como usar",
+  "concerns": "Por que pode não servir",
+  "card": "Ficha do artigo",
+  "summary": "Resumo",
+  "contributions": "Contribuições",
+  "strengths": "Pontos fortes",
+  "cardLimitations": "Limitações",
+  "questions": "Perguntas sugeridas",
+  "openEvidence": "Abrir evidência",
+  "relevanceInvalid": "Com rubrica: um veredito por critério aplicável; Atende e Não atende exigem evidência; a decisão precisa ser coerente com os vereditos; ficar sem grau só é possível com Incerto.",
+  "triage": "Triagem de relevância em lote",
+  "triageHelp": "Cada estudo recebe uma execução própria, com prévia inspecionável. Um único início envia os estudos em sequência. A IA só propõe; nada vira decisão sem você.",
+  "selection": "Estudos",
+  "selectionAll": "Todos os estudos do caderno",
+  "selectionNotExcluded": "Todos, exceto os excluídos por revisores humanos no título/resumo",
+  "prepareBatch": "Preparar lote",
+  "startBatch": "Iniciar lote",
+  "cancelBatch": "Cancelar lote",
+  "batch": "Lote",
+  "batchRuns": "Execuções preparadas",
+  "batchSkipped": "Estudos sem envio",
+  "skipReasons": {
+    "NO_CONTENT": "sem texto indexado nesta etapa",
+    "HUMAN_EXCLUDED": "excluído por revisor humano",
+    "SOURCE_REVOKED": "fora do escopo atual"
+  },
+  "estimateTotal": "Entrada estimada somada (bytes como tokens)",
+  "outputTotal": "Saída máxima somada",
+  "batchReasons": {
+    "PREPARED_RUN_STALE": "O perfil do provedor mudou (por exemplo, pausa por limite de taxa). Retome o provedor e prepare novamente os pendentes.",
+    "RUN_BILLING_UNKNOWN": "Uma chamada ficou com cobrança incerta e não será reenviada. Reconheça-a na execução antes de seguir.",
+    "RUN_WAITING_PROVIDER": "O provedor pediu espera.",
+    "RUN_PAUSED": "Uma execução foi pausada.",
+    "ENGINE_INTERRUPTED": "O engine foi interrompido.",
+    "RUN_BUSY": "Outro gerador está ativo.",
+    "USER_CANCELLED": "Cancelado por você."
+  },
+  "reprepare": "Preparar novamente os pendentes",
+  "queue": "Fila de triagem",
+  "sort": "Ordenar por",
+  "sorts": {
+    "ATTENTION": "Precisa de atenção",
+    "GRADE": "Grau de relevância",
+    "TITLE": "Título"
+  },
+  "aiProposal": "Proposta da IA",
+  "humanDecisions": "Decisões humanas",
+  "noProposal": "Sem proposta",
+  "unavailable": "Proposta indisponível: a evidência preparada mudou ou foi revogada.",
+  "approveAdopt": "Aprovar e registrar decisão",
+  "adopt": "Registrar decisão a partir do parecer revisado",
+  "inspect": "Examinar ou corrigir",
+  "adopted": "Decisão registrada.",
+  "approvedInQueue": "Aprovado na fila de triagem."
 }

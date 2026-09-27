@@ -4,13 +4,20 @@ from pydantic import Field
 
 from evidra.domain.documents import DocumentCommandScope
 from evidra.extraction.models import Id, Write
-from evidra.research.execution import ArtifactReview, ResearchControl, ResearchPrepare
-from evidra.research.models import ProtocolWrite, ScreeningWrite
+from evidra.research.execution import (
+    ArtifactReview,
+    ResearchControl,
+    ResearchPrepare,
+    ScreeningBatchControl,
+    ScreeningBatchPrepare,
+    ScreeningQueueRequest,
+)
+from evidra.research.models import ProtocolWrite, ScreeningAdopt, ScreeningWrite
 from evidra.research.notes import NoteApproval, NotePreviewWrite
 
 
 class ResearchListCommand(DocumentCommandScope):
-    op: Literal["research.protocols", "research.runs", "research.notes.list"]
+    op: Literal["research.protocols", "research.runs", "research.notes.list", "research.batch.list"]
     offset: int = Field(ge=0, le=1_000_000)
 
 
@@ -89,6 +96,32 @@ class NotePublishCommand(DocumentCommandScope):
     request: Write
 
 
+class BatchPrepareCommand(DocumentCommandScope):
+    op: Literal["research.batch.prepare"]
+    request: ScreeningBatchPrepare
+
+
+class BatchReadCommand(DocumentCommandScope):
+    op: Literal["research.batch.read"]
+    batch_id: Id
+
+
+class BatchControlCommand(DocumentCommandScope):
+    op: Literal["research.batch.control"]
+    batch_id: Id
+    request: ScreeningBatchControl
+
+
+class QueueCommand(DocumentCommandScope):
+    op: Literal["research.queue"]
+    request: ScreeningQueueRequest
+
+
+class AdoptCommand(DocumentCommandScope):
+    op: Literal["research.screening.adopt"]
+    request: ScreeningAdopt
+
+
 # No renderer command exposes begin/ack, HTML, native paths or arbitrary note IDs.
 ResearchCommand = Annotated[
     ResearchListCommand
@@ -105,6 +138,11 @@ ResearchCommand = Annotated[
     | NotePreviewCommand
     | NoteApproveCommand
     | NoteReadCommand
-    | NotePublishCommand,
+    | NotePublishCommand
+    | BatchPrepareCommand
+    | BatchReadCommand
+    | BatchControlCommand
+    | QueueCommand
+    | AdoptCommand,
     Field(discriminator="op"),
 ]

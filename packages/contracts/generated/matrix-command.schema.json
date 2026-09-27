@@ -394,7 +394,7 @@
           "items": {
             "maxLength": 100,
             "minLength": 1,
-            "pattern": "^[^\"]*\\S[^\"]*$",
+            "pattern": "^[^\"]*[^\"\\s][^\"]*$",
             "type": "string"
           },
           "maxItems": 20,

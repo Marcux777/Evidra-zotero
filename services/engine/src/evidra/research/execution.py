@@ -6,7 +6,13 @@ from evidra.domain.documents import Evidence
 from evidra.domain.sources import SourceAccess, SourceIdentity
 from evidra.extraction.models import Id, Key, MatrixCell, SourceId, Text, Write
 from evidra.providers.models import OllamaOptions, ProviderProfile, SchemaPlan, StrictModel
-from evidra.research.models import ProtocolVersion, ScreeningChoice, Stage
+from evidra.research.models import (
+    ProtocolVersion,
+    ReuseKind,
+    ScreeningChoice,
+    ScreeningDecision,
+    Stage,
+)
 
 ResearchKind = Literal["SCREENING", "SYNTHESIS", "AUDIT"]
 SupportState = Literal[
@@ -48,12 +54,55 @@ class ResearchPrepare(Write):
         return self
 
 
+class CriterionVerdict(StrictModel):
+    criterion_id: Key
+    verdict: Literal["MET", "NOT_MET", "UNCLEAR"]
+    evidence_ids: list[SourceId] = Field(default_factory=list, max_length=6)
+
+
+class ReusableItem(StrictModel):
+    """Something the researcher's project could adopt, and how, with its anchor."""
+
+    kind: ReuseKind
+    text: Text
+    use: Text
+    evidence_ids: list[SourceId] = Field(min_length=1, max_length=6)
+
+
+class AnchoredPoint(StrictModel):
+    text: Text
+    evidence_ids: list[SourceId] = Field(min_length=1, max_length=6)
+
+
+class Concern(StrictModel):
+    """Why the study may not serve this project; anchors are optional for absences."""
+
+    text: Text
+    evidence_ids: list[SourceId] = Field(default_factory=list, max_length=6)
+
+
+class PaperCard(StrictModel):
+    """Source guide generated with full-text screening; every point is a proposal."""
+
+    summary: Text
+    contributions: list[AnchoredPoint] = Field(max_length=8)
+    strengths: list[AnchoredPoint] = Field(max_length=8)
+    limitations: list[AnchoredPoint] = Field(max_length=8)
+    questions: list[Text] = Field(max_length=5)
+
+
 class ScreeningOutput(StrictModel):
     kind: Literal["SCREENING"]
     decision: ScreeningChoice
     criterion_ids: list[Key] = Field(min_length=1, max_length=30)
     evidence_ids: list[SourceId] = Field(max_length=12)
     rationale: Text
+    # Relevance triage (protocols with a rubric). Empty on screenings made without one.
+    verdicts: list[CriterionVerdict] = Field(default_factory=list, max_length=30)
+    relevance_grade: int | None = Field(default=None, ge=0, le=5)
+    reusable: list[ReusableItem] = Field(default_factory=list, max_length=12)
+    concerns: list[Concern] = Field(default_factory=list, max_length=8)
+    card: PaperCard | None = None
 
 
 class SynthesisSection(StrictModel):
@@ -124,7 +173,9 @@ class ResearchCoverage(StrictModel):
     evidence_chunks: int
     candidate_chunks: int
     complete: bool = False
-    reason: Literal["MATRIX_COVERAGE", "STAGE_EXCERPTS_ONLY", "RETRIEVED_CHUNKS_ONLY"]
+    reason: Literal[
+        "MATRIX_COVERAGE", "STAGE_EXCERPTS_ONLY", "RETRIEVED_CHUNKS_ONLY", "DIRECTED_EXCERPTS"
+    ]
 
 
 class ResearchInputs(StrictModel):
@@ -228,6 +279,97 @@ class ArtifactReview(Write):
 
 class ArtifactPage(StrictModel):
     items: list[ArtifactVersion]
+    offset: int
+    limit: int
+    total: int
+
+
+class ScreeningBatchPrepare(Write):
+    """One consent for sequential screening: each study gets its own inspectable run."""
+
+    protocol_version_id: Id
+    profile_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,100}$")
+    stage: Stage
+    question: Text
+    # NOT_HUMAN_EXCLUDED skips studies every human reviewer excluded at title/abstract.
+    selection: Literal["ALL", "NOT_HUMAN_EXCLUDED"] = "ALL"
+    source_ids: list[SourceId] | None = Field(default=None, min_length=1, max_length=1000)
+    context_tokens: int = Field(default=32768, ge=1024, le=1_000_000)
+    max_output_tokens: int = Field(default=4096, ge=1, le=32768)
+    ollama_options: OllamaOptions | None = None
+
+
+class ScreeningBatchItem(StrictModel):
+    source_id: str
+    title: str
+    run_id: str | None
+    # NO_CONTENT, HUMAN_EXCLUDED or the preparation error code; no model call was made.
+    skipped: str | None = None
+
+
+BatchState = Literal["PREPARED", "RUNNING", "PAUSED", "COMPLETE", "CANCELLED"]
+
+
+class ScreeningBatch(StrictModel):
+    id: str
+    notebook_id: str
+    snapshot_id: str
+    revision: int
+    protocol_version_id: str
+    stage: Stage
+    profile_id: str
+    state: BatchState = "PREPARED"
+    reason: str | None = None
+    items: list[ScreeningBatchItem]
+    estimated_input_tokens: int
+    max_output_tokens: int
+    created_at: str
+
+
+class ScreeningBatchView(StrictModel):
+    batch: ScreeningBatch
+    # Current state of every prepared run, counted from the run records themselves.
+    run_states: dict[str, int]
+
+
+class ScreeningBatchPage(StrictModel):
+    items: list[ScreeningBatch]
+    offset: int
+    limit: int
+    total: int
+
+
+class ScreeningBatchControl(Write):
+    action: Literal["start", "cancel"]
+    expected_revision: int = Field(ge=0)
+
+
+class ScreeningQueueRequest(StrictModel):
+    protocol_version_id: Id
+    stage: Stage
+    sort: Literal["GRADE", "ATTENTION", "TITLE"] = "ATTENTION"
+    offset: int = Field(default=0, ge=0, le=1_000_000)
+    limit: int = Field(default=20, ge=1, le=50)
+
+
+class ScreeningQueueRow(StrictModel):
+    source_id: str
+    title: str
+    year: int | None
+    run_id: str | None
+    run_state: ResearchState | None
+    run_reason: str | None
+    # Latest artifact version; content is omitted when its prepared evidence no longer verifies.
+    artifact_version_id: str | None
+    review_state: Literal["UNREVIEWED", "APPROVED", "CORRECTED", "REJECTED"] | None
+    artifact_available: bool
+    output: ScreeningOutput | None
+    human: list[ScreeningDecision]
+    conflict: bool
+
+
+class ScreeningQueuePage(StrictModel):
+    items: list[ScreeningQueueRow]
     offset: int
     limit: int
     total: int

@@ -65,6 +65,7 @@ def test_v6_migration_preserves_existing_synthetic_notebook_and_evidence(tmp_pat
         # The historical v6 fixture predates the v8 job startup/recovery subsystem.
         patch.setattr("evidra.api.app.JobQueue", Mock())
         patch.setattr("evidra.api.app.ResearchService", Mock(return_value=Mock(close=AsyncMock())))
+        patch.setattr("evidra.api.app.TriageService", Mock(return_value=Mock(close=AsyncMock())))
         app = make_app(tmp_path, [0.0])
         with TestClient(app, base_url="http://127.0.0.1:49200") as client:
             notebook, _, _ = indexed(client)

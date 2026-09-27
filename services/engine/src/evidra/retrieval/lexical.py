@@ -5,13 +5,15 @@ from typing import Literal
 
 from evidra.documents.chunking import normalize
 from evidra.domain.documents import SearchHit, SearchPage, SearchRequest
+from evidra.domain.errors import EvidraError
 from evidra.domain.sources import content_version
 from evidra.evidence.service import EvidenceService
 from evidra.scope.service import ScopeContext
 
 WORD = re.compile(r"[^\W_]+", flags=re.UNICODE)
 PHRASE = re.compile(r'"([^"]*)"')
-MAX_TERMS = 32
+# Explicit bound on distinct terms/phrases; longer queries are refused, never truncated.
+MAX_TERMS = 64
 # Function words of the two interface languages. A natural-language question keeps only
 # its content terms; the original query text is never altered or used as FTS syntax.
 STOPWORDS = frozenset(
@@ -30,21 +32,28 @@ STOPWORDS = frozenset(
 )
 
 
-def fts_query(text: str, match: Literal["any", "all"] = "any") -> str:
-    """Return FTS5 syntax built only from quoted Unicode word tokens and quoted phrases.
-
-    `any` ranks chunks containing any content term by BM25, so a natural question retrieves
-    passages sharing its rare terms. `all` requires every content term and phrase. Stopwords
-    are dropped unless the query has no other term.
-    """
+def query_parts(text: str) -> list[str]:
+    """Distinct quoted phrases and content words; stopwords only when nothing else remains."""
     normalized = normalize(text)[0]
     phrases = [WORD.findall(p) for p in PHRASE.findall(normalized)]
     words = WORD.findall(PHRASE.sub(" ", normalized))
     content = [w for w in words if w not in STOPWORDS] or words
-    parts = [" ".join(p) for p in phrases if p] + content
-    unique = list(dict.fromkeys(parts))[:MAX_TERMS]
+    return list(dict.fromkeys([" ".join(p) for p in phrases if p] + content))
+
+
+def fts_query(text: str, match: Literal["any", "all"] = "any") -> str:
+    """Return FTS5 syntax built only from quoted Unicode word tokens and quoted phrases.
+
+    `any` ranks chunks containing any content term by BM25, so a natural question retrieves
+    passages sharing its rare terms. `all` requires every content term and phrase.
+    """
+    parts = query_parts(text)
+    if len(parts) > MAX_TERMS:
+        raise EvidraError(
+            "QUERY_TOO_COMPLEX", f"Use at most {MAX_TERMS} distinct search terms or phrases."
+        )
     joiner = " AND " if match == "all" else " OR "
-    return joiner.join('"' + part.replace('"', '""') + '"' for part in unique)
+    return joiner.join('"' + part.replace('"', '""') + '"' for part in parts)
 
 
 class LexicalSearch:

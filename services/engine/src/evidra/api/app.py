@@ -38,6 +38,7 @@ from evidra.notebooks.snapshots import SnapshotService
 from evidra.providers.registry import ProviderRegistry
 from evidra.research.planner import ResearchPlanner
 from evidra.research.service import ResearchService
+from evidra.research.triage import TriageService
 from evidra.retrieval.lexical import LexicalSearch
 from evidra.retrieval.vectors import VectorSearch
 from evidra.scope.service import ScopeService
@@ -69,6 +70,7 @@ class Services:
     protocols: ProtocolService
     screening: ScreeningService
     research: ResearchService
+    triage: TriageService
     outbox: OutboxService
     mcp: ConnectionService
     external_notes: ExternalNoteService
@@ -85,6 +87,7 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
         vectors = None
         job_worker = None
         research = None
+        triage = None
         try:
             session = BridgeSession(settings)
             scopes = ScopeService(database, session)
@@ -102,6 +105,8 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             protocols = ProtocolService(forms)
             research = ResearchService(ResearchPlanner(protocols, matrix, lexical), providers)
             external_notes = ExternalNoteService(evidence)
+            screening = ScreeningService(protocols)
+            triage = TriageService(research, screening)
             app.state.services = Services(
                 database,
                 session,
@@ -121,8 +126,9 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
                 jobs,
                 job_worker,
                 protocols,
-                ScreeningService(protocols),
+                screening,
                 research,
+                triage,
                 OutboxService(research, external_notes),
                 ConnectionService(scopes),
                 external_notes,
@@ -130,6 +136,8 @@ def create_app(settings: RuntimeSettings) -> FastAPI:
             )
             yield
         finally:
+            if triage is not None:
+                await triage.close()
             if research is not None:
                 await research.close()
             if job_worker is not None:

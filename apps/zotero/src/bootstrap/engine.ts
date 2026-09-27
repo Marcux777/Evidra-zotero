@@ -34,17 +34,20 @@ function allowedEngineRoute(method: string, path: string): boolean {
         || method === 'GET' && (documentPath === '/mcp/connections' && limit === '20'
             || documentPath === '/mcp/notes' && limit === '1'))) return true;
     if (documentPath && (method === 'POST' && !page && (
-        ['/protocols', '/screening/decisions', '/research/runs', '/notes/previews', '/notes/approve'].includes(documentPath)
+        ['/protocols', '/screening/decisions', '/research/runs', '/notes/previews', '/notes/approve',
+            '/triage/batches', '/triage/queue', '/triage/adopt'].includes(documentPath)
+        || /^\/triage\/batches\/[a-f0-9]{32}\/control$/.test(documentPath)
         || /^\/research\/runs\/[a-f0-9]{32}\/control$/.test(documentPath)
         || /^\/artifacts\/[a-f0-9]{32}\/review$/.test(documentPath)
         || /^\/notes\/outbox\/[a-f0-9]{32}\/(begin|ack)$/.test(documentPath))
         || method === 'GET' && (
             (documentPath === '/protocols' || documentPath === '/notes/outbox'
                 || /^\/artifacts\/[a-f0-9]{32}\/versions$/.test(documentPath)) && limit === '1'
-            || (documentPath === '/research/runs' || /^\/screening\/[a-f0-9]{32}$/.test(documentPath)
+            || (documentPath === '/research/runs' || documentPath === '/triage/batches' || /^\/screening\/[a-f0-9]{32}$/.test(documentPath)
                 || /^\/research\/runs\/[a-f0-9]{32}\/access$/.test(documentPath)) && limit === '20'
             || !page && (/^\/protocols\/[a-f0-9]{32}$/.test(documentPath)
                 || /^\/research\/runs\/[a-f0-9]{32}(\/preview)?$/.test(documentPath)
+                || /^\/triage\/batches\/[a-f0-9]{32}$/.test(documentPath)
                 || /^\/artifacts\/[a-f0-9]{32}$/.test(documentPath)
                 || /^\/notes\/outbox\/[a-f0-9]{32}$/.test(documentPath))))) return true;
     if (documentPath && (method === 'POST' && !page && (

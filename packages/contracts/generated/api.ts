@@ -1439,6 +1439,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Batches */
+        get: operations["batches_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_get"];
+        put?: never;
+        /** Prepare Batch */
+        post: operations["prepare_batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches/{batch_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Batch */
+        get: operations["batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/batches/{batch_id}/control": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Batch Control */
+        post: operations["batch_control_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__control_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Triage Queue */
+        post: operations["triage_queue_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_queue_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/triage/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adopt */
+        post: operations["adopt_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_adopt_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/notebooks/{notebook_id}/snapshots/{snapshot_id}/mcp/connections": {
         parameters: {
             query?: never;
@@ -1972,6 +2058,13 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnchoredPoint */
+        AnchoredPoint: {
+            /** Text */
+            text: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+        };
         /** Answer */
         Answer: {
             /** Claims */
@@ -2391,6 +2484,16 @@ export interface components {
             /** Evidence */
             evidence: components["schemas"]["Citation"][];
         };
+        /**
+         * Concern
+         * @description Why the study may not serve this project; anchors are optional for absences.
+         */
+        Concern: {
+            /** Text */
+            text: string;
+            /** Evidence Ids */
+            evidence_ids?: string[];
+        };
         /** ConnectionCreate */
         ConnectionCreate: {
             /** Idempotency Key */
@@ -2660,6 +2763,18 @@ export interface components {
              * @enum {string}
              */
             applicability: "TITLE_ABSTRACT" | "FULL_TEXT" | "BOTH";
+        };
+        /** CriterionVerdict */
+        CriterionVerdict: {
+            /** Criterion Id */
+            criterion_id: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "MET" | "NOT_MET" | "UNCLEAR";
+            /** Evidence Ids */
+            evidence_ids?: string[];
         };
         /** DecisionPage */
         DecisionPage: {
@@ -4305,6 +4420,22 @@ export interface components {
             idempotency_key: string;
             limits?: components["schemas"]["ParserLimits"];
         };
+        /**
+         * PaperCard
+         * @description Source guide generated with full-text screening; every point is a proposal.
+         */
+        PaperCard: {
+            /** Summary */
+            summary: string;
+            /** Contributions */
+            contributions: components["schemas"]["AnchoredPoint"][];
+            /** Strengths */
+            strengths: components["schemas"]["AnchoredPoint"][];
+            /** Limitations */
+            limitations: components["schemas"]["AnchoredPoint"][];
+            /** Questions */
+            questions: string[];
+        };
         /** ParserLimits */
         ParserLimits: {
             /**
@@ -4577,6 +4708,22 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
         };
+        /**
+         * ProjectContext
+         * @description The researcher's own work, against which relevance and reuse are judged.
+         */
+        ProjectContext: {
+            /** Description */
+            description: string;
+            /** Methods */
+            methods?: string[];
+            /** Data */
+            data?: string[];
+            /** Constraints */
+            constraints?: string[];
+            /** Seeking */
+            seeking?: ("METHOD" | "DATASET" | "BASELINE" | "METRIC" | "CODE" | "ARGUMENT" | "FINDING" | "OTHER")[];
+        };
         /** ProposalPage */
         ProposalPage: {
             /** Items */
@@ -4721,6 +4868,9 @@ export interface components {
             author: string;
             /** Created At */
             created_at: string;
+            project?: components["schemas"]["ProjectContext"] | null;
+            /** Rubric */
+            rubric?: components["schemas"]["RubricLevel"][];
         };
         /** ProtocolWrite */
         ProtocolWrite: {
@@ -4741,6 +4891,10 @@ export interface components {
             criteria: components["schemas"]["Criterion"][];
             /** Expected Revision */
             expected_revision: number;
+            /** @default null */
+            project: components["schemas"]["ProjectContext"] | null;
+            /** Rubric */
+            rubric?: components["schemas"]["RubricLevel"][];
         };
         /** ProviderProfile */
         ProviderProfile: {
@@ -4902,7 +5056,7 @@ export interface components {
              * Reason
              * @enum {string}
              */
-            reason: "MATRIX_COVERAGE" | "STAGE_EXCERPTS_ONLY" | "RETRIEVED_CHUNKS_ONLY";
+            reason: "MATRIX_COVERAGE" | "STAGE_EXCERPTS_ONLY" | "RETRIEVED_CHUNKS_ONLY" | "DIRECTED_EXCERPTS";
         };
         /** ResearchHistoryRecord */
         ResearchHistoryRecord: {
@@ -5129,10 +5283,39 @@ export interface components {
             /** Idempotency Key */
             idempotency_key: string;
         };
+        /**
+         * ReusableItem
+         * @description Something the researcher's project could adopt, and how, with its anchor.
+         */
+        ReusableItem: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "METHOD" | "DATASET" | "BASELINE" | "METRIC" | "CODE" | "ARGUMENT" | "FINDING" | "OTHER";
+            /** Text */
+            text: string;
+            /** Use */
+            use: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+        };
         /** Revocation */
         Revocation: {
             /** Expected Revision */
             expected_revision: number;
+        };
+        /**
+         * RubricLevel
+         * @description One explicit relevance grade; the only rule by which studies may be ordered.
+         */
+        RubricLevel: {
+            /** Grade */
+            grade: number;
+            /** Label */
+            label: string;
+            /** Definition */
+            definition: string;
         };
         /** RunAccess */
         RunAccess: {
@@ -5293,6 +5476,140 @@ export interface components {
              */
             mode: "native" | "local_validation" | "none";
         };
+        /**
+         * ScreeningAdopt
+         * @description Record a human screening decision from an APPROVED/CORRECTED screening artifact.
+         */
+        ScreeningAdopt: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Artifact Version Id */
+            artifact_version_id: string;
+            /** Reviewer */
+            reviewer: string;
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** ScreeningBatch */
+        ScreeningBatch: {
+            /** Id */
+            id: string;
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /** Revision */
+            revision: number;
+            /** Protocol Version Id */
+            protocol_version_id: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "TITLE_ABSTRACT" | "FULL_TEXT";
+            /** Profile Id */
+            profile_id: string;
+            /**
+             * State
+             * @default PREPARED
+             * @enum {string}
+             */
+            state: "PREPARED" | "RUNNING" | "PAUSED" | "COMPLETE" | "CANCELLED";
+            /** Reason */
+            reason?: string | null;
+            /** Items */
+            items: components["schemas"]["ScreeningBatchItem"][];
+            /** Estimated Input Tokens */
+            estimated_input_tokens: number;
+            /** Max Output Tokens */
+            max_output_tokens: number;
+            /** Created At */
+            created_at: string;
+        };
+        /** ScreeningBatchControl */
+        ScreeningBatchControl: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "start" | "cancel";
+            /** Expected Revision */
+            expected_revision: number;
+        };
+        /** ScreeningBatchItem */
+        ScreeningBatchItem: {
+            /** Source Id */
+            source_id: string;
+            /** Title */
+            title: string;
+            /** Run Id */
+            run_id: string | null;
+            /** Skipped */
+            skipped?: string | null;
+        };
+        /** ScreeningBatchPage */
+        ScreeningBatchPage: {
+            /** Items */
+            items: components["schemas"]["ScreeningBatch"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * ScreeningBatchPrepare
+         * @description One consent for sequential screening: each study gets its own inspectable run.
+         */
+        ScreeningBatchPrepare: {
+            /** Idempotency Key */
+            idempotency_key: string;
+            /** Protocol Version Id */
+            protocol_version_id: string;
+            /** Profile Id */
+            profile_id: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "TITLE_ABSTRACT" | "FULL_TEXT";
+            /** Question */
+            question: string;
+            /**
+             * Selection
+             * @default ALL
+             * @enum {string}
+             */
+            selection: "ALL" | "NOT_HUMAN_EXCLUDED";
+            /**
+             * Source Ids
+             * @default null
+             */
+            source_ids: string[] | null;
+            /**
+             * Context Tokens
+             * @default 32768
+             */
+            context_tokens: number;
+            /**
+             * Max Output Tokens
+             * @default 4096
+             */
+            max_output_tokens: number;
+            /** @default null */
+            ollama_options: components["schemas"]["OllamaOptions"] | null;
+        };
+        /** ScreeningBatchView */
+        ScreeningBatchView: {
+            batch: components["schemas"]["ScreeningBatch"];
+            /** Run States */
+            run_states: {
+                [key: string]: number;
+            };
+        };
         /** ScreeningDecision */
         ScreeningDecision: {
             /** Id */
@@ -5325,6 +5642,8 @@ export interface components {
             author: string;
             /** Created At */
             created_at: string;
+            /** Adopted Artifact Version Id */
+            adopted_artifact_version_id?: string | null;
         };
         /** ScreeningOutput */
         ScreeningOutput: {
@@ -5344,6 +5663,19 @@ export interface components {
             evidence_ids: string[];
             /** Rationale */
             rationale: string;
+            /** Verdicts */
+            verdicts?: components["schemas"]["CriterionVerdict"][];
+            /**
+             * Relevance Grade
+             * @default null
+             */
+            relevance_grade: number | null;
+            /** Reusable */
+            reusable?: components["schemas"]["ReusableItem"][];
+            /** Concerns */
+            concerns?: components["schemas"]["Concern"][];
+            /** @default null */
+            card: components["schemas"]["PaperCard"] | null;
         };
         /** ScreeningPage */
         ScreeningPage: {
@@ -5363,6 +5695,69 @@ export interface components {
             observed_decision_events: number;
             /** Historical Search Count */
             historical_search_count?: null;
+        };
+        /** ScreeningQueuePage */
+        ScreeningQueuePage: {
+            /** Items */
+            items: components["schemas"]["ScreeningQueueRow"][];
+            /** Offset */
+            offset: number;
+            /** Limit */
+            limit: number;
+            /** Total */
+            total: number;
+        };
+        /** ScreeningQueueRequest */
+        ScreeningQueueRequest: {
+            /** Protocol Version Id */
+            protocol_version_id: string;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "TITLE_ABSTRACT" | "FULL_TEXT";
+            /**
+             * Sort
+             * @default ATTENTION
+             * @enum {string}
+             */
+            sort: "GRADE" | "ATTENTION" | "TITLE";
+            /**
+             * Offset
+             * @default 0
+             */
+            offset: number;
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+        };
+        /** ScreeningQueueRow */
+        ScreeningQueueRow: {
+            /** Source Id */
+            source_id: string;
+            /** Title */
+            title: string;
+            /** Year */
+            year: number | null;
+            /** Run Id */
+            run_id: string | null;
+            /** Run State */
+            run_state: ("PREPARED" | "RUNNING" | "PAUSED" | "WAITING_PROVIDER" | "BILLING_UNKNOWN" | "COMPLETE" | "PARTIAL" | "FAILED" | "CANCELLED") | null;
+            /** Run Reason */
+            run_reason: string | null;
+            /** Artifact Version Id */
+            artifact_version_id: string | null;
+            /** Review State */
+            review_state: ("UNREVIEWED" | "APPROVED" | "CORRECTED" | "REJECTED") | null;
+            /** Artifact Available */
+            artifact_available: boolean;
+            output: components["schemas"]["ScreeningOutput"] | null;
+            /** Human */
+            human: components["schemas"]["ScreeningDecision"][];
+            /** Conflict */
+            conflict: boolean;
         };
         /** ScreeningRecord */
         ScreeningRecord: {
@@ -7147,6 +7542,19 @@ export interface components {
             request: components["schemas"]["JobWrite"];
         };
         JobCommand: components["schemas"]["JobListCommand"] | components["schemas"]["JobWriteCommand"] | components["schemas"]["JobReadCommand"] | components["schemas"]["JobAccessCommand"] | components["schemas"]["JobUnitsCommand"] | components["schemas"]["JobPreviewCommand"] | components["schemas"]["JobControlCommand"] | components["schemas"]["JobCacheCommand"];
+        /** AdoptCommand */
+        AdoptCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "research.screening.adopt";
+            request: components["schemas"]["ScreeningAdopt"];
+        };
         /** ArtifactReadCommand */
         ArtifactReadCommand: {
             /** Notebook Id */
@@ -7191,6 +7599,48 @@ export interface components {
             version_id: string;
             /** Offset */
             offset: number;
+        };
+        /** BatchControlCommand */
+        BatchControlCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "research.batch.control";
+            /** Batch Id */
+            batch_id: string;
+            request: components["schemas"]["ScreeningBatchControl"];
+        };
+        /** BatchPrepareCommand */
+        BatchPrepareCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "research.batch.prepare";
+            request: components["schemas"]["ScreeningBatchPrepare"];
+        };
+        /** BatchReadCommand */
+        BatchReadCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "research.batch.read";
+            /** Batch Id */
+            batch_id: string;
         };
         /** NoteApproveCommand */
         NoteApproveCommand: {
@@ -7274,6 +7724,19 @@ export interface components {
             op: "research.protocol.write";
             request: components["schemas"]["ProtocolWrite"];
         };
+        /** QueueCommand */
+        QueueCommand: {
+            /** Notebook Id */
+            notebook_id: string;
+            /** Snapshot Id */
+            snapshot_id: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            op: "research.queue";
+            request: components["schemas"]["ScreeningQueueRequest"];
+        };
         /** ResearchControlCommand */
         ResearchControlCommand: {
             /** Notebook Id */
@@ -7299,7 +7762,7 @@ export interface components {
              * @description discriminator enum property added by openapi-typescript
              * @enum {string}
              */
-            op: "research.notes.list" | "research.protocols" | "research.runs";
+            op: "research.batch.list" | "research.notes.list" | "research.protocols" | "research.runs";
             /** Offset */
             offset: number;
         };
@@ -7359,7 +7822,7 @@ export interface components {
             op: "research.screening.decide";
             request: components["schemas"]["ScreeningWrite"];
         };
-        ResearchCommand: components["schemas"]["ResearchListCommand"] | components["schemas"]["ProtocolWriteCommand"] | components["schemas"]["ProtocolReadCommand"] | components["schemas"]["ScreeningReadCommand"] | components["schemas"]["ScreeningWriteCommand"] | components["schemas"]["ResearchPrepareCommand"] | components["schemas"]["ResearchRunCommand"] | components["schemas"]["ResearchControlCommand"] | components["schemas"]["ArtifactReadCommand"] | components["schemas"]["ArtifactVersionsCommand"] | components["schemas"]["ArtifactReviewCommand"] | components["schemas"]["NotePreviewCommand"] | components["schemas"]["NoteApproveCommand"] | components["schemas"]["NoteReadCommand"] | components["schemas"]["NotePublishCommand"];
+        ResearchCommand: components["schemas"]["ResearchListCommand"] | components["schemas"]["ProtocolWriteCommand"] | components["schemas"]["ProtocolReadCommand"] | components["schemas"]["ScreeningReadCommand"] | components["schemas"]["ScreeningWriteCommand"] | components["schemas"]["ResearchPrepareCommand"] | components["schemas"]["ResearchRunCommand"] | components["schemas"]["ResearchControlCommand"] | components["schemas"]["ArtifactReadCommand"] | components["schemas"]["ArtifactVersionsCommand"] | components["schemas"]["ArtifactReviewCommand"] | components["schemas"]["NotePreviewCommand"] | components["schemas"]["NoteApproveCommand"] | components["schemas"]["NoteReadCommand"] | components["schemas"]["NotePublishCommand"] | components["schemas"]["BatchPrepareCommand"] | components["schemas"]["BatchReadCommand"] | components["schemas"]["BatchControlCommand"] | components["schemas"]["QueueCommand"] | components["schemas"]["AdoptCommand"];
         /** ConnectionWrite */
         ConnectionWrite: {
             /** Idempotency Key */
@@ -16968,6 +17431,597 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApprovedWriteOutbox"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    batches_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_get: {
+        parameters: {
+            query?: {
+                offset?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningBatchPage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    prepare_batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreeningBatchPrepare"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningBatchView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    batch_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningBatchView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    batch_control_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_batches__batch_id__control_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+                batch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreeningBatchControl"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningBatchView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    triage_queue_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_queue_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreeningQueueRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningQueuePage"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    adopt_v1_notebooks__notebook_id__snapshots__snapshot_id__triage_adopt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notebook_id: string;
+                snapshot_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScreeningAdopt"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScreeningDecision"];
                 };
             };
             /** @description Unauthorized */

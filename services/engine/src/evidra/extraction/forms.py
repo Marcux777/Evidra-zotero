@@ -3,6 +3,8 @@ import secrets
 import sqlite3
 from datetime import UTC, datetime
 
+from pydantic import ValidationError
+
 from evidra.domain.errors import EvidraError
 from evidra.extraction.models import FieldDefinition, FieldKind, FormPage, FormVersion, FormWrite
 from evidra.providers.models import StrictModel
@@ -21,6 +23,17 @@ def now() -> str:
 
 def fingerprint(body: StrictModel) -> str:
     return json.dumps(body.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
+
+
+def same_request(stored: str, body: StrictModel) -> bool:
+    """Idempotent replay check. A request persisted before optional fields existed still
+    matches the same request once re-parsed by the current contract; changes still conflict."""
+    if stored == fingerprint(body):
+        return True
+    try:
+        return fingerprint(type(body).model_validate_json(stored)) == fingerprint(body)
+    except ValidationError:
+        return False
 
 
 def computing_template() -> list[FieldDefinition]:
@@ -156,7 +169,7 @@ class FormService:
                 (context.notebook_id, body.idempotency_key),
             ).fetchone()
             if old:
-                if old["request"] != fingerprint(body):
+                if not same_request(old["request"], body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Form request changed.")
                 return FormVersion.model_validate_json(old["payload"])
             revision = conn.execute(

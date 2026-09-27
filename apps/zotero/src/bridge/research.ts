@@ -20,5 +20,11 @@ export function researchCommand(message: Exclude<ResearchCommand, { op: 'researc
         case 'research.notes.approve': return request('POST', '/notes/approve', message.request);
         case 'research.notes.read': return request('GET', `/notes/outbox/${message.intent_id}`);
         case 'research.notes.list': return request('GET', `/notes/outbox?offset=${message.offset}&limit=1`);
+        case 'research.batch.list': return request('GET', `/triage/batches?offset=${message.offset}&limit=20`);
+        case 'research.batch.prepare': return request('POST', '/triage/batches', message.request);
+        case 'research.batch.read': return request('GET', `/triage/batches/${message.batch_id}`);
+        case 'research.batch.control': return request('POST', `/triage/batches/${message.batch_id}/control`, message.request);
+        case 'research.queue': return request('POST', '/triage/queue', message.request);
+        case 'research.screening.adopt': return request('POST', '/triage/adopt', message.request);
     }
 }

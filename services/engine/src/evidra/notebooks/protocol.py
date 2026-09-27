@@ -2,7 +2,7 @@ import secrets
 import sqlite3
 
 from evidra.domain.errors import EvidraError
-from evidra.extraction.forms import FormService, author, fingerprint, now
+from evidra.extraction.forms import FormService, author, fingerprint, now, same_request
 from evidra.research.models import ProtocolPage, ProtocolVersion, ProtocolWrite
 from evidra.scope.service import ScopeContext
 
@@ -51,7 +51,7 @@ class ProtocolService:
                 (context.notebook_id, body.idempotency_key),
             ).fetchone()
             if old:
-                if old["request"] != fingerprint(body):
+                if not same_request(old["request"], body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Protocol request changed.")
                 return ProtocolVersion.model_validate_json(old["payload"])
             revision = conn.execute(

@@ -4,6 +4,7 @@ import type { ArtifactVersion, ProfilePage, ProtocolVersion, ProviderProfile, Re
 import { catalog } from './i18n';
 import { Protocol } from './Protocol';
 import { Screening } from './Screening';
+import { Triage, type TriageSettings } from './Triage';
 import { ResearchArtifact } from './ResearchArtifact';
 import { NoteOutbox } from './NotePreview';
 import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope } from './research-actions';
@@ -46,12 +47,14 @@ export function Research(props: ResearchScope & { profilesEpoch: number }) {
         if (current()) setPage(result);
     }
     useEffect(() => { if (open) actions.read(async current => { await loadProfiles(current); if (current()) await loadSources(0, current); if (current()) await loadRuns(0, current); }); }, [open, profilesEpoch]);
-    function inspect(value: ResearchRun) {
-        display(value); setPreview(null); setArtifact(null);
+    function inspect(value: ResearchRun | string) {
+        const id = typeof value === 'string' ? value : value.id;
+        if (typeof value !== 'string') display(value);
+        setPreview(null); setArtifact(null);
         actions.read(async current => {
-            const latest = await bridge.request({ op: 'research.run', ...scope, run_id: value.id }) as ResearchRun;
+            const latest = await bridge.request({ op: 'research.run', ...scope, run_id: id }) as ResearchRun;
             if (!current()) return; display(latest);
-            const next = await bridge.request({ op: 'research.preview', ...scope, run_id: value.id }) as ResearchPreview;
+            const next = await bridge.request({ op: 'research.preview', ...scope, run_id: id }) as ResearchPreview;
             if (!current()) return; setPreview(next);
             if (latest.artifact_version_id) {
                 const result = await bridge.request({ op: 'research.artifact', ...scope, version_id: latest.artifact_version_id }) as ArtifactVersion;
@@ -94,6 +97,10 @@ export function Research(props: ResearchScope & { profilesEpoch: number }) {
                 seed: seed ? Number(seed) : null, think: think ? think === 'on' : null } : null,
         } }, value => { setPreview(null); setArtifact(null); display(value); setInspectRequested(value.id); });
     }
+    const ollama = provider?.adapter === 'ollama' ? { num_ctx: numCtx ? Number(numCtx) : null, temperature: temperature ? Number(temperature) : null,
+        seed: seed ? Number(seed) : null, think: think ? think === 'on' : null } : null;
+    const triage: TriageSettings | null = provider && numberValid(context, 1024, 1000000) && numberValid(output, 1, 32768)
+        ? { profile_id: profileId, context_tokens: Number(context), max_output_tokens: Number(output), ollama_options: ollama } : null;
     function control(action: ResearchControl['action']) {
         if (run) actions.write({ op: 'research.control', ...scope, run_id: run.id,
             request: { action, expected_revision: run.revision, idempotency_key: researchKey() } }, display, action === 'cancel');
@@ -108,6 +115,7 @@ export function Research(props: ResearchScope & { profilesEpoch: number }) {
                 <button type="button" disabled={!sources || sources.offset + sources.limit >= sources.total} onClick={() => actions.read(c => loadSources(sources!.offset + sources!.limit, c))}>{t.next}</button></div>
         </fieldset>
         {protocol ? <Screening key={protocol.id} {...props} protocol={protocol} source={source}/> : <p>{t.noProtocol}</p>}
+        {protocol && <Triage key={'triage-' + protocol.id} {...props} protocol={protocol} question={question} settings={triage} onInspect={inspect}/>}
         <fieldset disabled={actions.locked}><legend>{t.prepare}</legend>
             <label>{t.kind}<select value={kind} onChange={e => setKind(e.target.value as typeof kind)}>{(['SCREENING', 'SYNTHESIS', 'AUDIT'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>
             {kind === 'SCREENING' && <label>{t.stage}<select value={stage ?? 'TITLE_ABSTRACT'} onChange={e => setStage(e.target.value as typeof stage)}>{(['TITLE_ABSTRACT', 'FULL_TEXT'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>}

@@ -145,5 +145,108 @@
   "temperature": "Temperature",
   "seed": "Seed",
   "numCtx": "Ollama context",
-  "saved": "Saved"
+  "saved": "Saved",
+  "project": "Your project",
+  "projectHelp": "Describe the work you are developing. Screening judges each study against it.",
+  "projectDescription": "Project description",
+  "projectMethods": "Methods you use (one per line)",
+  "projectData": "Data you use (one per line)",
+  "projectConstraints": "Constraints (one per line)",
+  "seeking": "What you are looking for",
+  "reuseKinds": {
+    "METHOD": "Method",
+    "DATASET": "Dataset",
+    "BASELINE": "Baseline",
+    "METRIC": "Metric",
+    "CODE": "Code",
+    "ARGUMENT": "Argument",
+    "FINDING": "Finding",
+    "OTHER": "Other"
+  },
+  "rubric": "Relevance rubric",
+  "rubricHelp": "Explicit grades from 0 to 5. With a rubric, screening proposes a verdict per criterion, a grade, reusable items and, for full text, the paper card. Without one, screening keeps its previous form.",
+  "rubricDefault": "Use suggested rubric",
+  "rubricSuggested": [
+    [
+      "Out of scope",
+      "Does not contribute to the project."
+    ],
+    [
+      "Context",
+      "Useful only as context or motivation."
+    ],
+    [
+      "Useful component",
+      "Offers a reusable method, data, baseline, metric, code or argument."
+    ],
+    [
+      "Core",
+      "Directly comparable or essential to the project."
+    ]
+  ],
+  "grade": "Grade",
+  "gradeLabel": "Label",
+  "gradeDefinition": "Definition",
+  "addGrade": "Add grade",
+  "relevance": "Relevance",
+  "gradeNone": "No grade: insufficient information",
+  "verdicts": "Criteria",
+  "MET": "Met",
+  "NOT_MET": "Not met",
+  "UNCLEAR": "Insufficient information",
+  "reusable": "What to reuse",
+  "use": "How to use it",
+  "concerns": "Why it may not serve",
+  "card": "Paper card",
+  "summary": "Summary",
+  "contributions": "Contributions",
+  "strengths": "Strengths",
+  "cardLimitations": "Limitations",
+  "questions": "Suggested questions",
+  "openEvidence": "Open evidence",
+  "relevanceInvalid": "With a rubric: one verdict per applicable criterion; Met and Not met need evidence; the decision must agree with the verdicts; only Uncertain may omit the grade.",
+  "triage": "Batch relevance screening",
+  "triageHelp": "Each study gets its own run with an inspectable preview. One start sends the studies in sequence. The model only proposes; nothing becomes a decision without you.",
+  "selection": "Studies",
+  "selectionAll": "All notebook studies",
+  "selectionNotExcluded": "All except those human reviewers excluded at title/abstract",
+  "prepareBatch": "Prepare batch",
+  "startBatch": "Start batch",
+  "cancelBatch": "Cancel batch",
+  "batch": "Batch",
+  "batchRuns": "Prepared runs",
+  "batchSkipped": "Studies not sent",
+  "skipReasons": {
+    "NO_CONTENT": "no indexed text for this stage",
+    "HUMAN_EXCLUDED": "excluded by a human reviewer",
+    "SOURCE_REVOKED": "outside the current scope"
+  },
+  "estimateTotal": "Summed input estimate (bytes as tokens)",
+  "outputTotal": "Summed maximum output",
+  "batchReasons": {
+    "PREPARED_RUN_STALE": "The provider profile changed (for example, a rate-limit pause). Resume the provider and prepare the pending studies again.",
+    "RUN_BILLING_UNKNOWN": "A call has uncertain billing and will not be resent. Acknowledge it on its run before continuing.",
+    "RUN_WAITING_PROVIDER": "The provider asked to wait.",
+    "RUN_PAUSED": "A run was paused.",
+    "ENGINE_INTERRUPTED": "The engine was interrupted.",
+    "RUN_BUSY": "Another generator is active.",
+    "USER_CANCELLED": "Cancelled by you."
+  },
+  "reprepare": "Prepare pending studies again",
+  "queue": "Screening queue",
+  "sort": "Sort by",
+  "sorts": {
+    "ATTENTION": "Needs attention",
+    "GRADE": "Relevance grade",
+    "TITLE": "Title"
+  },
+  "aiProposal": "Model proposal",
+  "humanDecisions": "Human decisions",
+  "noProposal": "No proposal",
+  "unavailable": "Proposal unavailable: its prepared evidence changed or was revoked.",
+  "approveAdopt": "Approve and record decision",
+  "adopt": "Record decision from reviewed proposal",
+  "inspect": "Inspect or correct",
+  "adopted": "Decision recorded.",
+  "approvedInQueue": "Approved in the screening queue."
 }

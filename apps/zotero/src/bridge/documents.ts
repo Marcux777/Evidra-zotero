@@ -39,8 +39,11 @@ export class DocumentBridge {
         const prefix = `/v1/notebooks/${message.notebook_id}/snapshots/${message.snapshot_id}`;
         if (message.op === 'mcp.revoke' || message.op === 'mcp.connections')
             return mcpCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
+        // Status-only research reads and non-start controls never wait for native revalidation.
         if (message.op === 'research.run' || message.op === 'research.runs'
-            || message.op === 'research.control' && message.request.action !== 'start')
+            || message.op === 'research.batch.read' || message.op === 'research.batch.list'
+            || message.op === 'research.control' && message.request.action !== 'start'
+            || message.op === 'research.batch.control' && message.request.action !== 'start')
             return researchCommand(message, (method, path, body) => this.engine.request(method, prefix + path, body));
         // Scoped status-only cancellation must not queue behind native content revalidation.
         if (message.op === 'conversation.cancel' || message.op === 'conversation.vectors.cancel')

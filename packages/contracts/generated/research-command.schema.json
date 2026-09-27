@@ -1,5 +1,64 @@
 {
   "$defs": {
+    "AdoptCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.screening.adopt",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ScreeningAdopt"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "AdoptCommand",
+      "type": "object"
+    },
+    "AnchoredPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "evidence_ids"
+      ],
+      "title": "AnchoredPoint",
+      "type": "object"
+    },
     "ArtifactReadCommand": {
       "additionalProperties": false,
       "properties": {
@@ -322,6 +381,134 @@
       "title": "AuditReference",
       "type": "object"
     },
+    "BatchControlCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.batch.control",
+          "title": "Op",
+          "type": "string"
+        },
+        "batch_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ScreeningBatchControl"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "batch_id",
+        "request"
+      ],
+      "title": "BatchControlCommand",
+      "type": "object"
+    },
+    "BatchPrepareCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.batch.prepare",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ScreeningBatchPrepare"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "BatchPrepareCommand",
+      "type": "object"
+    },
+    "BatchReadCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.batch.read",
+          "title": "Op",
+          "type": "string"
+        },
+        "batch_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Batch Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "batch_id"
+      ],
+      "title": "BatchReadCommand",
+      "type": "object"
+    },
+    "Concern": {
+      "additionalProperties": false,
+      "description": "Why the study may not serve this project; anchors are optional for absences.",
+      "properties": {
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "Concern",
+      "type": "object"
+    },
     "Criterion": {
       "additionalProperties": false,
       "properties": {
@@ -362,6 +549,40 @@
         "applicability"
       ],
       "title": "Criterion",
+      "type": "object"
+    },
+    "CriterionVerdict": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion_id": {
+          "pattern": "^[a-z][a-z0-9_]{0,63}$",
+          "title": "Criterion Id",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "MET",
+            "NOT_MET",
+            "UNCLEAR"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "criterion_id",
+        "verdict"
+      ],
+      "title": "CriterionVerdict",
       "type": "object"
     },
     "NoteApproval": {
@@ -627,6 +848,132 @@
       "title": "OllamaOptions",
       "type": "object"
     },
+    "PaperCard": {
+      "additionalProperties": false,
+      "description": "Source guide generated with full-text screening; every point is a proposal.",
+      "properties": {
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Summary",
+          "type": "string"
+        },
+        "contributions": {
+          "items": {
+            "$ref": "#/$defs/AnchoredPoint"
+          },
+          "maxItems": 8,
+          "title": "Contributions",
+          "type": "array"
+        },
+        "strengths": {
+          "items": {
+            "$ref": "#/$defs/AnchoredPoint"
+          },
+          "maxItems": 8,
+          "title": "Strengths",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "$ref": "#/$defs/AnchoredPoint"
+          },
+          "maxItems": 8,
+          "title": "Limitations",
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 5,
+          "title": "Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary",
+        "contributions",
+        "strengths",
+        "limitations",
+        "questions"
+      ],
+      "title": "PaperCard",
+      "type": "object"
+    },
+    "ProjectContext": {
+      "additionalProperties": false,
+      "description": "The researcher's own work, against which relevance and reuse are judged.",
+      "properties": {
+        "description": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Description",
+          "type": "string"
+        },
+        "methods": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Methods",
+          "type": "array"
+        },
+        "data": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Data",
+          "type": "array"
+        },
+        "constraints": {
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "pattern": "\\S",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Constraints",
+          "type": "array"
+        },
+        "seeking": {
+          "items": {
+            "enum": [
+              "METHOD",
+              "DATASET",
+              "BASELINE",
+              "METRIC",
+              "CODE",
+              "ARGUMENT",
+              "FINDING",
+              "OTHER"
+            ],
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Seeking",
+          "type": "array"
+        }
+      },
+      "required": [
+        "description"
+      ],
+      "title": "ProjectContext",
+      "type": "object"
+    },
     "ProtocolReadCommand": {
       "additionalProperties": false,
       "properties": {
@@ -709,6 +1056,25 @@
           "minimum": 0,
           "title": "Expected Revision",
           "type": "integer"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectContext"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/RubricLevel"
+          },
+          "maxItems": 6,
+          "title": "Rubric",
+          "type": "array"
         }
       },
       "required": [
@@ -752,6 +1118,37 @@
         "request"
       ],
       "title": "ProtocolWriteCommand",
+      "type": "object"
+    },
+    "QueueCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "notebook_id": {
+          "pattern": "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
+          "title": "Notebook Id",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "op": {
+          "const": "research.queue",
+          "title": "Op",
+          "type": "string"
+        },
+        "request": {
+          "$ref": "#/$defs/ScreeningQueueRequest"
+        }
+      },
+      "required": [
+        "notebook_id",
+        "snapshot_id",
+        "op",
+        "request"
+      ],
+      "title": "QueueCommand",
       "type": "object"
     },
     "ResearchControl": {
@@ -840,7 +1237,8 @@
           "enum": [
             "research.protocols",
             "research.runs",
-            "research.notes.list"
+            "research.notes.list",
+            "research.batch.list"
           ],
           "title": "Op",
           "type": "string"
@@ -1045,6 +1443,257 @@
       "title": "ResearchRunCommand",
       "type": "object"
     },
+    "ReusableItem": {
+      "additionalProperties": false,
+      "description": "Something the researcher's project could adopt, and how, with its anchor.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "METHOD",
+            "DATASET",
+            "BASELINE",
+            "METRIC",
+            "CODE",
+            "ARGUMENT",
+            "FINDING",
+            "OTHER"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Text",
+          "type": "string"
+        },
+        "use": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Use",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "text",
+        "use",
+        "evidence_ids"
+      ],
+      "title": "ReusableItem",
+      "type": "object"
+    },
+    "RubricLevel": {
+      "additionalProperties": false,
+      "description": "One explicit relevance grade; the only rule by which studies may be ordered.",
+      "properties": {
+        "grade": {
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Grade",
+          "type": "integer"
+        },
+        "label": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Label",
+          "type": "string"
+        },
+        "definition": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Definition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "grade",
+        "label",
+        "definition"
+      ],
+      "title": "RubricLevel",
+      "type": "object"
+    },
+    "ScreeningAdopt": {
+      "additionalProperties": false,
+      "description": "Record a human screening decision from an APPROVED/CORRECTED screening artifact.",
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "artifact_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Artifact Version Id",
+          "type": "string"
+        },
+        "reviewer": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "artifact_version_id",
+        "reviewer",
+        "expected_revision"
+      ],
+      "title": "ScreeningAdopt",
+      "type": "object"
+    },
+    "ScreeningBatchControl": {
+      "additionalProperties": false,
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "start",
+            "cancel"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "action",
+        "expected_revision"
+      ],
+      "title": "ScreeningBatchControl",
+      "type": "object"
+    },
+    "ScreeningBatchPrepare": {
+      "additionalProperties": false,
+      "description": "One consent for sequential screening: each study gets its own inspectable run.",
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "protocol_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Version Id",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,100}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "TITLE_ABSTRACT",
+            "FULL_TEXT"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Question",
+          "type": "string"
+        },
+        "selection": {
+          "default": "ALL",
+          "enum": [
+            "ALL",
+            "NOT_HUMAN_EXCLUDED"
+          ],
+          "title": "Selection",
+          "type": "string"
+        },
+        "source_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string"
+              },
+              "maxItems": 1000,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Ids"
+        },
+        "context_tokens": {
+          "default": 32768,
+          "maximum": 1000000,
+          "minimum": 1024,
+          "title": "Context Tokens",
+          "type": "integer"
+        },
+        "max_output_tokens": {
+          "default": 4096,
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "ollama_options": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OllamaOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "idempotency_key",
+        "protocol_version_id",
+        "profile_id",
+        "stage",
+        "question"
+      ],
+      "title": "ScreeningBatchPrepare",
+      "type": "object"
+    },
     "ScreeningOutput": {
       "additionalProperties": false,
       "properties": {
@@ -1087,6 +1736,55 @@
           "pattern": "\\S",
           "title": "Rationale",
           "type": "string"
+        },
+        "verdicts": {
+          "items": {
+            "$ref": "#/$defs/CriterionVerdict"
+          },
+          "maxItems": 30,
+          "title": "Verdicts",
+          "type": "array"
+        },
+        "relevance_grade": {
+          "anyOf": [
+            {
+              "maximum": 5,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relevance Grade"
+        },
+        "reusable": {
+          "items": {
+            "$ref": "#/$defs/ReusableItem"
+          },
+          "maxItems": 12,
+          "title": "Reusable",
+          "type": "array"
+        },
+        "concerns": {
+          "items": {
+            "$ref": "#/$defs/Concern"
+          },
+          "maxItems": 8,
+          "title": "Concerns",
+          "type": "array"
+        },
+        "card": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PaperCard"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1097,6 +1795,54 @@
         "rationale"
       ],
       "title": "ScreeningOutput",
+      "type": "object"
+    },
+    "ScreeningQueueRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "protocol_version_id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Protocol Version Id",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "TITLE_ABSTRACT",
+            "FULL_TEXT"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "sort": {
+          "default": "ATTENTION",
+          "enum": [
+            "GRADE",
+            "ATTENTION",
+            "TITLE"
+          ],
+          "title": "Sort",
+          "type": "string"
+        },
+        "offset": {
+          "default": 0,
+          "maximum": 1000000,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "protocol_version_id",
+        "stage"
+      ],
+      "title": "ScreeningQueueRequest",
       "type": "object"
     },
     "ScreeningReadCommand": {
@@ -1371,6 +2117,10 @@
   "discriminator": {
     "mapping": {
       "research.artifact": "#/$defs/ArtifactReadCommand",
+      "research.batch.control": "#/$defs/BatchControlCommand",
+      "research.batch.list": "#/$defs/ResearchListCommand",
+      "research.batch.prepare": "#/$defs/BatchPrepareCommand",
+      "research.batch.read": "#/$defs/BatchReadCommand",
       "research.control": "#/$defs/ResearchControlCommand",
       "research.notes.approve": "#/$defs/NoteApproveCommand",
       "research.notes.list": "#/$defs/ResearchListCommand",
@@ -1382,10 +2132,12 @@
       "research.protocol.read": "#/$defs/ProtocolReadCommand",
       "research.protocol.write": "#/$defs/ProtocolWriteCommand",
       "research.protocols": "#/$defs/ResearchListCommand",
+      "research.queue": "#/$defs/QueueCommand",
       "research.review": "#/$defs/ArtifactReviewCommand",
       "research.run": "#/$defs/ResearchRunCommand",
       "research.runs": "#/$defs/ResearchListCommand",
       "research.screening": "#/$defs/ScreeningReadCommand",
+      "research.screening.adopt": "#/$defs/AdoptCommand",
       "research.screening.decide": "#/$defs/ScreeningWriteCommand",
       "research.versions": "#/$defs/ArtifactVersionsCommand"
     },
@@ -1436,6 +2188,21 @@
     },
     {
       "$ref": "#/$defs/NotePublishCommand"
+    },
+    {
+      "$ref": "#/$defs/BatchPrepareCommand"
+    },
+    {
+      "$ref": "#/$defs/BatchReadCommand"
+    },
+    {
+      "$ref": "#/$defs/BatchControlCommand"
+    },
+    {
+      "$ref": "#/$defs/QueueCommand"
+    },
+    {
+      "$ref": "#/$defs/AdoptCommand"
     }
   ]
 }

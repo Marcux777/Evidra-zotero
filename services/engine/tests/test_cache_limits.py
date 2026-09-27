@@ -16,6 +16,10 @@ def test_derived_lru_budget_preserves_originals_decisions_and_recent_images(tmp_
     from evidra.storage.cache import CacheLimits, prune_derived, remember_preview
 
     monkeypatch.setattr(storage, "SCHEMA_VERSION", 14)
+    # The v14 fixture predates relevance-triage batches (v16).
+    from unittest.mock import AsyncMock, Mock
+
+    monkeypatch.setattr("evidra.api.app.TriageService", Mock(return_value=Mock(close=AsyncMock())))
     app = make_app(tmp_path, [0.0])
     with TestClient(app, base_url="http://127.0.0.1:49200") as client:
         prefix, *_ = decision_fixture(client)

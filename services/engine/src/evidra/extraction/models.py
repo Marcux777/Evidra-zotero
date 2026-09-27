@@ -20,7 +20,8 @@ ValueState = Literal[
 ]
 ReviewState = Literal["UNREVIEWED", "APPROVED", "CORRECTED", "REJECTED"]
 FieldKind = Literal["text", "number", "boolean", "enum", "list", "experimental_result"]
-SearchTerm = Annotated[str, Field(min_length=1, max_length=100, pattern=r'^[^"]*\S[^"]*$')]
+# No quotes anywhere (phrases are formed by the server) and at least one visible character.
+SearchTerm = Annotated[str, Field(min_length=1, max_length=100, pattern=r'^[^"]*[^"\s][^"]*$')]
 
 
 class NumericValue(StrictModel):
@@ -69,6 +70,9 @@ class FieldDefinition(StrictModel):
             self.options
         ):
             raise ValueError("Only enum fields require unique options")
+        # The SEARCH query is built from these terms and must fit the 2,000-character request.
+        if len(" ".join(f'"{t}"' for t in self.search_terms)) > 2000:
+            raise ValueError("Search terms exceed the 2,000-character query limit")
         return self
 
 

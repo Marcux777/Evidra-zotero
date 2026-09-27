@@ -12,11 +12,18 @@ from evidra.research.execution import (
     ResearchPreview,
     ResearchRun,
     ResearchRunPage,
+    ScreeningBatchControl,
+    ScreeningBatchPage,
+    ScreeningBatchPrepare,
+    ScreeningBatchView,
+    ScreeningQueuePage,
+    ScreeningQueueRequest,
 )
 from evidra.research.models import (
     ProtocolPage,
     ProtocolVersion,
     ProtocolWrite,
+    ScreeningAdopt,
     ScreeningDecision,
     ScreeningPage,
     ScreeningWrite,
@@ -217,3 +224,59 @@ def note_ack(
 ) -> ApprovedWriteOutbox:
     service, context = services(request, notebook_id, snapshot_id, commit=True)
     return service.outbox.ack(context, intent_id, body)
+
+
+@router.post("/triage/batches", response_model=ScreeningBatchView, status_code=201)
+def prepare_batch(
+    notebook_id: str, snapshot_id: str, body: ScreeningBatchPrepare, request: Request
+) -> ScreeningBatchView:
+    service, context = services(request, notebook_id, snapshot_id, commit=True)
+    return service.triage.prepare(context, body)
+
+
+@router.get("/triage/batches", response_model=ScreeningBatchPage)
+def batches(
+    notebook_id: str,
+    snapshot_id: str,
+    request: Request,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=20),
+) -> ScreeningBatchPage:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.triage.list(context, offset, limit)
+
+
+@router.get("/triage/batches/{batch_id}", response_model=ScreeningBatchView)
+def batch(
+    notebook_id: str, snapshot_id: str, batch_id: str, request: Request
+) -> ScreeningBatchView:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.triage.read(context, batch_id)
+
+
+@router.post("/triage/batches/{batch_id}/control", response_model=ScreeningBatchView)
+async def batch_control(
+    notebook_id: str,
+    snapshot_id: str,
+    batch_id: str,
+    body: ScreeningBatchControl,
+    request: Request,
+) -> ScreeningBatchView:
+    service, context = services(request, notebook_id, snapshot_id, commit=True)
+    return service.triage.control(context, batch_id, body)
+
+
+@router.post("/triage/queue", response_model=ScreeningQueuePage)
+def triage_queue(
+    notebook_id: str, snapshot_id: str, body: ScreeningQueueRequest, request: Request
+) -> ScreeningQueuePage:
+    service, context = services(request, notebook_id, snapshot_id)
+    return service.triage.queue(context, body)
+
+
+@router.post("/triage/adopt", response_model=ScreeningDecision, status_code=201)
+def adopt(
+    notebook_id: str, snapshot_id: str, body: ScreeningAdopt, request: Request
+) -> ScreeningDecision:
+    service, context = services(request, notebook_id, snapshot_id, commit=True)
+    return service.triage.adopt(context, body)

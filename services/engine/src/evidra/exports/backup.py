@@ -208,9 +208,12 @@ def validate_references(notebook: PortableNotebook) -> None:
             # top-level evidence. A syntactically valid nested quotation is not proof.
             if isinstance(value, Evidence):
                 original = evidences.get(value.id)
-                if original is None or value.model_dump(
-                    exclude={"historical"}
-                ) != original.model_dump(exclude={"historical"}):
+                # Prepared research inputs omit per-character geometry; every other field,
+                # including excerpt, offsets and document hash, must still be identical.
+                ignored = {"historical"} | ({"rectangles"} if not value.rectangles else set())
+                if original is None or value.model_dump(exclude=ignored) != original.model_dump(
+                    exclude=ignored
+                ):
                     raise ValueError("Nested original evidence differs from its immutable record")
             elif isinstance(value, SourceIdentity):
                 if value.source_id not in sources or sources[value.source_id].identity != value:

@@ -480,6 +480,7 @@ def test_v7_to_v8_keeps_human_decisions_and_creates_empty_queue(tmp_path, monkey
         patch.setattr(storage, "SCHEMA_VERSION", 7)
         patch.setattr("evidra.api.app.JobQueue", Mock())
         patch.setattr("evidra.api.app.ResearchService", Mock(return_value=Mock(close=AsyncMock())))
+        patch.setattr("evidra.api.app.TriageService", Mock(return_value=Mock(close=AsyncMock())))
         with TestClient(make_app(tmp_path, [0.0]), base_url="http://127.0.0.1:49200") as client:
             prefix, _, manual = setup(client)
             proposal = client.post(

@@ -153,3 +153,96 @@ def test_full_text_screening_sends_compact_evidence_that_fits_default_context(tm
         # Navigation still reopens the stored geometry by evidence ID.
         again = client.get(prefix + "/evidence/" + evidence[0]["id"], headers=HEADERS).json()
         assert again["rectangles"] and again["precision"] == "rectangles"
+
+
+def test_backup_with_compact_research_inputs_still_imports(tmp_path):
+    """Prepared inputs omit geometry; the backup must still verify them as original."""
+    from test_exports import export, upload
+
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, source_id = indexed_paper(client, tmp_path, pages=2, lines=10)
+        protocol = screening_protocol(client, prefix)
+        profile(client)
+        response = client.post(
+            prefix + "/research/runs",
+            headers=HEADERS,
+            json={
+                "kind": "SCREENING",
+                "protocol_version_id": protocol["id"],
+                "profile_id": "local",
+                "source_id": source_id,
+                "stage": "FULL_TEXT",
+                "question": protocol["question"],
+                "idempotency_key": "full-text",
+            },
+        )
+        assert response.status_code == 201, response.text
+        archive, _, _ = export(client, prefix, "backup")
+        inspected = upload(client, prefix, archive)
+        assert inspected.status_code == 201, inspected.text
+        # Changing any other nested field is still refused.
+        import io
+        import zipfile
+
+        with zipfile.ZipFile(io.BytesIO(archive)) as opened:
+            notebook = json.loads(opened.read("notebook.json"))
+            manifest = opened.read("manifest.json")
+        for record in notebook["records"]:
+            if record["kind"] == "research_preview":
+                record["data"]["inputs"]["evidence"][0]["excerpt"] += " forged"
+        forged = io.BytesIO()
+        with zipfile.ZipFile(forged, "w") as out:
+            out.writestr("manifest.json", manifest)
+            out.writestr("notebook.json", json.dumps(notebook))
+        rejected = upload(client, prefix, forged.getvalue())
+        assert rejected.status_code != 201
+
+
+def test_request_saved_before_new_optional_fields_replays_idempotently(tmp_path):
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, _ = indexed_paper(client, tmp_path, pages=1, lines=2)
+        field = client.get(prefix + "/forms/template", headers=HEADERS).json()[0]
+        field.pop("search_terms")  # a client of the previous contract never sends it
+        body = {"name": "Old", "fields": [field], "expected_revision": 0, "idempotency_key": "f"}
+        first = client.post(prefix + "/forms", headers=HEADERS, json=body)
+        assert first.status_code == 201, first.text
+        # Rewrite the stored request as the previous contract serialized it.
+        with app.state.services.database.transaction() as conn:
+            stored = json.loads(conn.execute("SELECT request FROM form_versions").fetchone()[0])
+            for value in stored["fields"]:
+                value.pop("search_terms")
+            conn.execute(
+                "UPDATE form_versions SET request=?",
+                (json.dumps(stored, sort_keys=True, ensure_ascii=False),),
+            )
+        replay = client.post(prefix + "/forms", headers=HEADERS, json=body)
+        assert replay.status_code == 201 and replay.json()["id"] == first.json()["id"]
+        changed = client.post(prefix + "/forms", headers=HEADERS, json=body | {"name": "Changed"})
+        assert changed.status_code == 409 and changed.json()["code"] == "IDEMPOTENCY_CONFLICT"
+
+
+def test_query_and_search_term_bounds_are_explicit(tmp_path):
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, _ = indexed_paper(client, tmp_path, pages=1, lines=2)
+        many = " ".join(f"term{i}" for i in range(65))
+        for match in ["any", "all"]:
+            refused = client.post(
+                prefix + "/search", headers=HEADERS, json={"query": many, "match": match}
+            )
+            assert refused.status_code == 422 and refused.json()["code"] == "QUERY_TOO_COMPLEX"
+        field = client.get(prefix + "/forms/template", headers=HEADERS).json()[0]
+        for terms in [['alpha"beta'], [" "], ["x" * 99 + str(i) for i in range(20)]]:
+            response = client.post(
+                prefix + "/forms",
+                headers=HEADERS,
+                json={
+                    "name": "Bounds",
+                    "fields": [field | {"search_terms": terms}],
+                    "expected_revision": 0,
+                    "idempotency_key": "bounds-" + str(len(terms)) + terms[0][:3],
+                },
+            )
+            assert response.status_code == 422, (terms[:1], response.text)

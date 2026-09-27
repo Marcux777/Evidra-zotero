@@ -5,6 +5,7 @@ import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope }
 import { NotePreview } from './NotePreview';
 import { ResearchCells, ResearchEvidence } from './ResearchAssociations';
 import { auditReferencesValid, ResearchReference } from './ResearchReferences';
+import { hasRelevance, RelevanceEditor, relevanceValid, RelevanceView } from './Relevance';
 
 export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVersion; preview: ResearchPreview; onChange: (value: ArtifactVersion) => void }) {
     const { artifact, preview, onChange, bridge, notebook_id, snapshot_id, locale } = props;
@@ -12,7 +13,7 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
     const [draft, setDraft] = useState(artifact.output), [rationale, setRationale] = useState('');
     const [history, setHistory] = useState<ArtifactPage | null>(null), [visible, setVisible] = useState(true);
     const actions = useResearchActions(bridge, () => setVisible(false));
-    const label = (key: string) => (t as Record<string, string>)[key] ?? key;
+    const label = (key: string) => { const value = (t as unknown as Record<string, unknown>)[key]; return typeof value === 'string' ? value : key; };
     const output = artifact.output;
     const selectedIds = new Set(output.kind === 'SCREENING' ? output.evidence_ids
         : output.kind === 'SYNTHESIS' ? output.sections.flatMap(section => section.evidence_ids) : output.claims.flatMap(claim => claim.evidence_ids));
@@ -20,7 +21,8 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
     const references = (ids: string[]) => <ResearchEvidence evidence={preview.inputs.evidence.filter(value => ids.includes(value.id))} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence}/>;
     const correctionValid = draft.kind === 'AUDIT' ? draft.claims.every(claim => auditReferencesValid(claim, preview.inputs))
         : draft.kind === 'SYNTHESIS' ? draft.sections.every(section => section.cell_ids.length > 0)
-        : draft.criterion_ids.length > 0 && (draft.decision === 'UNCERTAIN' || draft.evidence_ids.length > 0);
+        : draft.criterion_ids.length > 0 && (draft.decision === 'UNCERTAIN' || draft.evidence_ids.length > 0)
+            && relevanceValid(draft, preview.inputs.protocol, preview.request.stage ?? 'FULL_TEXT');
     if (!visible) return <ResearchFeedback actions={actions} locale={locale}/>;
     async function versions(offset: number, current: () => boolean) {
         const page = await bridge.request({ op: 'research.versions', ...scope, version_id: artifact.id, offset }) as ArtifactPage;
@@ -35,7 +37,8 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
         <ResearchFeedback actions={actions} locale={locale}/>
         <p>{artifact.coverage.complete ? t.complete : t.partial} · {t.studies}: {artifact.coverage.included_studies}/{artifact.coverage.snapshot_members}</p>
         <p>{t.reviewed}: {artifact.coverage.reviewed_cells} · {t.unreviewedCount}: {artifact.coverage.unreviewed_cells} · {t.chunks}: {artifact.coverage.evidence_chunks}/{artifact.coverage.candidate_chunks}</p>
-        {output.kind === 'SCREENING' ? <article><h4>{t[output.decision]}</h4><p>{output.rationale}</p><p>{output.criterion_ids.join(', ')}</p>{references(output.evidence_ids)}</article>
+        {output.kind === 'SCREENING' ? <article><h4>{t[output.decision]}</h4><p>{output.rationale}</p><p>{output.criterion_ids.join(', ')}</p>
+            {hasRelevance(output) && <RelevanceView output={output} protocol={preview.inputs.protocol} locale={locale} busy={actions.locked} onOpen={openEvidence}/>}{references(output.evidence_ids)}</article>
             : output.kind === 'SYNTHESIS' ? <>{output.sections.map((section, i) => <article key={i}><h4>{section.heading}</h4><p>{section.text}</p>
                 <p>{t.basis}: {t[section.basis]}</p><p>{t.comparison}: {section.comparability}</p>
                 <ResearchCells cells={preview.inputs.cells.filter(cell => section.cell_ids.includes(cell.id))} studies={preview.inputs.studies} locale={locale}/>{references(section.evidence_ids)}</article>)}<h4>{t.limitations}</h4>{output.limitations.map((text, i) => <p key={i}>{text}</p>)}</>
@@ -51,7 +54,9 @@ export function ResearchArtifact(props: ResearchScope & { artifact: ArtifactVers
             {draft.kind === 'SCREENING' && <><label>{t.decision}<select value={draft.decision} onChange={e => setDraft({ ...draft, decision: e.target.value as typeof draft.decision })}>{(['INCLUDE', 'EXCLUDE', 'UNCERTAIN'] as const).map(v => <option key={v} value={v}>{t[v]}</option>)}</select></label>
                 <label>{t.rationale}<textarea maxLength={2000} value={draft.rationale} onChange={e => setDraft({ ...draft, rationale: e.target.value })}/></label>
                 <ResearchEvidence evidence={preview.inputs.evidence} studies={preview.inputs.studies} locale={locale} busy={actions.locked} onOpen={openEvidence} selected={draft.evidence_ids} onChange={evidence_ids => setDraft({ ...draft, evidence_ids })}/>
-                {preview.inputs.protocol.criteria.map(c => <label key={c.id}><input type="checkbox" checked={draft.criterion_ids.includes(c.id)} onChange={e => setDraft({ ...draft, criterion_ids: e.target.checked ? [...draft.criterion_ids, c.id] : draft.criterion_ids.filter(id => id !== c.id) })}/>{c.id}: {c.text}</label>)}</>}
+                {preview.inputs.protocol.criteria.map(c => <label key={c.id}><input type="checkbox" checked={draft.criterion_ids.includes(c.id)} onChange={e => setDraft({ ...draft, criterion_ids: e.target.checked ? [...draft.criterion_ids, c.id] : draft.criterion_ids.filter(id => id !== c.id) })}/>{c.id}: {c.text}</label>)}
+                {(preview.inputs.protocol.rubric ?? []).length > 0 && <RelevanceEditor draft={draft} protocol={preview.inputs.protocol} stage={preview.request.stage ?? 'FULL_TEXT'} preview={preview}
+                    locale={locale} busy={actions.locked} onOpen={openEvidence} onChange={setDraft}/>}</>}
             {draft.kind === 'SYNTHESIS' && <>{draft.sections.map((section, i) => <fieldset key={i}><legend>{t.text} {i + 1}</legend>
                 {(['heading', 'text', 'comparability'] as const).map(field => <label key={field}>{field === 'comparability' ? t.comparison : t[field]}<textarea maxLength={2000} value={section[field]} onChange={e => setDraft({ ...draft, sections: draft.sections.map((v, j) => j === i ? { ...v, [field]: e.target.value } : v) })}/></label>)}
                 <ResearchCells cells={preview.inputs.cells} studies={preview.inputs.studies} locale={locale} selected={section.cell_ids} onChange={cell_ids => {

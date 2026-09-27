@@ -17,7 +17,9 @@ class ScreeningService:
     def __init__(self, protocols: ProtocolService) -> None:
         self.protocols, self.scopes = protocols, protocols.scopes
 
-    def decide(self, context: ScopeContext, body: ScreeningWrite) -> ScreeningDecision:
+    def decide(
+        self, context: ScopeContext, body: ScreeningWrite, *, adopted: str | None = None
+    ) -> ScreeningDecision:
         with self.scopes.guarded(context, source_id=body.source_id, capability="commit") as conn:
             protocol = self.protocols.from_connection(conn, context, body.protocol_version_id)
             allowed = {c.id for c in protocol.criteria if c.applicability in ("BOTH", body.stage)}
@@ -55,6 +57,7 @@ class ScreeningService:
                 previous_decision=previous.decision if previous else None,
                 author=author(context),
                 created_at=now(),
+                adopted_artifact_version_id=adopted,
             )
             conn.execute(
                 "INSERT INTO screening_decisions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
