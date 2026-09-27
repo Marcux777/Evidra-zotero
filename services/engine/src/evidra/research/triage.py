@@ -183,7 +183,7 @@ class TriageService:
                 idempotency_key=f"batch:{batch_id}:{source_id}",
             )
             try:
-                if not self.planner.inputs(context, request).evidence:
+                if not self.planner.inputs(context, request, profile).evidence:
                     items.append(
                         ScreeningBatchItem(
                             source_id=source_id,

@@ -596,6 +596,8 @@ def test_full_text_selection_is_directed_and_fits_the_default_context(tmp_path):
         pages = [e["page_index"] for e in prepared["inputs"]["evidence"]]
         assert pages[0] == 0 and pages == sorted(pages)
         assert prepared["estimated_input_tokens"] + 4096 <= 32768
+        # The selection spends the budget the gate admits: less than one more chunk is left.
+        assert 32768 - 4096 - prepared["estimated_input_tokens"] < 4000
         assert "RELEVANCE:" in prepared["schema_plan"]["system"]
 
 

@@ -77,8 +77,8 @@ SECTIONS = re.compile(
     r"\b(conclusions?|limitations?|future work|our contributions?|contributions of this)\b",
     re.IGNORECASE,
 )
-# Compact model evidence: IDs, locators and JSON framing around each excerpt.
-EVIDENCE_OVERHEAD = 400
+# Headroom for coverage digits and separators that change once evidence is chosen.
+SELECTION_MARGIN = 256
 
 
 def relevance(protocol: ProtocolVersion) -> bool:
@@ -181,13 +181,37 @@ def output_schema(
     return model.model_json_schema()
 
 
-def excerpt_budget(body: ResearchPrepare, protocol: ProtocolVersion) -> int:
-    """Bytes left for excerpts after the fixed prompt parts, using the preview's own
-    byte-per-token estimate so selection never plans more than the gate admits."""
+def excerpt_budget(
+    body: ResearchPrepare,
+    protocol: ProtocolVersion,
+    profile: ProviderProfile | None = None,
+    skeleton: int = 0,
+) -> tuple[int, int]:
+    """Bytes left for evidence and the extra bytes each evidence ID adds to the schema.
+
+    Uses the preview's own byte-per-token estimate so selection never plans more than the
+    gate admits. With the destination profile known, the fixed part is the actual schema
+    plan (system text and output schema, as `preview` counts them) plus the exact prompt
+    without evidence, and the per-ID cost is measured on that plan; otherwise a
+    conservative bound reserves the enum for the 40-chunk cap.
+    """
     window = body.context_tokens
     if body.ollama_options and body.ollama_options.num_ctx:
         window = min(window, body.ollama_options.num_ctx)
-    # Selection happens before the evidence IDs exist; allow their enum at the 40-chunk cap.
+    if profile is not None:
+
+        def planned(ids: int) -> int:
+            plan = NativeProvider.plan_schema(
+                profile,
+                system_prompt(protocol, body.kind),
+                output_schema(protocol, body, [f"{i:064x}" for i in range(ids)]),
+            )
+            return len(plan.system.encode()) + len(json.dumps(plan.output_schema).encode())
+
+        one, two = planned(1), planned(2)
+        per_id = two - one
+        fixed = one - per_id + skeleton + 512
+        return max(0, window - body.max_output_tokens - fixed), per_id
     enum = 72 * 40 if body.kind == "SCREENING" and relevance(protocol) else 0
     schema = json.dumps(output_schema(protocol, body)) + " " * enum
     fixed = (
@@ -197,7 +221,7 @@ def excerpt_budget(body: ResearchPrepare, protocol: ProtocolVersion) -> int:
         + len(body.question.encode())
         + 4096  # study identity, access, coverage and framing
     )
-    return max(0, window - body.max_output_tokens - fixed)
+    return max(0, window - body.max_output_tokens - fixed), 0
 
 
 def validate_relevance(
@@ -268,13 +292,49 @@ def model_inputs(inputs: ResearchInputs) -> dict[str, Any]:
     return value
 
 
+def model_prompt(body: ResearchPrepare, inputs: ResearchInputs) -> str:
+    return json.dumps(
+        {
+            "kind": body.kind,
+            "question": body.question,
+            "stage": body.stage,
+            "pasted_text": body.pasted_text,
+            "inputs": model_inputs(inputs),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+
+
+def studies(sources: list[Source]) -> list[ResearchStudy]:
+    return [
+        ResearchStudy(source_id=s.id, identity=s.identity, title=s.title, doi=s.doi, year=s.year)
+        for s in sources
+    ]
+
+
+def accesses(sources: list[Source]) -> list[SourceAccess]:
+    return [
+        SourceAccess(
+            identity=s.identity,
+            contents=[ContentIdentity(key=c.key, kind=c.kind) for c in s.contents],
+        )
+        for s in sources
+    ]
+
+
 class ResearchPlanner:
     def __init__(self, protocols: ProtocolService, matrix: MatrixService, lexical: LexicalSearch):
         self.protocols, self.matrix, self.lexical = protocols, matrix, lexical
         self.evidence, self.scopes = matrix.evidence, matrix.scopes
         self.synthesis = SynthesisService(matrix)
 
-    def inputs(self, context: ScopeContext, body: ResearchPrepare) -> ResearchInputs:
+    def inputs(
+        self,
+        context: ScopeContext,
+        body: ResearchPrepare,
+        profile: ProviderProfile | None = None,
+    ) -> ResearchInputs:
         protocol = self.protocols.read(context, body.protocol_version_id)
         with self.scopes.guarded(context, capability=context.capability) as conn:
             rows = self.scopes.members(conn, context.notebook_id, context.snapshot_id)
@@ -320,11 +380,25 @@ class ResearchPlanner:
                             ).fetchall()
                         )
             candidates = len(chunks)
-            budget = excerpt_budget(body, protocol)
-            evidence = [
-                self.evidence.read(context, identity)
-                for identity in self.directed(context, protocol, body, chunks, budget)
-            ]
+            skeleton = ResearchInputs(
+                protocol=protocol,
+                studies=studies(sources),
+                access=accesses(sources),
+                cells=[],
+                evidence=[],
+                coverage=ResearchCoverage(
+                    snapshot_members=members,
+                    available_studies=len(all_sources),
+                    included_studies=len(sources),
+                    evidence_chunks=0,
+                    candidate_chunks=candidates,
+                    reason="DIRECTED_EXCERPTS",
+                ),
+            )
+            budget, per_id = excerpt_budget(
+                body, protocol, profile, len(model_prompt(body, skeleton).encode())
+            )
+            evidence = self.directed(context, protocol, body, chunks, budget, per_id)
         else:
             with self.scopes.guarded(context, capability=context.capability) as conn:
                 for source in sources:
@@ -346,19 +420,8 @@ class ResearchPlanner:
         evidence = [e.model_copy(update={"rectangles": []}) for e in evidence]
         inputs = ResearchInputs(
             protocol=protocol,
-            studies=[
-                ResearchStudy(
-                    source_id=s.id, identity=s.identity, title=s.title, doi=s.doi, year=s.year
-                )
-                for s in sources
-            ],
-            access=[
-                SourceAccess(
-                    identity=s.identity,
-                    contents=[ContentIdentity(key=c.key, kind=c.kind) for c in s.contents],
-                )
-                for s in sources
-            ],
+            studies=studies(sources),
+            access=accesses(sources),
             cells=cells,
             evidence=evidence,
             coverage=ResearchCoverage(
@@ -396,7 +459,8 @@ class ResearchPlanner:
         body: ResearchPrepare,
         chunks: list[tuple[str, str, str]],
         budget: int,
-    ) -> list[str]:
+        per_id: int = 0,
+    ) -> list[Evidence]:
         """Choose full-text chunks for the criteria within a byte budget, in reading order.
 
         Priority: opening chunks (title/abstract/introduction), explicit contribution,
@@ -404,7 +468,6 @@ class ResearchPlanner:
         and for the question/project, then the remaining text in reading order.
         """
         order = {identity: index for index, (identity, _, _) in enumerate(chunks)}
-        size = {identity: len(text.encode()) + EVIDENCE_OVERHEAD for identity, _, text in chunks}
         versions = list(dict.fromkeys(version for _, version, _ in chunks))
         ranked: list[str] = []
         for version in versions:
@@ -430,16 +493,20 @@ class ResearchPlanner:
                 )
                 ranked.extend(hit.evidence_id for hit in page.items)
         ranked.extend(identity for identity, _, _ in chunks)
-        selected: list[str] = []
-        used = 0
+        selected: list[Evidence] = []
+        used = SELECTION_MARGIN
         for identity in dict.fromkeys(ranked):
             if identity not in order or len(selected) >= 40:
                 continue
-            if selected and used + size[identity] > budget:
+            # Exact bytes this evidence adds to the prompt, plus its schema enum entry.
+            value = self.evidence.read(context, identity).model_copy(update={"rectangles": []})
+            projected = {key: getattr(value, key) for key in MODEL_EVIDENCE_FIELDS}
+            size = len(json.dumps(projected, ensure_ascii=False).encode()) + 2 + per_id
+            if selected and used + size > budget:
                 continue
-            selected.append(identity)
-            used += size[identity]
-        return sorted(selected, key=order.__getitem__)
+            selected.append(value)
+            used += size
+        return sorted(selected, key=lambda e: order[e.id])
 
     def preview(
         self, run_id: str, body: ResearchPrepare, inputs: ResearchInputs, profile: ProviderProfile
@@ -450,17 +517,7 @@ class ResearchPlanner:
             system_prompt(protocol, body.kind),
             output_schema(protocol, body, [e.id for e in inputs.evidence]),
         )
-        prompt = json.dumps(
-            {
-                "kind": body.kind,
-                "question": body.question,
-                "stage": body.stage,
-                "pasted_text": body.pasted_text,
-                "inputs": model_inputs(inputs),
-            },
-            ensure_ascii=False,
-            sort_keys=True,
-        )
+        prompt = model_prompt(body, inputs)
         # Preserve the entire selected matrix input or fail; no silent first-page summarization.
         if len(prompt) > 450000:
             raise EvidraError("BODY_TOO_LARGE", "Exact research input exceeds the bounded prompt.")

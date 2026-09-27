@@ -142,10 +142,10 @@ class ResearchService:
                     conn, context, ResearchPreview.model_validate_json(old["preview"]).inputs
                 )
                 return ResearchRun.model_validate_json(old["payload"])
-        inputs = self.planner.inputs(context, body)
         profile = self.providers.profiles.authorize(
             context, body.profile_id, frozenset({"excerpts", "metadata"})
         )
+        inputs = self.planner.inputs(context, body, profile)
         run = ResearchRun(
             id=secrets.token_hex(16),
             notebook_id=context.notebook_id,
