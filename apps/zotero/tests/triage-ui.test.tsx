@@ -68,12 +68,13 @@ test('triage prepares and starts one batch, shows relevance and adopts only afte
         artifact_available: true, output }), row('2', 'Unscreened study')];
     const view = (state: string, revision: number) => ({ batch: { id: 'c'.repeat(32), notebook_id: scope.notebook_id, snapshot_id: scope.snapshot_id, revision,
         protocol_version_id: protocol.id, stage: 'TITLE_ABSTRACT', profile_id: 'local', state, reason: null, estimated_input_tokens: 1200, max_output_tokens: 4096,
-        created_at: '2026-09-27T00:00:00Z', items: [{ source_id: '2'.repeat(64), title: 'Unscreened study', run_id: '9'.repeat(32), skipped: null },
+        created_at: '2026-09-27T00:00:00Z', destination: 'ollama / qwen3:4b / http://127.0.0.1:11434', mode: 'LOCAL', categories: ['excerpts', 'metadata'], items: [{ source_id: '2'.repeat(64), title: 'Unscreened study', run_id: '9'.repeat(32), skipped: null },
             { source_id: '3'.repeat(64), title: 'No abstract', run_id: null, skipped: 'NO_CONTENT' }] }, run_states: state === 'PREPARED' ? { PREPARED: 1 } : { COMPLETE: 1 } });
     const bridge: any = { request: async (command: any) => {
         expect(parseUiMessage(command)).toEqual(command); commands.push(command);
         switch (command.op) {
             case 'research.queue': return { items: rows, offset: 0, limit: 20, total: rows.length };
+            case 'research.batch.list': return { items: [], offset: 0, limit: 20, total: 0 };
             case 'research.batch.prepare': return view('PREPARED', 0);
             case 'research.batch.control': return view('COMPLETE', 2);
             case 'research.artifact': return { id: 'f'.repeat(32), revision: 1, review_state: 'UNREVIEWED', output };
@@ -97,6 +98,7 @@ test('triage prepares and starts one batch, shows relevance and adopts only afte
     const prepared = commands.find(c => c.op === 'research.batch.prepare');
     expect(prepared.request).toMatchObject({ protocol_version_id: protocol.id, stage: 'TITLE_ABSTRACT', selection: 'ALL', source_ids: null, profile_id: 'local' });
     expect(node.textContent).toContain('Prepared runs: 1');
+    expect(node.textContent).toContain('Destination: ollama / qwen3:4b / http://127.0.0.1:11434 · LOCAL · Content sent: excerpts, metadata');
     expect(node.textContent).toContain('No abstract · no indexed text for this stage');
     expect(commands.filter(c => c.op === 'research.batch.control')).toEqual([]);
     await act(async () => button(node, 'Start batch').click());
@@ -127,4 +129,31 @@ test('client relevance rules mirror the engine so corrections cannot get stuck',
     expect(relevanceValid({ ...output, card: null, verdicts: [{ ...output.verdicts[0], evidence_ids: [] }, output.verdicts[1]] }, protocol, 'TITLE_ABSTRACT')).toBe(false);
     expect(relevanceValid({ kind: 'SCREENING', decision: 'INCLUDE', criterion_ids: ['atari'], evidence_ids: [evidence], rationale: 'x' } as any,
         { ...protocol, rubric: [] }, 'TITLE_ABSTRACT')).toBe(true);
+});
+
+test('reopening the panel recovers the latest persisted batch for the protocol and stage', async () => {
+    const commands: any[] = [];
+    const stored = { id: 'c'.repeat(32), notebook_id: scope.notebook_id, snapshot_id: scope.snapshot_id, revision: 2,
+        protocol_version_id: protocol.id, stage: 'TITLE_ABSTRACT', profile_id: 'other', state: 'PAUSED', reason: 'PREPARED_RUN_STALE',
+        estimated_input_tokens: 10, max_output_tokens: 20, created_at: '2026-09-27T00:00:00Z', items: [],
+        destination: 'openai / gpt / https://api.example', mode: 'API', categories: ['excerpts', 'metadata'] };
+    const bridge: any = { request: async (command: any) => {
+        expect(parseUiMessage(command)).toEqual(command); commands.push(command);
+        switch (command.op) {
+            case 'research.queue': return { items: [], offset: 0, limit: 20, total: 0 };
+            case 'research.batch.list': return { items: [{ ...stored, stage: 'FULL_TEXT', id: 'e'.repeat(32) }, stored], offset: 0, limit: 20, total: 2 };
+            case 'research.batch.read': return { batch: stored, run_states: {} };
+            case 'provider.budget.read': return null;
+        }
+        throw new Error(command.op);
+    } };
+    const settings = { profile_id: 'local', context_tokens: 32768, max_output_tokens: 4096, ollama_options: null };
+    const { node, mount } = render(<Triage bridge={bridge} {...scope} locale="en-US" protocol={protocol} question="Relevant?" settings={settings} onInspect={() => {}}/>);
+    await mount();
+    expect(commands.find(c => c.op === 'research.batch.read').batch_id).toBe('c'.repeat(32));
+    expect(node.textContent).toContain('Batch · Paused');
+    expect(node.textContent).toContain('prepare the pending studies again');
+    expect(node.textContent).toContain('prepared for another profile');
+    expect(node.textContent).toContain('Batch monetary ceiling');
+    expect(button(node, 'Start batch').disabled).toBe(false);
 });

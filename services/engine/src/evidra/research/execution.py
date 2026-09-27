@@ -224,6 +224,8 @@ class ResearchRun(StrictModel):
     checkpointed: bool = False
     artifact_version_id: str | None = None
     created_at: str
+    # Triage batch owning this run; its calls share the batch as their job identity.
+    batch_id: str | None = None
 
 
 class ResearchRunPage(StrictModel):
@@ -324,6 +326,10 @@ class ScreeningBatch(StrictModel):
     estimated_input_tokens: int
     max_output_tokens: int
     created_at: str
+    # Prepared destination and content categories every run of this batch sends.
+    destination: str
+    mode: str
+    categories: list[str]
 
 
 class ScreeningBatchView(StrictModel):

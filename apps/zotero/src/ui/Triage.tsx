@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { ArtifactVersion, ProtocolVersion, ScreeningBatchPrepare, ScreeningBatchView, ScreeningDecision, ScreeningQueuePage, ScreeningQueueRow } from '../bridge/types';
+import type { ArtifactVersion, ProtocolVersion, ScreeningBatchPage, ScreeningBatchPrepare, ScreeningBatchView, ScreeningDecision, ScreeningQueuePage, ScreeningQueueRow } from '../bridge/types';
 import { catalog } from './i18n';
 import { ResearchFeedback, researchKey, useResearchActions, type ResearchScope } from './research-actions';
 import { relevanceOf, RelevanceView } from './Relevance';
@@ -15,6 +15,7 @@ export function Triage(props: ResearchScope & { protocol: ProtocolVersion; quest
     const [stage, setStage] = useState<Stage>('TITLE_ABSTRACT'), [selection, setSelection] = useState<ScreeningBatchPrepare['selection']>('ALL');
     const [batch, setBatch] = useState<ScreeningBatchView | null>(null), [queue, setQueue] = useState<ScreeningQueuePage | null>(null);
     const [sort, setSort] = useState<Sort>('ATTENTION'), [reviewer, setReviewer] = useState(''), [notice, setNotice] = useState('');
+    const [currency, setCurrency] = useState('USD'), [ceiling, setCeiling] = useState(''), [budgetRevision, setBudgetRevision] = useState(0), [budgetLoaded, setBudgetLoaded] = useState(false);
     // Stable keys per artifact: a repeated click after a lost response replays, never duplicates.
     const keys = useRef(new Map<string, { review: string; adopt: string }>());
     const actions = useResearchActions(bridge, () => { setBatch(null); setQueue(null); });
@@ -27,7 +28,30 @@ export function Triage(props: ResearchScope & { protocol: ProtocolVersion; quest
             protocol_version_id: protocol.id, stage: which, sort: order, offset, limit: 20 } }) as ScreeningQueuePage;
         if (current()) setQueue(page);
     }
-    useEffect(() => { setQueue(null); setBatch(null); actions.read(c => loadQueue(0, c)); }, [protocol.id, stage]);
+    // The most recent persisted batch for this protocol and stage survives panel reopening.
+    async function loadLatest(current: () => boolean, which = stage) {
+        for (let offset = 0; ;) {
+            const page = await bridge.request({ op: 'research.batch.list', ...scope, offset }) as ScreeningBatchPage;
+            if (!current()) return;
+            const found = page.items.find(b => b.protocol_version_id === protocol.id && b.stage === which);
+            if (found) {
+                const view = await bridge.request({ op: 'research.batch.read', ...scope, batch_id: found.id }) as ScreeningBatchView;
+                if (current()) setBatch(view);
+                return;
+            }
+            offset += page.items.length;
+            if (!page.items.length || offset >= page.total) return;
+        }
+    }
+    useEffect(() => { setQueue(null); setBatch(null); actions.read(async c => { await loadQueue(0, c); await loadLatest(c); }); }, [protocol.id, stage]);
+    useEffect(() => {
+        setBudgetLoaded(false); setCeiling(''); setBudgetRevision(0);
+        if (!batch || batch.batch.mode !== 'API') return;
+        void bridge.request({ op: 'provider.budget.read', ...scope, kind: 'job', identity: batch.batch.id }).then(value => {
+            const budget = value as { revision: number; currency: string; ceiling: string } | null;
+            setBudgetRevision(budget?.revision ?? 0); setCurrency(budget?.currency ?? 'USD'); setCeiling(budget?.ceiling ?? ''); setBudgetLoaded(true);
+        }, () => setBudgetLoaded(false));
+    }, [batch?.batch.id, batch?.batch.mode]);
     useEffect(() => {
         if (!running || !batch) return;
         const timer = setInterval(() => actions.read(async current => {
@@ -98,7 +122,14 @@ export function Triage(props: ResearchScope & { protocol: ProtocolVersion; quest
         </fieldset>
         {batch && <section aria-label={t.batch}><h4>{t.batch} · {t[batch.batch.state]} {reason(batch.batch.reason) && <>· {reason(batch.batch.reason)}</>}</h4>
             <p>{t.batchRuns}: {batch.batch.items.filter(i => i.run_id).length} · {Object.entries(batch.run_states).map(([state, n]) => `${(t as unknown as Record<string, string>)[state] ?? state}: ${n}`).join(' · ')}</p>
+            <p>{t.batchDestination}: {batch.batch.destination} · {batch.batch.mode} · {t.categories}: {batch.batch.categories.join(', ')}</p>
+            {settings && settings.profile_id !== batch.batch.profile_id && <p role="status">{t.preparedProfile}</p>}
             <p>{t.estimateTotal}: {batch.batch.estimated_input_tokens} · {t.outputTotal}: {batch.batch.max_output_tokens}</p>
+            {batch.batch.mode === 'API' && ['PREPARED', 'PAUSED'].includes(batch.batch.state) && <details><summary>{t.batchBudget}</summary><p>{t.batchBudgetHelp}</p>
+                <fieldset disabled={actions.locked || !budgetLoaded}><div className="source-filters"><label>{t.currency}<input value={currency} maxLength={3} onChange={e => setCurrency(e.target.value.toUpperCase())}/></label>
+                    <label>{t.ceiling}<input type="number" min="0" step="any" value={ceiling} onChange={e => setCeiling(e.target.value)}/></label></div>
+                    <button type="button" disabled={!ceiling || !/^[A-Z]{3}$/.test(currency)} onClick={() => actions.write({ op: 'provider.budget', ...scope, request: { kind: 'job', identity: batch.batch.id,
+                        currency, ceiling, expected_revision: budgetRevision, idempotency_key: researchKey() } }, value => setBudgetRevision((value as { revision: number }).revision))}>{t.saveBudget}</button></fieldset></details>}
             {batch.batch.items.some(i => i.skipped) && <details><summary>{t.batchSkipped}: {batch.batch.items.filter(i => i.skipped).length}</summary>
                 <ul>{batch.batch.items.filter(i => i.skipped).map(i => <li key={i.source_id}>{i.title || i.source_id.slice(0, 12)} · {skip(i.skipped!)}</li>)}</ul></details>}
             <div className="actions">

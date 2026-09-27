@@ -542,3 +542,147 @@ def test_full_text_selection_is_directed_and_fits_the_default_context(tmp_path):
         assert pages[0] == 0 and pages == sorted(pages)
         assert prepared["estimated_input_tokens"] + 4096 <= 32768
         assert "RELEVANCE:" in prepared["schema_plan"]["system"]
+
+
+def test_batch_calls_share_the_batch_job_identity_and_ceiling_blocks_before_sending(tmp_path):
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, ids = library(client, tmp_path)
+        protocol = relevance_protocol(client, prefix).json()
+        profile(client)
+        calls: list[dict] = []
+        controlled(app, calls)
+        first = batch(client, prefix, protocol["id"], "TITLE_ABSTRACT", "x" * 70 + "a")
+        second = batch(client, prefix, protocol["id"], "TITLE_ABSTRACT", "x" * 70 + "b")
+
+        def runs(view):
+            return {i["run_id"] for i in view["batch"]["items"] if i["run_id"]}
+
+        # Keys sharing a long prefix are distinct batches with distinct runs.
+        assert first["batch"]["id"] != second["batch"]["id"]
+        assert not runs(first) & runs(second)
+        assert first["batch"]["destination"] == "ollama / fixture / http://127.0.0.1:11434"
+        assert first["batch"]["mode"] == "LOCAL"
+        assert first["batch"]["categories"] == ["excerpts", "metadata"]
+        done = run_batch(client, prefix, first)
+        assert done["batch"]["state"] == "COMPLETE", done
+        with app.state.services.database.transaction() as conn:
+            identities = conn.execute("SELECT job_id,session_id FROM provider_calls").fetchall()
+        assert {row[0] for row in identities} == {first["batch"]["id"]}
+        assert {row[1] for row in identities} == runs(first)
+        # A ceiling on the batch job applies to all its calls; without a verified token
+        # bound the reservation refuses before sending, and the batch stops instead of
+        # failing every remaining study.
+        ceiling = client.put(
+            prefix + "/provider-budgets",
+            headers=HEADERS,
+            json={
+                "kind": "job",
+                "identity": second["batch"]["id"],
+                "currency": "USD",
+                "ceiling": "1",
+                "expected_revision": 0,
+                "idempotency_key": "cap",
+            },
+        )
+        assert ceiling.status_code == 200, ceiling.text
+        paused = run_batch(client, prefix, second)
+        assert paused["batch"]["state"] == "PAUSED", paused
+        assert len(calls) == 2  # only the first batch's two sends; nothing else was sent
+        started = [i["run_id"] for i in second["batch"]["items"] if i["run_id"]][0]
+        refused = client.get(prefix + f"/research/runs/{started}", headers=HEADERS).json()
+        assert refused["reason"] in {"PRICE_UNKNOWN", "TOKEN_BOUND_REQUIRED"}, refused
+        assert paused["batch"]["reason"] == "RUN_" + (
+            refused["state"] if refused["state"] != "FAILED" else refused["reason"]
+        )
+        assert sum(paused["run_states"].values()) == 2 and paused["run_states"]["PREPARED"] == 1
+
+
+def test_adoption_replay_is_bound_to_the_adopted_artifact_version(tmp_path):
+    app = make_app(tmp_path / "engine", [0.0])
+    with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+        prefix, ids = library(client, tmp_path)
+        protocol = relevance_protocol(client, prefix).json()
+        profile(client)
+        calls: list[dict] = []
+        controlled(app, calls)
+        run_batch(client, prefix, batch(client, prefix, protocol["id"], "TITLE_ABSTRACT", "ta"))
+        rows = queue(client, prefix, protocol["id"], "TITLE_ABSTRACT", "GRADE")["items"]
+        reviewed = []
+        for index, row in enumerate(rows[:2]):
+            response = client.post(
+                prefix + f"/artifacts/{row['artifact_version_id']}/review",
+                headers=HEADERS,
+                json={
+                    "action": "APPROVED",
+                    "expected_revision": 1,
+                    "rationale": "Checked",
+                    "idempotency_key": f"review-{index}",
+                },
+            )
+            assert response.status_code == 201, response.text
+            reviewed.append(response.json()["id"])
+        adopt = {
+            "artifact_version_id": reviewed[0],
+            "reviewer": "Marcus",
+            "expected_revision": 0,
+            "idempotency_key": "adopt",
+        }
+        first = client.post(prefix + "/triage/adopt", headers=HEADERS, json=adopt)
+        assert first.status_code == 201, first.text
+        # Same key, another artifact: the adopted provenance is part of the request identity.
+        other = client.post(
+            prefix + "/triage/adopt",
+            headers=HEADERS,
+            json=adopt | {"artifact_version_id": reviewed[1]},
+        )
+        assert other.status_code == 409 and other.json()["code"] == "IDEMPOTENCY_CONFLICT"
+        # A newer review does not prevent replaying the recorded adoption.
+        newer = client.post(
+            prefix + f"/artifacts/{reviewed[0]}/review",
+            headers=HEADERS,
+            json={
+                "action": "REJECTED",
+                "expected_revision": 2,
+                "rationale": "Second look",
+                "idempotency_key": "review-again",
+            },
+        )
+        assert newer.status_code == 201, newer.text
+        replay = client.post(prefix + "/triage/adopt", headers=HEADERS, json=adopt)
+        assert replay.status_code == 201 and replay.json() == first.json()
+        stale = client.post(
+            prefix + "/triage/adopt",
+            headers=HEADERS,
+            json=adopt | {"idempotency_key": "adopt-2", "expected_revision": 1},
+        )
+        assert stale.status_code == 409 and stale.json()["code"] == "REVISION_CONFLICT"
+
+
+def test_review_replay_saved_before_relevance_fields_stays_idempotent():
+    from evidra.extraction.forms import fingerprint, same_request
+    from evidra.research.execution import ArtifactReview
+
+    body = ArtifactReview.model_validate(
+        {
+            "expected_revision": 1,
+            "action": "CORRECTED",
+            "rationale": "Fixed",
+            "idempotency_key": "k",
+            "corrected_output": {
+                "kind": "SCREENING",
+                "decision": "UNCERTAIN",
+                "criterion_ids": ["atari"],
+                "evidence_ids": [],
+                "rationale": "r",
+            },
+        }
+    )
+    stored = json.loads(fingerprint(body))
+    for name in ["verdicts", "relevance_grade", "reusable", "concerns", "card"]:
+        stored["corrected_output"].pop(name)
+    old = json.dumps(stored, sort_keys=True, ensure_ascii=False)
+    assert old != fingerprint(body) and same_request(old, body)
+    changed = json.loads(old)
+    changed["rationale"] = "Other"
+    assert not same_request(json.dumps(changed), body)

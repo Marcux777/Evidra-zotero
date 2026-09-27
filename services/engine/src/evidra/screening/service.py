@@ -1,4 +1,5 @@
 import secrets
+import sqlite3
 
 from evidra.domain.errors import EvidraError
 from evidra.extraction.forms import author, fingerprint, now
@@ -17,66 +18,87 @@ class ScreeningService:
     def __init__(self, protocols: ProtocolService) -> None:
         self.protocols, self.scopes = protocols, protocols.scopes
 
-    def decide(
-        self, context: ScopeContext, body: ScreeningWrite, *, adopted: str | None = None
-    ) -> ScreeningDecision:
+    def decide(self, context: ScopeContext, body: ScreeningWrite) -> ScreeningDecision:
         with self.scopes.guarded(context, source_id=body.source_id, capability="commit") as conn:
-            protocol = self.protocols.from_connection(conn, context, body.protocol_version_id)
-            allowed = {c.id for c in protocol.criteria if c.applicability in ("BOTH", body.stage)}
-            if not set(body.criterion_ids) <= allowed:
-                raise EvidraError("INVALID_REQUEST", "Criterion does not apply to this stage.")
-            old = conn.execute(
-                "SELECT * FROM screening_decisions WHERE notebook_id=? AND idempotency_key=?",
-                (context.notebook_id, body.idempotency_key),
-            ).fetchone()
-            if old:
-                if old["snapshot_id"] != context.snapshot_id or old["request"] != fingerprint(body):
-                    raise EvidraError("IDEMPOTENCY_CONFLICT", "Screening request changed.")
-                return ScreeningDecision.model_validate_json(old["payload"])
-            prior = conn.execute(
-                "SELECT payload FROM screening_decisions WHERE notebook_id=? AND snapshot_id=? "
-                "AND protocol_version_id=? AND source_id=? AND stage=? AND reviewer=? "
-                "ORDER BY revision DESC LIMIT 1",
-                (
-                    context.notebook_id,
-                    context.snapshot_id,
-                    body.protocol_version_id,
-                    body.source_id,
-                    body.stage,
-                    body.reviewer,
-                ),
-            ).fetchone()
-            previous = ScreeningDecision.model_validate_json(prior[0]) if prior else None
-            revision = previous.revision if previous else 0
-            if body.expected_revision != revision:
-                raise EvidraError("REVISION_CONFLICT", "Reviewer decision changed.")
-            result = ScreeningDecision(
-                **body.model_dump(exclude={"idempotency_key", "expected_revision"}),
-                id=secrets.token_hex(16),
-                revision=revision + 1,
-                previous_decision=previous.decision if previous else None,
-                author=author(context),
-                created_at=now(),
-                adopted_artifact_version_id=adopted,
-            )
-            conn.execute(
-                "INSERT INTO screening_decisions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-                (
-                    result.id,
-                    context.notebook_id,
-                    context.snapshot_id,
-                    result.protocol_version_id,
-                    result.source_id,
-                    result.stage,
-                    result.reviewer,
-                    result.revision,
-                    body.idempotency_key,
-                    fingerprint(body),
-                    result.created_at,
-                    result.model_dump_json(),
-                ),
-            )
-            return result
+            return self.write(conn, context, body, request=fingerprint(body))
+
+    def existing(
+        self, conn: sqlite3.Connection, context: ScopeContext, key: str, request: str
+    ) -> ScreeningDecision | None:
+        """Idempotent replay: the same key returns its decision only for the same request."""
+        old = conn.execute(
+            "SELECT * FROM screening_decisions WHERE notebook_id=? AND idempotency_key=?",
+            (context.notebook_id, key),
+        ).fetchone()
+        if not old:
+            return None
+        if old["snapshot_id"] != context.snapshot_id or old["request"] != request:
+            raise EvidraError("IDEMPOTENCY_CONFLICT", "Screening request changed.")
+        return ScreeningDecision.model_validate_json(old["payload"])
+
+    def write(
+        self,
+        conn: sqlite3.Connection,
+        context: ScopeContext,
+        body: ScreeningWrite,
+        *,
+        request: str,
+        adopted: str | None = None,
+    ) -> ScreeningDecision:
+        """Record one human decision inside the caller's transaction."""
+        if body.source_id not in context.source_ids:
+            raise EvidraError("SOURCE_REVOKED", "Screening source is outside current scope.")
+        protocol = self.protocols.from_connection(conn, context, body.protocol_version_id)
+        allowed = {c.id for c in protocol.criteria if c.applicability in ("BOTH", body.stage)}
+        if not set(body.criterion_ids) <= allowed:
+            raise EvidraError("INVALID_REQUEST", "Criterion does not apply to this stage.")
+        replay = self.existing(conn, context, body.idempotency_key, request)
+        if replay is not None:
+            return replay
+        prior = conn.execute(
+            "SELECT payload FROM screening_decisions WHERE notebook_id=? AND snapshot_id=? "
+            "AND protocol_version_id=? AND source_id=? AND stage=? AND reviewer=? "
+            "ORDER BY revision DESC LIMIT 1",
+            (
+                context.notebook_id,
+                context.snapshot_id,
+                body.protocol_version_id,
+                body.source_id,
+                body.stage,
+                body.reviewer,
+            ),
+        ).fetchone()
+        previous = ScreeningDecision.model_validate_json(prior[0]) if prior else None
+        revision = previous.revision if previous else 0
+        if body.expected_revision != revision:
+            raise EvidraError("REVISION_CONFLICT", "Reviewer decision changed.")
+        result = ScreeningDecision(
+            **body.model_dump(exclude={"idempotency_key", "expected_revision"}),
+            id=secrets.token_hex(16),
+            revision=revision + 1,
+            previous_decision=previous.decision if previous else None,
+            author=author(context),
+            created_at=now(),
+            adopted_artifact_version_id=adopted,
+        )
+        conn.execute(
+            "INSERT INTO screening_decisions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                result.id,
+                context.notebook_id,
+                context.snapshot_id,
+                result.protocol_version_id,
+                result.source_id,
+                result.stage,
+                result.reviewer,
+                result.revision,
+                body.idempotency_key,
+                request,
+                result.created_at,
+                result.model_dump_json(),
+            ),
+        )
+        return result
 
     def list(
         self, context: ScopeContext, protocol_id: str, offset: int, limit: int

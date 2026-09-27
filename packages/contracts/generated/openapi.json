@@ -27251,6 +27251,17 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "batch_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch Id"
           }
         },
         "additionalProperties": false,
@@ -28023,6 +28034,21 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "destination": {
+            "type": "string",
+            "title": "Destination"
+          },
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories"
           }
         },
         "additionalProperties": false,
@@ -28038,7 +28064,10 @@
           "items",
           "estimated_input_tokens",
           "max_output_tokens",
-          "created_at"
+          "created_at",
+          "destination",
+          "mode",
+          "categories"
         ],
         "title": "ScreeningBatch"
       },

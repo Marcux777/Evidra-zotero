@@ -9,6 +9,7 @@ from a human-reviewed artifact.
 """
 
 import asyncio
+import hashlib
 import logging
 import secrets
 import sqlite3
@@ -16,6 +17,7 @@ from collections.abc import Callable
 
 from evidra.domain.errors import EvidraError
 from evidra.extraction.forms import fingerprint, now
+from evidra.providers.models import ContentCategory
 from evidra.research.execution import (
     ArtifactVersion,
     ResearchControl,
@@ -40,6 +42,17 @@ from evidra.screening.service import ScreeningService
 
 # A run ending in one of these states needs attention before more sends.
 PAUSING = {"BILLING_UNKNOWN", "WAITING_PROVIDER", "PAUSED"}
+# Refusals caused by configuration, identical for every remaining study.
+CONFIGURATION = {
+    "PRICE_UNKNOWN",
+    "TOKEN_BOUND_REQUIRED",
+    "CURRENCY_MISMATCH",
+    "CONSENT_REQUIRED",
+    "API_BLOCKED",
+    "PROVIDER_AUTH_ERROR",
+    "CAPABILITY_UNSUPPORTED",
+}
+CATEGORIES: frozenset[ContentCategory] = frozenset({"excerpts", "metadata"})
 STARTABLE = {"PREPARED", "PAUSED", "WAITING_PROVIDER"}
 
 
@@ -130,7 +143,12 @@ class TriageService:
             )
         current = {s.id: s for s in sources if s.id in context.source_ids}
         wanted = body.source_ids or list(current)
-        batch_id = secrets.token_hex(16)
+        # Stable across replays of the same request, so child runs are found again.
+        batch_id = hashlib.sha256(
+            f"{context.notebook_id}:{context.snapshot_id}:{body.idempotency_key}".encode()
+        ).hexdigest()[:32]
+        # Fails before any preparation when the profile lacks consent or is blocked.
+        profile = self.research.providers.profiles.authorize(context, body.profile_id, CATEGORIES)
         items: list[ScreeningBatchItem] = []
         estimate = output = 0
         for source_id in dict.fromkeys(wanted):
@@ -162,7 +180,7 @@ class TriageService:
                 context_tokens=body.context_tokens,
                 max_output_tokens=body.max_output_tokens,
                 ollama_options=body.ollama_options,
-                idempotency_key=f"batch:{body.idempotency_key[:60]}:{source_id}",
+                idempotency_key=f"batch:{batch_id}:{source_id}",
             )
             try:
                 if not self.planner.inputs(context, request).evidence:
@@ -175,7 +193,7 @@ class TriageService:
                         )
                     )
                     continue
-                run = self.research.prepare(context, request)
+                run = self.research.prepare(context, request, batch_id=batch_id)
                 with self.scopes.guarded(context, capability=context.capability) as conn:
                     preview = ResearchPreview.model_validate_json(
                         self.research.row(conn, context, run.id)["preview"]
@@ -204,6 +222,9 @@ class TriageService:
             estimated_input_tokens=estimate,
             max_output_tokens=output,
             created_at=now(),
+            destination=f"{profile.adapter} / {profile.model} / {profile.base_url}",
+            mode=profile.mode,
+            categories=sorted(CATEGORIES),
         )
         with self.scopes.guarded(context, capability="commit") as conn:
             old = conn.execute(
@@ -413,6 +434,10 @@ class TriageService:
                 if final.state in PAUSING:
                     state, reason = "PAUSED", f"RUN_{final.state}"
                     break
+                if final.state == "FAILED" and final.reason in CONFIGURATION:
+                    # The same refusal would repeat for every study; stop and explain.
+                    state, reason = "PAUSED", f"RUN_{final.reason}"
+                    break
         except EvidraError as exc:
             logging.getLogger("evidra.triage").warning("Batch %s paused: %s", batch_id, exc.code)
             state, reason = "PAUSED", exc.code
@@ -542,7 +567,14 @@ class TriageService:
     def adopt(self, context: ScopeContext, body: ScreeningAdopt) -> ScreeningDecision:
         """Record a human decision from a screening artifact a human approved or corrected."""
         self.scopes.authorize(context.principal, "manage")
+        request_fingerprint = fingerprint(body)
         with self.scopes.guarded(context, capability="commit") as conn:
+            # A replay returns its recorded decision even after newer artifact versions.
+            replay = self.screening.existing(
+                conn, context, body.idempotency_key, request_fingerprint
+            )
+            if replay is not None:
+                return replay
             artifact = self.research.artifact_from_connection(
                 conn, context, body.artifact_version_id
             )
@@ -561,24 +593,28 @@ class TriageService:
             request = ResearchPrepare.model_validate_json(
                 self.research.row(conn, context, artifact.run_id)["request"]
             )
-        output = artifact.output
-        stage: Stage = request.stage or "FULL_TEXT"
-        assert request.source_id is not None
-        return self.screening.decide(
-            context,
-            ScreeningWrite(
-                protocol_version_id=request.protocol_version_id,
-                source_id=request.source_id,
-                stage=stage,
-                reviewer=body.reviewer,
-                decision=output.decision,
-                criterion_ids=output.criterion_ids,
-                rationale=output.rationale,
-                expected_revision=body.expected_revision,
-                idempotency_key=body.idempotency_key,
-            ),
-            adopted=artifact.id,
-        )
+            output = artifact.output
+            stage: Stage = request.stage or "FULL_TEXT"
+            assert request.source_id is not None
+            # Validation and the decision write share one transaction: no review can land
+            # between them. The idempotent identity includes the adopted artifact version.
+            return self.screening.write(
+                conn,
+                context,
+                ScreeningWrite(
+                    protocol_version_id=request.protocol_version_id,
+                    source_id=request.source_id,
+                    stage=stage,
+                    reviewer=body.reviewer,
+                    decision=output.decision,
+                    criterion_ids=output.criterion_ids,
+                    rationale=output.rationale,
+                    expected_revision=body.expected_revision,
+                    idempotency_key=body.idempotency_key,
+                ),
+                request=request_fingerprint,
+                adopted=artifact.id,
+            )
 
 
 def sort_key(sort: str) -> Callable[[ScreeningQueueRow], tuple[object, ...]]:

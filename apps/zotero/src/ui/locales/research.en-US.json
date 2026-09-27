@@ -248,5 +248,13 @@
   "adopt": "Record decision from reviewed proposal",
   "inspect": "Inspect or correct",
   "adopted": "Decision recorded.",
-  "approvedInQueue": "Approved in the screening queue."
+  "approvedInQueue": "Approved in the screening queue.",
+  "categories": "Content sent",
+  "preparedProfile": "This batch was prepared for another profile and will send to the destination above, not to the one selected now.",
+  "batchBudget": "Batch monetary ceiling",
+  "batchBudgetHelp": "Applies to every call in the batch. Without versioned pricing and a verified token bound, the ceiling blocks sends instead of estimating them.",
+  "currency": "Currency",
+  "ceiling": "Ceiling",
+  "saveBudget": "Save ceiling",
+  "batchDestination": "Destination"
 }

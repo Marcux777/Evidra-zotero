@@ -5252,6 +5252,8 @@ export interface components {
             artifact_version_id?: string | null;
             /** Created At */
             created_at: string;
+            /** Batch Id */
+            batch_id?: string | null;
         };
         /** ResearchRunPage */
         ResearchRunPage: {
@@ -5525,6 +5527,12 @@ export interface components {
             max_output_tokens: number;
             /** Created At */
             created_at: string;
+            /** Destination */
+            destination: string;
+            /** Mode */
+            mode: string;
+            /** Categories */
+            categories: string[];
         };
         /** ScreeningBatchControl */
         ScreeningBatchControl: {

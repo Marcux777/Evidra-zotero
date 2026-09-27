@@ -248,5 +248,13 @@
   "adopt": "Registrar decisão a partir do parecer revisado",
   "inspect": "Examinar ou corrigir",
   "adopted": "Decisão registrada.",
-  "approvedInQueue": "Aprovado na fila de triagem."
+  "approvedInQueue": "Aprovado na fila de triagem.",
+  "categories": "Conteúdo enviado",
+  "preparedProfile": "Este lote foi preparado para outro perfil e enviará ao destino acima, não ao selecionado agora.",
+  "batchBudget": "Teto monetário do lote",
+  "batchBudgetHelp": "Vale para todas as chamadas do lote. Sem preço versionado e limite de tokens verificado, o teto bloqueia os envios em vez de estimá-los.",
+  "currency": "Moeda",
+  "ceiling": "Teto",
+  "saveBudget": "Salvar teto",
+  "batchDestination": "Destino"
 }

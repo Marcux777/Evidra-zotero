@@ -181,22 +181,35 @@ def test_backup_with_compact_research_inputs_still_imports(tmp_path):
         archive, _, _ = export(client, prefix, "backup")
         inspected = upload(client, prefix, archive)
         assert inspected.status_code == 201, inspected.text
-        # Changing any other nested field is still refused.
+        # Integrity-valid archives that differ only in the nested excerpt are refused by the
+        # nested-evidence check itself; the same rebuild without the change is accepted.
+        import hashlib
         import io
         import zipfile
 
-        with zipfile.ZipFile(io.BytesIO(archive)) as opened:
-            notebook = json.loads(opened.read("notebook.json"))
-            manifest = opened.read("manifest.json")
-        for record in notebook["records"]:
-            if record["kind"] == "research_preview":
-                record["data"]["inputs"]["evidence"][0]["excerpt"] += " forged"
-        forged = io.BytesIO()
-        with zipfile.ZipFile(forged, "w") as out:
-            out.writestr("manifest.json", manifest)
-            out.writestr("notebook.json", json.dumps(notebook))
-        rejected = upload(client, prefix, forged.getvalue())
-        assert rejected.status_code != 201
+        def rebuild(forge):
+            with zipfile.ZipFile(io.BytesIO(archive)) as opened:
+                notebook = json.loads(opened.read("notebook.json"))
+                manifest = json.loads(opened.read("manifest.json"))
+            if forge:
+                for record in notebook["records"]:
+                    if record["kind"] == "research_preview":
+                        record["data"]["inputs"]["evidence"][0]["excerpt"] += " forged"
+            data = json.dumps(notebook).encode()
+            for entry in manifest["files"]:
+                if entry["path"] == "notebook.json":
+                    entry["bytes"], entry["sha256"] = len(data), hashlib.sha256(data).hexdigest()
+            out = io.BytesIO()
+            with zipfile.ZipFile(out, "w") as written:
+                written.writestr("manifest.json", json.dumps(manifest))
+                written.writestr("notebook.json", data)
+            return out.getvalue()
+
+        control = upload(client, prefix, rebuild(False))
+        assert control.status_code == 201, control.text
+        rejected = upload(client, prefix, rebuild(True))
+        assert rejected.status_code == 422, rejected.text
+        assert rejected.json()["code"] == "INVALID_BACKUP", rejected.text
 
 
 def test_request_saved_before_new_optional_fields_replays_idempotently(tmp_path):
@@ -234,7 +247,8 @@ def test_query_and_search_term_bounds_are_explicit(tmp_path):
             )
             assert refused.status_code == 422 and refused.json()["code"] == "QUERY_TOO_COMPLEX"
         field = client.get(prefix + "/forms/template", headers=HEADERS).json()[0]
-        for terms in [['alpha"beta'], [" "], ["x" * 99 + str(i) for i in range(20)]]:
+        # Twenty individually valid 100-character terms exceed only the query length.
+        for terms in [['alpha"beta'], [" "], [chr(97 + i) * 100 for i in range(20)]]:
             response = client.post(
                 prefix + "/forms",
                 headers=HEADERS,

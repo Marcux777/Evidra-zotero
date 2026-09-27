@@ -12,7 +12,7 @@ from contextlib import aclosing
 
 from evidra.domain.errors import EvidraError
 from evidra.domain.sources import SourceAccess
-from evidra.extraction.forms import author, fingerprint, now
+from evidra.extraction.forms import author, fingerprint, now, same_request
 from evidra.jobs.worker import WAITING
 from evidra.providers.registry import ProviderRegistry
 from evidra.providers.usage import CallIdentity
@@ -126,7 +126,9 @@ class ResearchService:
                 total=total,
             )
 
-    def prepare(self, context: ScopeContext, body: ResearchPrepare) -> ResearchRun:
+    def prepare(
+        self, context: ScopeContext, body: ResearchPrepare, *, batch_id: str | None = None
+    ) -> ResearchRun:
         with self.scopes.guarded(context, capability="commit") as conn:
             old = conn.execute(
                 "SELECT * FROM research_runs WHERE notebook_id=? AND snapshot_id=? "
@@ -151,6 +153,7 @@ class ResearchService:
             kind=body.kind,
             profile_id=profile.id,
             created_at=now(),
+            batch_id=batch_id,
         )
         preview = self.planner.preview(run.id, body, inputs, profile)
         with self.scopes.guarded(context, capability="commit") as conn:
@@ -355,7 +358,9 @@ class ResearchService:
                         preview.profile.id,
                         self.planner.request(body, preview),
                         cancel,
-                        identity=CallIdentity(call_id=call_id, job_id=run.id, session_id=run.id),
+                        identity=CallIdentity(
+                            call_id=call_id, job_id=run.batch_id or run.id, session_id=run.id
+                        ),
                     )
                 ) as events:
                     async for event in events:
@@ -539,7 +544,7 @@ class ResearchService:
                 (original.artifact_id, body.idempotency_key),
             ).fetchone()
             if old:
-                if old["request"] != fingerprint(body):
+                if not same_request(old["request"], body):
                     raise EvidraError("IDEMPOTENCY_CONFLICT", "Artifact review changed.")
                 return self.artifact_from_connection(conn, context, old["version_id"])
             latest = conn.execute(

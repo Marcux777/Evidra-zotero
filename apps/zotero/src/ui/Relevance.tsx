@@ -71,6 +71,10 @@ export function relevanceValid(draft: ScreeningOutput, protocol: ProtocolVersion
         return v.verdict === 'NOT_MET' && kind === 'INCLUSION' || v.verdict === 'MET' && kind === 'EXCLUSION';
     });
     if (draft.decision === 'INCLUDE' && blocking || draft.decision === 'EXCLUDE' && !blocking) return false;
+    const texts = [...value.reusable.flatMap(r => [r.text, r.use]), ...value.concerns.map(c => c.text),
+        ...(value.card ? [value.card.summary, ...value.card.contributions.map(p => p.text), ...value.card.strengths.map(p => p.text),
+            ...value.card.limitations.map(p => p.text), ...value.card.questions] : [])];
+    if (texts.some(text => !text.trim())) return false;
     return (stage === 'FULL_TEXT') === (value.card !== null);
 }
 
@@ -94,6 +98,32 @@ export function RelevanceEditor({ draft, protocol, stage, preview, locale, busy,
             <ResearchEvidence evidence={preview.inputs.evidence} studies={preview.inputs.studies} locale={locale} busy={busy} onOpen={onOpen}
                 selected={v.evidence_ids} onChange={evidence_ids => update(v.criterion_id, { evidence_ids: evidence_ids.slice(0, 6) })}/>
         </fieldset>)}
+        {value.reusable.length > 0 && <fieldset><legend>{t.reusable}</legend>{value.reusable.map((item, i) => <fieldset key={i}><legend>{i + 1}</legend>
+            <label>{t.kind}<select value={item.kind} onChange={e => onChange({ ...draft, verdicts, reusable: value.reusable.map((v, j) => j === i ? { ...v, kind: e.target.value as typeof v.kind } : v) })}>
+                {(Object.keys(t.reuseKinds) as (typeof item.kind)[]).map(kind => <option key={kind} value={kind}>{t.reuseKinds[kind]}</option>)}</select></label>
+            <label>{t.text}<textarea maxLength={2000} value={item.text} onChange={e => onChange({ ...draft, verdicts, reusable: value.reusable.map((v, j) => j === i ? { ...v, text: e.target.value } : v) })}/></label>
+            <label>{t.use}<textarea maxLength={2000} value={item.use} onChange={e => onChange({ ...draft, verdicts, reusable: value.reusable.map((v, j) => j === i ? { ...v, use: e.target.value } : v) })}/></label>
+            <button type="button" onClick={() => onChange({ ...draft, verdicts, reusable: value.reusable.filter((_, j) => j !== i) })}>{t.remove}</button></fieldset>)}</fieldset>}
+        {value.concerns.length > 0 && <fieldset><legend>{t.concerns}</legend>{value.concerns.map((item, i) => <div key={i}>
+            <label>{t.text}<textarea maxLength={2000} value={item.text} onChange={e => onChange({ ...draft, verdicts, concerns: value.concerns.map((v, j) => j === i ? { ...v, text: e.target.value } : v) })}/></label>
+            <button type="button" onClick={() => onChange({ ...draft, verdicts, concerns: value.concerns.filter((_, j) => j !== i) })}>{t.remove}</button></div>)}</fieldset>}
+        {value.card && <CardEditor card={value.card} locale={locale} onChange={card => onChange({ ...draft, verdicts, card })}/>}
         {!relevanceValid({ ...draft, verdicts }, protocol, stage) && <p role="status">{t.relevanceInvalid}</p>}
+    </fieldset>;
+}
+
+/** Edit or remove paper-card points; anchors stay as prepared (a point cannot lose its evidence). */
+function CardEditor({ card, locale, onChange }: { card: Card; locale: Locale; onChange: (card: Card) => void }) {
+    const t = catalog(locale).research;
+    const list = (key: 'contributions' | 'strengths' | 'limitations', heading: string) => card[key].length > 0 && <fieldset><legend>{heading}</legend>
+        {card[key].map((point, i) => <div key={i}><label>{t.text}<textarea maxLength={2000} value={point.text}
+            onChange={e => onChange({ ...card, [key]: card[key].map((v, j) => j === i ? { ...v, text: e.target.value } : v) })}/></label>
+            <button type="button" onClick={() => onChange({ ...card, [key]: card[key].filter((_, j) => j !== i) })}>{t.remove}</button></div>)}</fieldset>;
+    return <fieldset><legend>{t.card}</legend>
+        <label>{t.summary}<textarea maxLength={2000} value={card.summary} onChange={e => onChange({ ...card, summary: e.target.value })}/></label>
+        {list('contributions', t.contributions)}{list('strengths', t.strengths)}{list('limitations', t.cardLimitations)}
+        {card.questions.length > 0 && <fieldset><legend>{t.questions}</legend>{card.questions.map((question, i) => <div key={i}>
+            <label>{t.text}<input maxLength={2000} value={question} onChange={e => onChange({ ...card, questions: card.questions.map((v, j) => j === i ? e.target.value : v) })}/></label>
+            <button type="button" onClick={() => onChange({ ...card, questions: card.questions.filter((_, j) => j !== i) })}>{t.remove}</button></div>)}</fieldset>}
     </fieldset>;
 }
