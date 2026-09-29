@@ -1,12 +1,12 @@
 # Piloto de qualidade em aprendizado por reforço
 
-**Estado: preparação; nenhuma avaliação de modelo executada.** Alvo acordado: aproximadamente 20 artigos reais de aprendizado por reforço. A referência humana, as configurações finais e os responsáveis ainda precisam ser definidos antes do lote. Os formulários vazios em [templates](templates/) são instrumentos de coleta, não resultados.
+**Estado: corpus adquirido; nenhuma avaliação de modelo executada.** Foram baixados e conferidos [20 artigos de aprendizado por reforço](CORPUS.md), somando 351 páginas. A referência humana, as configurações finais e os responsáveis ainda precisam ser definidos antes do lote. Os formulários vazios em [templates](templates/) são instrumentos de coleta, não resultados.
 
 Este piloto mede extração e revisão de resultados científicos. O [benchmark de recuperação](../../scripts/benchmark.py) continua válido no seu cenário sintético: 1.000 fontes, 50.000 chunks e p95 aquecido de 1,265 s. Ele não estima a qualidade semântica dos embeddings, a correção da extração nem a economia de trabalho em PDFs reais. Nenhuma contagem de critérios é convertida em percentual de prontidão; A25, A29 e A33 permanecem parciais.
 
 ## Corpus e separação da referência
 
-Selecionar 20 artigos públicos, com versão e hash do PDF fixados, cobrindo métodos baseados em valor, política/controle contínuo, modelos do ambiente e aprendizado offline. É uma amostra intencional para encontrar erros; não representa toda a literatura de RL. Trabalhos clássicos podem ter participado do treinamento dos modelos: isso deve limitar qualquer alegação de generalização ou ausência de contaminação.
+O corpus contém 20 artigos públicos, com versão e hash do PDF fixados, cobrindo métodos baseados em valor, política/controle contínuo, modelos do ambiente e aprendizado offline. É uma amostra intencional de deep RL, com primeiras submissões entre 2013 e 2021; não representa toda a literatura de RL, nem foi escolhida por resultados observados do modelo. Trabalhos clássicos podem ter participado do treinamento dos modelos: isso deve limitar qualquer alegação de generalização ou ausência de contaminação.
 
 Todos os 20 artigos pertencem à avaliação. Os três microcasos prévios usam material de desenvolvimento separado, inclusive os documentos sintéticos já autorizados; não entram na estimativa de qualidade sobre artigos reais. Ajustar prompts apenas nesse material separado. Depois de observar respostas ou rótulos dos 20 artigos, qualquer ajuste inaugura outra versão exploratória; o mesmo corpus deixa de ser um teste intocado dessa versão.
 
@@ -56,7 +56,7 @@ As respostas originais permanecem imutáveis e sem aprovação automática. A av
 
 Publicar contagens absolutas, proporções e resultados por artigo/tipo de dificuldade; evitar um escore único. O uso de métricas distintas e condições comparáveis segue a orientação geral de avaliação multidimensional do [HELM](https://arxiv.org/abs/2211.09110); as regras abaixo são propostas deste piloto, não limiares certificados por esse trabalho.
 
-Definir por configuração e tarefa: `N` unidades planejadas; `A` tentativas lógicas iniciadas, incluindo falhas antes da chamada; `C` chamadas reais. Informar unidades não iniciadas e motivos. Não misturar os três microcasos prévios com os 20 artigos. Repetições entram em `A` e `C`, mas não aumentam `N`.
+Definir por configuração e tarefa: `N` unidades planejadas; `A` tentativas lógicas iniciadas, incluindo falhas antes da chamada; `C` chamadas reais. Informar unidades não iniciadas e motivos. Não misturar os três microcasos prévios com os 20 artigos. Repetições entram em `A` e `C`, mas não aumentam `N`. Se o teste prévio impedir o início de todo o lote, registrar `BLOCKED / NOT_EVALUATED`, com `A=0`; não inventar uma acurácia de 0% para dados não avaliados.
 
 | Dimensão | Medida e tratamento de falhas |
 |---|---|
@@ -67,9 +67,13 @@ Definir por configuração e tarefa: `N` unidades planejadas; `A` tentativas ló
 
 O acerto de uma tupla exige correspondência de valor, tolerância pré-fixada, unidade, ambiente/dataset, condição, estatística e sustentação. Casar listas de resultados um a um, sem reaproveitar uma referência para validar várias previsões. Omitidos são falsos negativos; acréscimos sem suporte são falsos positivos. Reportar à parte acertos em valores presentes, ausências confirmadas, abstinência indevida, respostas inventadas e confusão de contexto. Nunca usar similaridade lexical ou presença de um `evidence_id` como prova de sustentação.
 
+Enquanto houver unidades sem julgamento, corretas/`N` é uma taxa de sucesso verificado que fornece um limite inferior de acertos; não atribuir erro científico às unidades ainda não julgadas. Mostrar simultaneamente cobertura de execução, cobertura de julgamento e contagens de falha/pendência. A análise secundária dos casos julgados deve declarar seu denominador e nunca substituir o resultado de todas as tentativas.
+
 No julgamento, distinguir `SUPPORTED`, `PARTIAL`, `CONTRADICTED`, `INSUFFICIENT` e `UNJUDGED`, e marcar separadamente extrapolações de adequação da amostra, generalização e disponibilidade de texto completo. Em uma unidade com várias afirmações, qualquer afirmação material indevida impede acerto integral. A interpretação de ausência exige a referência humana e a cobertura reais. Referências não resolvidas e julgamentos pendentes devem ter contagem própria; não podem elevar a taxa de sucesso.
 
 Para produtividade, quem revisa a saída assistida não deve já conhecer a referência ou ter extraído aquele artigo. Uma opção é contrabalançar artigos entre dois revisores: A extrai manualmente metade, B a outra; depois cada um revisa a saída assistida apenas da metade que não leu. Um custodiante confere e congela as referências antes das chamadas. Registrar ordem, experiência, exposição prévia e tempo de correções até o mesmo critério final de qualidade. A autoria da referência não deve contaminar a etapa assistida. Se só houver uma pessoa exposta aos mesmos artigos, guardar os tempos como descritivos e marcar economia causal de trabalho como `NOT_ASSESSED`.
+
+Em `timing.csv`, `active_seconds` é o total de trabalho humano e já inclui diagnóstico, correção e conclusão manual. Esses três subcampos são desdobramentos; não somá-los novamente ao total. Espera pelo modelo e duração de calendário são medidas separadas.
 
 Não tratar campos do mesmo artigo como observações independentes. Com 20 artigos, apresentar distribuições e resultados por artigo; qualquer intervalo exploratório deve reamostrar artigos inteiros, preservando todos os seus campos, tentativas e pares de tempo. Não declarar superioridade geral nem prontidão a partir desse piloto. Limiares de erro tolerável e ganho mínimo precisam ser decididos antes do lote; sem eles, o resultado é diagnóstico, não aprovação de produto.
 
@@ -77,7 +81,7 @@ Não tratar campos do mesmo artigo como observações independentes. Com 20 arti
 
 | Arquivo | Uso |
 |---|---|
-| `corpus.csv` | Inventário dos 20 PDFs e versões; ficará junto deste protocolo quando a aquisição for conferida. |
+| [corpus.csv](corpus.csv) | Inventário conferido dos 20 PDFs, versões, hashes e páginas. |
 | `templates/reference.csv` | Referência humana; copiar para local separado e restrito antes de preencher. Uma linha por tupla/afirmação esperada. |
 | `templates/units.csv` | Todas as unidades previstas, perguntas e conjunto de fontes; sem respostas ou localizadores do gabarito. |
 | `templates/configuration.json` | Configuração, orçamento, congelamento e responsáveis; nulos não são valores padrão válidos. |
