@@ -27,8 +27,8 @@ Os módulos que prendem o engine ao Windows: `documents/registry.py` (abertura v
 ## Consequências
 
 - SPEC §3 é emendado (ver o bloco "Emenda ADR 0004" naquela seção): dados em `$XDG_DATA_HOME/Evidra/profiles/<id>` com fallback para `~/.local/share`; pacote `evidra-engine-<versão>-linux-x64.tar.gz`.
-- A matriz de aceitação é reescrita: A25, A29 e A33 mudam de enunciado, e os seis critérios verificados ao vivo no Windows (A01, A12, A23, A27, A34, A36) voltam a `NOT_VERIFIED_ON_LINUX`. As evidências do Windows ficam como histórico e **não** contam como aprovação em Linux. Nenhum critério é marcado aprovado sem execução em Linux.
-- Os resultados `VERIFIED_WITH_FIXTURES` registrados no Windows ficam como histórico até os mesmos fixtures serem reexecutados em Linux.
+- A matriz de aceitação é reescrita: A25, A29 e A33 mudam de enunciado e **os 36 critérios estão `NOT_VERIFIED_ON_LINUX`**. As evidências do Windows ficam como histórico e **não** contam como aprovação em Linux. Nenhum critério é marcado aprovado sem execução em Linux.
+- Os resultados de fixtures registrados no Windows (antes `VERIFIED_WITH_FIXTURES`) só voltam a valer depois que `scripts/check.sh` for aprovado em Linux; os seis verificados ao vivo dependem de execução nativa no Zotero em Linux.
 
 ## O que precisa ser revalidado em Linux
 
@@ -48,4 +48,4 @@ Os módulos que prendem o engine ao Windows: `documents/registry.py` (abertura v
 
 ## Fora de escopo desta decisão
 
-Não altera código, scripts nem contratos. Documentos de instalação (`INSTALL_WINDOWS.md`, README) continuam descrevendo o fluxo Windows até as fases que implementarem o fluxo Linux.
+Não altera código, scripts nem contratos. `README.md` e `docs/INSTALL_WINDOWS.md` têm um aviso apontando para este ADR; o conteúdo de instalação Windows foi mantido como histórico, sem suporte, até as fases que implementarem o fluxo Linux.
