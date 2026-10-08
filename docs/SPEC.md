@@ -71,11 +71,11 @@ Não deixar botões fictícios, telas vazias de funcionalidades futuras ou adapt
 
 ### Alvo
 
-- Plataforma primária: Windows x64, usando Zotero Desktop nativo. Não exigir WSL, Docker ou privilégios de administrador.
+- Plataforma primária: Linux x64 (Fedora), usando Zotero Desktop instalado pelo tarball oficial, sem Docker nem privilégios de administrador. *(Emenda ADR 0004; o texto original era "Windows x64, usando Zotero Desktop nativo. Não exigir WSL, Docker ou privilégios de administrador.")*
 - Alvo de compatibilidade inicial: Zotero 10.0.x, a partir de 10.0.1. Validar a versão estável e a documentação oficial novamente ao começar. O histórico consultado em 05/09/2026 registra 10.0.1.
 - Manifesto: declarar somente o intervalo efetivamente validado. Para esse alvo, seguir a orientação oficial de `strict_max_version: "10.0.*"`; não anunciar compatibilidade com toda versão futura.
 - Não gastar a primeira entrega com compatibilidade retroativa 7/8/9. Em versão incompatível, apresentar diagnóstico e não executar mutações.
-- Linux e macOS: manter caminhos e abstrações portáveis, mas não declarar suporte testado sem execução nesses sistemas.
+- Windows: código mantido atrás da camada de plataforma, não testado e declarado sem suporte (ADR 0004). macOS: manter caminhos e abstrações portáveis, mas não declarar suporte testado sem execução nesse sistema.
 - Interface PT-BR por padrão, com catálogo en-US completo. Português não deve alterar o texto original das citações.
 
 ### Stack
@@ -91,7 +91,15 @@ Não deixar botões fictícios, telas vazias de funcionalidades futuras ou adapt
 - Renderização de texto: markdown-it com HTML desabilitado, seguido de DOMPurify configurado com allowlist; sem avaliação de HTML de modelo/documento e sem scripts de CDN. Validar o bundle no contexto real do Zotero.
 - Segredos: cofre do sistema via keyring quando disponível; fallback somente em memória, nunca arquivo em texto puro.
 - Tooling: npm com lockfile; uv com lockfile; Vitest; pytest; Ruff; verificação estática de tipos Python. Fixar dependências verificadas, sem inventar números de versões.
-- Distribuição: XPI + engine Windows em pacote PyInstaller `onedir`, com manifesto e hashes SHA-256. Usuário final não deve instalar Python ou Node; Ollama/LM Studio e seus modelos são componentes externos opcionais.
+- Distribuição: XPI + engine Linux x64 em pacote PyInstaller `onedir` (`evidra-engine-<versão>-linux-x64.tar.gz`), com manifesto e hashes SHA-256. *(Emenda ADR 0004; antes: engine Windows.)* Usuário final não deve instalar Python ou Node; Ollama/LM Studio e seus modelos são componentes externos opcionais.
+
+### Emenda ADR 0004 — Linux como plataforma primária
+
+- Plataforma primária Linux x64 (Fedora). Zotero instalado pelo tarball oficial.
+- Dados do perfil em `$XDG_DATA_HOME/Evidra/profiles/<id>`, com fallback para `~/.local/share/Evidra/profiles/<id>` quando `XDG_DATA_HOME` não está definido.
+- Pacote do engine: `evidra-engine-<versão>-linux-x64.tar.gz`.
+- O código Windows permanece atrás da camada de plataforma (a criar), não testado e sem suporte declarado.
+- Esta emenda é decisão de documentação: o código ainda não implementa os caminhos XDG nem o pacote Linux. Ver `docs/adr/0004-linux-primary-platform.md` para o que precisa ser revalidado.
 
 ZotSeek e Open Notebook podem ser consultados como referências. Não tornar nenhum deles dependência obrigatória e não copiar uma aplicação inteira. A autorização de fontes deve pertencer ao Evidra. Reaproveitamento de código exige revisão da licença e preservação dos avisos. Preferir dependências permissivas; não declarar que código copiado possui a mesma licença do nosso código original.
 
