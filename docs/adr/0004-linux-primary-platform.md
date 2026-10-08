@@ -4,11 +4,19 @@ Date: 2026-10-08. Status: accepted. Supersedes the platform decision in SPEC §3
 
 ## Contexto
 
-O Evidra foi implementado e validado em um host Windows x64. Esse host não existe mais: o ambiente de desenvolvimento atual é Fedora Linux 43 x64 (kernel 7.1.5), com KVM, QEMU e libvirt disponíveis, mas sem VM nem instalação Windows, e sem os artefatos locais do host anterior (`.local/native-smoke`, pacotes 5 e 6, recibos). Medido em 2026-10-08 neste checkout:
+O Evidra foi implementado e validado em um host Windows x64. Esse host não existe mais: o ambiente de desenvolvimento atual é Fedora Linux 43 x64 (kernel 7.1.5), com KVM, QEMU e libvirt disponíveis, mas sem VM nem instalação Windows, e sem os artefatos locais do host anterior (`.local/native-smoke`, pacotes 5 e 6, recibos). Medido em 2026-10-08, no Fedora acima, na revisão **`29bf3ab9feb96e7d0fda432d4dc63d773bb3c1b7`** ("chore: salva trabalho local antes da migração para Linux", 13 commits após `afda022`; branch `linux-port` criada nela):
 
-- `pytest` do engine: 109 passam e 198 falham, quase todas por `ModuleNotFoundError` em `_winapi`, `msvcrt` e `win32*`. O engine não importa em Linux.
-- `vitest`: 106 de 107 passam; `tsc --noEmit` passa. A parte TypeScript já roda em Linux.
-- Os módulos que prendem o engine ao Windows: `documents/registry.py` (abertura verificada de arquivo), `documents/parser_worker.py` (Job Objects, handles herdados), `security/handshake.py` (DACL, `st_file_attributes`), `distribution.py` (`platform: Literal["win32"]`).
+| Medida | Resultado em 29bf3ab |
+|---|---|
+| `vitest run` | 111 de 111 passam (23 arquivos) |
+| `tsc --noEmit` | passa |
+| `pytest` do engine | 328 testes coletados: **130 passam, 198 falham**, mais **2 erros de coleta** (`tests/test_relevance.py`, `tests/test_triage.py`). Sem `--continue-on-collection-errors` a coleta aborta antes de executar qualquer teste |
+| Causa das falhas | `ModuleNotFoundError: No module named '_winapi'`, `msvcrt` e `win32*` (e `st_file_attributes` inexistente em Linux) |
+| `ruff check` | passa |
+| `mypy --platform win32` | sem erros (105 arquivos) |
+| `mypy` nativo (Linux) | 37 erros em 4 arquivos: `documents/parser_worker.py` (30), `documents/registry.py` (4), `security/handshake.py` (2), `__main__.py` (1) |
+
+Os módulos que prendem o engine ao Windows: `documents/registry.py` (abertura verificada de arquivo), `documents/parser_worker.py` (Job Objects, handles herdados), `security/handshake.py` (DACL, `st_file_attributes`), `distribution.py` (`platform: Literal["win32"]`). A parte TypeScript já roda em Linux. Estas medidas valem para essa revisão; outro commit exige nova medição.
 
 ## Decisão
 

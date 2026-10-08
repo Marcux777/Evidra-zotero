@@ -1,3 +1,5 @@
+> **Sem suporte; mantido como histórico.** Veja o [ADR 0004](adr/0004-linux-primary-platform.md).
+
 # Instalação no Windows
 
 Alvo: Windows x64 e Zotero 10.0.x, a partir de 10.0.1. O número 0.1.0 identifica o software; não significa que toda a especificação v1 esteja validada. Consulte STATE.md e ACCEPTANCE_MATRIX.md antes de usar os artefatos.

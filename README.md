@@ -1,3 +1,5 @@
+> **Plataforma:** Linux x64 é a plataforma primária (ver [ADR 0004](docs/adr/0004-linux-primary-platform.md)); o suporte a Windows descrito abaixo está sem suporte e não testado.
+
 # Evidra-zotero
 
 Evidra organiza cadernos de pesquisa dentro do Zotero: seleção de fontes, busca local, evidências com texto original, matriz de extração revisada por pessoas, triagem, síntese, auditoria e exportação portátil.
