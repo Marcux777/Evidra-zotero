@@ -11,7 +11,13 @@ from pydantic import Field, SecretStr, ValidationError, field_validator
 from evidra.domain.errors import EvidraError
 from evidra.mcp.models import ConnectionCreate
 from evidra.providers.models import StrictModel
-from evidra.security.handshake import assert_no_reparse_points, protect_path, validate_private_path
+from evidra.security.handshake import (
+    assert_no_reparse_points,
+    create_private_file,
+    protect_path,
+    rename_noreplace,
+    validate_private_path,
+)
 
 
 class ConnectionFile(StrictModel):
@@ -36,19 +42,19 @@ class ConnectionFile(StrictModel):
 def write_connection(path: Path, value: ConnectionFile) -> None:
     assert_no_reparse_points(path)
     if not path.parent.exists():
-        path.parent.mkdir(parents=True)
+        path.parent.mkdir(parents=True, mode=0o700)
         protect_path(path.parent)
     validate_private_path(path.parent)
     temporary = path.with_suffix(".pending")
     try:
-        with temporary.open("x", encoding="utf-8") as stream:
+        with create_private_file(temporary) as stream:
             json.dump(
                 {**value.model_dump(mode="json"), "token": value.token.get_secret_value()}, stream
             )
             stream.flush()
             os.fsync(stream.fileno())
         validate_private_path(temporary)
-        temporary.rename(path)
+        rename_noreplace(temporary, path)
         validate_private_path(path)
     except OSError as exc:
         raise EvidraError("INVALID_RUNTIME", "Cannot write the private MCP connection.") from exc

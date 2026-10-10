@@ -318,6 +318,7 @@ def test_concurrent_creation_is_one_transaction(tmp_path: Path) -> None:
             assert connection.execute("SELECT count(*) FROM snapshots").fetchone()[0] == 1
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows ACLs; Linux: test_handshake_posix")
 def test_windows_handshake_claim_acl_and_receipt(tmp_path: Path) -> None:
     assert importlib.util.find_spec("evidra.security.handshake") is not None, "handshake missing"
     from evidra.domain.errors import EvidraError
@@ -393,14 +394,17 @@ def test_receipt_cleanup_rejects_substitution(tmp_path: Path) -> None:
     from evidra.security import handshake as security
 
     assert hasattr(security, "remove_connection_receipt"), "owned receipt cleanup missing"
+    create_private_file = security.create_private_file
     private = tmp_path / "session"
     private.mkdir()
     security.protect_path(private)
     receipt = private / "connection.json"
-    receipt.write_text("original")
+    with create_private_file(receipt) as stream:
+        stream.write("original")
     original = receipt.stat()
     receipt.rename(private / "old-receipt.json")
-    receipt.write_text("replacement")
+    with create_private_file(receipt) as stream:
+        stream.write("replacement")
     with pytest.raises(EvidraError):
         security.remove_connection_receipt(receipt, (original.st_dev, original.st_ino))
     assert receipt.read_text() == "replacement"

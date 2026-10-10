@@ -1,16 +1,31 @@
-"""One-use startup input and credential-free receipt, protected by Windows ACLs."""
+"""One-use startup input and credential-free receipt in a private session directory.
+
+The OS-specific guarantees (Windows ACLs; POSIX 0700/0600, ownership, no-follow, no-replace
+rename) live in `_platform_windows` and `_platform_posix`, chosen by `sys.platform`.
+"""
 
 import json
 import os
 import secrets
 import stat
-import subprocess
+import sys
 from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
 
 from evidra.domain.errors import EvidraError
+
+if sys.platform == "win32":
+    from evidra.security import _platform_windows as _platform
+else:
+    from evidra.security import _platform_posix as _platform
+
+assert_no_reparse_points = _platform.assert_no_reparse_points
+protect_path = _platform.protect_path
+validate_private_path = _platform.validate_private_path
+create_private_file = _platform.create_private_file
+rename_noreplace = _platform.rename_noreplace
 
 
 class Handshake(BaseModel):
@@ -41,118 +56,8 @@ class Handshake(BaseModel):
     @field_validator("data_dir", "connection_path")
     @classmethod
     def validate_path(cls, value: Path) -> Path:
-        if not value.is_absolute() or ".." in value.parts:
-            raise ValueError("An absolute local path without traversal is required")
-        if value.drive.startswith("\\\\") or ":" in str(value)[2:]:
-            raise ValueError("Network paths and alternate data streams are forbidden")
+        _platform.check_path_shape(value)
         return value
-
-
-def assert_no_reparse_points(path: Path) -> None:
-    if not path.is_absolute() or ".." in path.parts or path.drive.startswith("\\\\"):
-        raise EvidraError("UNSAFE_PATH", "An absolute local path without traversal is required.")
-    if ":" in str(path)[2:]:
-        raise EvidraError("UNSAFE_PATH", "Alternate data streams are forbidden.")
-    for component in [*reversed(path.parents), path]:
-        try:
-            info = component.lstat()
-        except FileNotFoundError:
-            continue
-        if info.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
-            raise EvidraError("UNSAFE_PATH", "Reparse points are forbidden.")
-        if component == path and stat.S_ISREG(info.st_mode) and info.st_nlink != 1:
-            raise EvidraError("UNSAFE_PATH", "Linked files are forbidden.")
-
-
-_ACL_COMMON = r"""
-$ErrorActionPreference = 'Stop'
-$securityModule = 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1'
-Import-Module (Join-Path $PSHOME $securityModule) -ErrorAction Stop
-$target = $env:EVIDRA_ACL_TARGET
-$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$item = Get-Item -LiteralPath $target -Force
-if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Reparse point' }
-"""
-_ACL_PROTECT = r"""
-$acl = Get-Acl -LiteralPath $target
-$acl.SetOwner($sid)
-$acl.SetAccessRuleProtection($true, $false)
-foreach ($rule in @($acl.Access)) { [void]$acl.RemoveAccessRuleSpecific($rule) }
-if ($item.PSIsContainer) {
-  $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($sid, 'FullControl',
-      'ContainerInherit,ObjectInherit', 'None', 'Allow')
-} else {
-  $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
-      $sid, 'FullControl', 'Allow')
-}
-$acl.AddAccessRule($rule)
-Set-Acl -LiteralPath $target -AclObject $acl
-"""
-_ACL_VALIDATE = r"""
-$acl = Get-Acl -LiteralPath $target
-if ($acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $sid.Value) {
-  throw 'Unexpected owner'
-}
-$hasAccess = $false
-foreach ($rule in $acl.GetAccessRules($true, $true,
-                                    [System.Security.Principal.SecurityIdentifier])) {
-  if ($rule.AccessControlType -eq 'Allow') {
-    if ($rule.IdentityReference.Value -ne $sid.Value) { throw 'Unexpected ACL principal' }
-    if (($rule.FileSystemRights -band [Security.AccessControl.FileSystemRights]::ReadData) -ne 0) {
-      $hasAccess = $true
-    }
-  }
-}
-if (-not $hasAccess) { throw 'No private access rule' }
-"""
-
-_ACL_DIAGNOSTIC = r"""
-} catch {
-  $reason = 'ACL_OPERATION_FAILED'
-  switch -Exact ($_.Exception.Message) {
-    'Reparse point' { $reason = 'REPARSE_POINT' }
-    'Unexpected owner' { $reason = 'UNEXPECTED_OWNER' }
-    'Unexpected ACL principal' { $reason = 'UNEXPECTED_PRINCIPAL' }
-    'No private access rule' { $reason = 'NO_PRIVATE_ACCESS' }
-  }
-  $fields = @($reason, $_.Exception.GetType().FullName, $_.CategoryInfo.Category.ToString(),
-              $_.InvocationInfo.ScriptLineNumber, $_.Exception.HResult)
-  [Console]::Error.WriteLine('EVIDRA_ACL_DIAGNOSTIC:' + [string]::Join('|', $fields))
-  exit 1
-}
-"""
-
-
-def _acl_operation(path: Path, *, protect: bool) -> None:
-    if os.name != "nt":
-        raise EvidraError("UNSUPPORTED_PLATFORM", "Windows ACL support is required.")
-    assert_no_reparse_points(path)
-    executable = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
-    script = "try {\n" + _ACL_COMMON + (_ACL_PROTECT if protect else "")
-    script += _ACL_VALIDATE + _ACL_DIAGNOSTIC
-    try:
-        subprocess.run(
-            [str(executable), "-NoProfile", "-NonInteractive", "-Command", script],
-            env=os.environ | {"EVIDRA_ACL_TARGET": str(path)},
-            check=True,
-            capture_output=True,
-            timeout=15,
-            creationflags=subprocess.CREATE_NO_WINDOW,
-        )
-    except (OSError, subprocess.SubprocessError) as exc:
-        raise EvidraError(
-            "ACL_ERROR",
-            "Windows private ACL verification failed.",
-            details={"operation": "protect_acl" if protect else "validate_acl"},
-        ) from exc
-
-
-def protect_path(path: Path) -> None:
-    _acl_operation(path, protect=True)
-
-
-def validate_private_path(path: Path) -> None:
-    _acl_operation(path, protect=False)
 
 
 def consume_handshake(path: Path) -> Handshake:
@@ -163,7 +68,7 @@ def consume_handshake(path: Path) -> Handshake:
         before = path.stat()
         if not stat.S_ISREG(before.st_mode):
             raise EvidraError("INVALID_HANDSHAKE", "A regular handshake file is required.")
-        path.rename(claimed)  # Windows rename fails if the destination already exists.
+        rename_noreplace(path, claimed)
         try:
             validate_private_path(claimed)
             with claimed.open("rb") as stream:
@@ -205,12 +110,12 @@ def write_connection_receipt(handshake: Handshake, port: int) -> tuple[int, int]
         "profile_instance_id": handshake.profile_instance_id,
     }
     try:
-        with temporary.open("x", encoding="utf-8") as stream:
+        with create_private_file(temporary) as stream:
             json.dump(payload, stream)
             stream.flush()
             os.fsync(stream.fileno())
         validate_private_path(temporary)
-        temporary.rename(destination)
+        rename_noreplace(temporary, destination)
         validate_private_path(destination)
         identity = destination.stat()
         return identity.st_dev, identity.st_ino
