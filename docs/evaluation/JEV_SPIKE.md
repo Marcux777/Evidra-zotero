@@ -298,3 +298,203 @@ input_tokens médio nas chamadas da H1 (1 pergunta Choice):
 | H3|noul|n20|m10 | 200 | 379 | 4954 | 175 | req_01a123250cde74d4a5d5f6372909feb0 |
 | H3|choice-opaque|n20 | 200 | 298 | 4980 | 189 | req_01a123250e1870989968a5dab7627144 |
 | H3|choice-desc|n20 | 200 | 317 | 4949 | 189 | req_01a123250f657552b23eeeab6ec89847 |
+
+<!-- J1A:BEGIN -->
+## J1a — forma da pergunta e âncora com NONE
+
+168 chamadas bem-sucedidas, 197518 `input_tokens`, 30 casos. Gerado por `scripts/spikes/jev_j1a.py report`. Ledger redigido: [JEV_SPIKE_J1A_LEDGER.jsonl](JEV_SPIKE_J1A_LEDGER.jsonl).
+
+Casos: 12 do J0 (a1–c3 dos artigos, s1–s3 sintéticos), 9 contradições explícitas (k1–k9), 6 sem informação próximos do tema (n1–n6) e 3 'informação existe no artigo mas o trecho não foi preparado' (w1–w3). Cada caso roda com 1 trecho (ctx1) e com 5 trechos (ctx5, duas amostras de distratores; os distratores são filtrados por termos que tornariam o trecho também relevante). Os artigos CC BY e os parágrafos são os do J0; as instruções e as opções estão em inglês.
+
+Formas comparadas, sempre com a mesma âncora (`choice` sobre os IDs dos trechos mais `NONE`): **A** = um choice `MET / NOT_MET / NOT_REPORTED`; **B** = dois nouls (`addressed?`, `met?`) com veredito derivado por código: MET se p(met) ≥ 0.7; NOT_MET se p(addressed) ≥ 0.7 e p(met) ≤ 0.3; NOT_REPORTED se p(addressed) ≤ 0.3; senão UNCLEAR.
+
+Critérios pré-registrados no script antes da primeira chamada: c_min = 0.7 (provisório, **não** é limiar final); erro crítico = caso sem informação (ou sem trecho preparado) julgado NOT_MET com confiança ≥ c_min; aceite = 0 erros críticos e NONE como âncora de maior probabilidade em todos os casos sem sustentação; vence a forma aceita com maior recall de exclusão firme (NOT_MET, confiança ≥ c_min, âncora = trecho contraditório); empate: menos tokens.
+
+### Resultado por forma
+
+| forma | ctx | chamadas | acerto 3 classes | erros críticos (sem info → NOT_MET firme) | sem info → NONE | recall de exclusão firme | MET atendido | âncora correta (com trecho) | âncora errada com p ≥ c_min | UNCLEAR | input_tokens médio |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| A | 1 | 30 | 29/30 (97%) | 0 | 13/13 (100%) | 12/13 (92%) | 4/4 (100%) | 16/17 (94%) | 1 | 0 | 661 |
+| A | 5 | 54 | 54/54 (100%) | 0 | 24/24 (100%) | 24/24 (100%) | 6/6 (100%) | 30/30 (100%) | 0 | 0 | 1508 |
+| A | todos | 84 | 83/84 (99%) | 0 | 37/37 (100%) | 36/37 (97%) | 10/10 (100%) | 46/47 (98%) | 1 | 0 | 1205 |
+| B | 1 | 30 | 17/30 (57%) | 0 | 13/13 (100%) | 1/13 (8%) | 4/4 (100%) | 16/17 (94%) | 1 | 5 | 601 |
+| B | 5 | 54 | 30/54 (56%) | 0 | 24/24 (100%) | 0/24 (0%) | 6/6 (100%) | 30/30 (100%) | 0 | 4 | 1449 |
+| B | todos | 84 | 47/84 (56%) | 0 | 37/37 (100%) | 1/37 (3%) | 10/10 (100%) | 46/47 (98%) | 1 | 9 | 1146 |
+
+### Veredito
+
+| forma | aceite (0 erros críticos e NONE em todos os sem sustentação) | erros críticos | NONE nos sem sustentação | recall de exclusão firme |
+|---|---|---|---|---|
+| A | SIM | 0 | 37/37 (100%) | 36/37 (97%) |
+| B | SIM | 0 | 37/37 (100%) | 1/37 (3%) |
+
+Forma vencedora pelo critério pré-registrado: **A**.
+
+### Falhas
+
+**Erros críticos (sem sustentação julgado NOT_MET com confiança ≥ c_min)**: 0
+
+**Sem sustentação em que a âncora não foi NONE**: 0
+
+**Contradição explícita sem exclusão firme (não é erro crítico: vira UNCLEAR)**: 37
+- a2 ctx1 r0 forma B (not_met): veredito a=0.27 m=0.01, âncora e1 (p=0.82; correta e1)
+- a2 ctx5 r0 forma B (not_met): veredito a=0.15 m=0.01, âncora e1 (p=0.93; correta e1)
+- a2 ctx5 r1 forma B (not_met): veredito a=0.15 m=0.01, âncora e1 (p=0.87; correta e1)
+- b2 ctx1 r0 forma B (not_met): veredito a=0.17 m=0.01, âncora e1 (p=0.98; correta e1)
+- b2 ctx5 r0 forma B (not_met): veredito a=0.13 m=0.01, âncora e5 (p=1.00; correta e5)
+- b2 ctx5 r1 forma B (not_met): veredito a=0.11 m=0.01, âncora e2 (p=0.99; correta e2)
+- c2 ctx1 r0 forma B (not_met): veredito a=0.16 m=0.01, âncora e1 (p=0.96; correta e1)
+- c2 ctx5 r0 forma B (not_met): veredito a=0.10 m=0.01, âncora e1 (p=0.98; correta e1)
+- c2 ctx5 r1 forma B (not_met): veredito a=0.10 m=0.01, âncora e2 (p=0.98; correta e2)
+- k1 ctx1 r0 forma B (not_met): veredito a=0.25 m=0.01, âncora e1 (p=0.98; correta e1)
+- k1 ctx5 r0 forma B (not_met): veredito a=0.21 m=0.01, âncora e4 (p=0.99; correta e4)
+- k1 ctx5 r1 forma B (not_met): veredito a=0.22 m=0.01, âncora e4 (p=0.99; correta e4)
+- k2 ctx1 r0 forma B (not_met): veredito a=0.35 m=0.01, âncora e1 (p=0.98; correta e1)
+- k2 ctx5 r0 forma B (not_met): veredito a=0.27 m=0.02, âncora e3 (p=0.99; correta e3)
+- k2 ctx5 r1 forma B (not_met): veredito a=0.31 m=0.02, âncora e5 (p=0.99; correta e5)
+- k3 ctx1 r0 forma B (not_met): veredito a=0.31 m=0.01, âncora e1 (p=1.00; correta e1)
+- k3 ctx5 r0 forma B (not_met): veredito a=0.26 m=0.01, âncora e1 (p=0.99; correta e1)
+- k3 ctx5 r1 forma B (not_met): veredito a=0.23 m=0.01, âncora e5 (p=0.99; correta e5)
+- k4 ctx1 r0 forma B (not_met): veredito a=0.36 m=0.01, âncora e1 (p=0.98; correta e1)
+- k4 ctx5 r0 forma B (not_met): veredito a=0.30 m=0.01, âncora e1 (p=0.98; correta e1)
+- k4 ctx5 r1 forma B (not_met): veredito a=0.32 m=0.01, âncora e4 (p=0.98; correta e4)
+- k5 ctx5 r0 forma B (not_met): veredito a=0.44 m=0.02, âncora e2 (p=1.00; correta e2)
+- k5 ctx5 r1 forma B (not_met): veredito a=0.36 m=0.01, âncora e4 (p=1.00; correta e4)
+- k6 ctx1 r0 forma B (not_met): veredito a=0.28 m=0.01, âncora e1 (p=1.00; correta e1)
+- k6 ctx5 r0 forma B (not_met): veredito a=0.18 m=0.01, âncora e4 (p=1.00; correta e4)
+- k6 ctx5 r1 forma B (not_met): veredito a=0.17 m=0.01, âncora e4 (p=1.00; correta e4)
+- k7 ctx1 r0 forma B (not_met): veredito a=0.20 m=0.01, âncora e1 (p=1.00; correta e1)
+- k7 ctx5 r0 forma B (not_met): veredito a=0.28 m=0.02, âncora e3 (p=1.00; correta e3)
+- k7 ctx5 r1 forma B (not_met): veredito a=0.27 m=0.02, âncora e3 (p=1.00; correta e3)
+- k8 ctx1 r0 forma B (not_met): veredito a=0.38 m=0.01, âncora e1 (p=0.98; correta e1)
+- k8 ctx5 r0 forma B (not_met): veredito a=0.24 m=0.01, âncora e5 (p=1.00; correta e5)
+- k8 ctx5 r1 forma B (not_met): veredito a=0.21 m=0.01, âncora e3 (p=1.00; correta e3)
+- k9 ctx1 r0 forma B (not_met): veredito a=0.11 m=0.01, âncora e1 (p=0.94; correta e1)
+- k9 ctx5 r0 forma B (not_met): veredito a=0.10 m=0.01, âncora e2 (p=0.98; correta e2)
+- k9 ctx5 r1 forma B (not_met): veredito a=0.08 m=0.01, âncora e4 (p=0.95; correta e4)
+- s2 ctx1 r0 forma A (not_met): veredito NOT_REPORTED 0.76, âncora NONE (p=1.00; correta e1)
+- s2 ctx1 r0 forma B (not_met): veredito a=0.08 m=0.01, âncora NONE (p=1.00; correta e1)
+
+**Atendido com veredito diferente de MET**: 0
+
+**Âncora errada com p ≥ c_min (todas as classes)**: 2
+- s2 ctx1 r0 forma A (not_met): veredito NOT_REPORTED 0.76, âncora NONE (p=1.00; correta e1)
+- s2 ctx1 r0 forma B (not_met): veredito a=0.08 m=0.01, âncora NONE (p=1.00; correta e1)
+
+### Por origem do caso
+
+| origem | forma | chamadas | acerto 3 classes | erros críticos | NONE nos sem info |
+|---|---|---|---|---|---|
+| J0 | A | 30 | 29/30 (97%) | 0 | 10/10 (100%) |
+| J0 | B | 30 | 20/30 (67%) | 0 | 10/10 (100%) |
+| contradiction | A | 27 | 27/27 (100%) | 0 | — |
+| contradiction | B | 27 | 1/27 (4%) | 0 | — |
+| no_info | A | 18 | 18/18 (100%) | 0 | 18/18 (100%) |
+| no_info | B | 18 | 18/18 (100%) | 0 | 18/18 (100%) |
+| withheld | A | 9 | 9/9 (100%) | 0 | 9/9 (100%) |
+| withheld | B | 9 | 8/9 (89%) | 0 | 9/9 (100%) |
+
+### Por caso
+
+`A` = choice (veredito confiança); `B` = noul addressed (a) e met (m). Âncora: ID escolhido (p).
+
+| caso | classe | ctx | A veredito | B (a / m) → derivado | âncora A | âncora B | correta |
+|---|---|---|---|---|---|---|---|
+| a1 | met | 1 | MET 1.00 | a=0.98 m=0.99 → MET 0.99 | e1 (1.00) | e1 (1.00) | e1 |
+| a1 | met | 5/r0 | MET 1.00 | a=0.98 m=0.99 → MET 0.99 | e1 (1.00) | e1 (1.00) | e1 |
+| a1 | met | 5/r1 | MET 1.00 | a=0.98 m=0.98 → MET 0.98 | e2 (1.00) | e2 (1.00) | e2 |
+| a2 | not_met | 1 | NOT_MET 1.00 | a=0.27 m=0.01 → NOT_REPORTED 0.73 | e1 (0.80) | e1 (0.82) | e1 |
+| a2 | not_met | 5/r0 | NOT_MET 1.00 | a=0.15 m=0.01 → NOT_REPORTED 0.85 | e1 (0.92) | e1 (0.93) | e1 |
+| a2 | not_met | 5/r1 | NOT_MET 1.00 | a=0.15 m=0.01 → NOT_REPORTED 0.85 | e1 (0.84) | e1 (0.87) | e1 |
+| a3 | no_info | 1 | NOT_REPORTED 0.98 | a=0.05 m=0.04 → NOT_REPORTED 0.95 | NONE (0.96) | NONE (0.96) | NONE |
+| a3 | no_info | 5/r0 | NOT_REPORTED 0.98 | a=0.07 m=0.06 → NOT_REPORTED 0.93 | NONE (0.89) | NONE (0.88) | NONE |
+| a3 | no_info | 5/r1 | NOT_REPORTED 0.98 | a=0.07 m=0.05 → NOT_REPORTED 0.93 | NONE (0.90) | NONE (0.90) | NONE |
+| b1 | met | 1 | MET 1.00 | a=0.97 m=0.97 → MET 0.97 | e1 (1.00) | e1 (1.00) | e1 |
+| b1 | met | 5/r0 | MET 1.00 | a=0.98 m=0.98 → MET 0.98 | e2 (1.00) | e2 (1.00) | e2 |
+| b1 | met | 5/r1 | MET 1.00 | a=0.97 m=0.97 → MET 0.97 | e2 (1.00) | e2 (1.00) | e2 |
+| b2 | not_met | 1 | NOT_MET 1.00 | a=0.17 m=0.01 → NOT_REPORTED 0.83 | e1 (0.98) | e1 (0.98) | e1 |
+| b2 | not_met | 5/r0 | NOT_MET 1.00 | a=0.13 m=0.01 → NOT_REPORTED 0.87 | e5 (0.99) | e5 (1.00) | e5 |
+| b2 | not_met | 5/r1 | NOT_MET 1.00 | a=0.11 m=0.01 → NOT_REPORTED 0.89 | e2 (0.99) | e2 (0.99) | e2 |
+| b3 | no_info | 1 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| b3 | no_info | 5/r0 | NOT_REPORTED 0.98 | a=0.08 m=0.03 → NOT_REPORTED 0.92 | NONE (0.78) | NONE (0.80) | NONE |
+| b3 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.05 m=0.02 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| c1 | met | 1 | MET 1.00 | a=0.98 m=0.99 → MET 0.99 | e1 (1.00) | e1 (1.00) | e1 |
+| c1 | met | 5/r0 | MET 1.00 | a=0.98 m=0.99 → MET 0.99 | e4 (1.00) | e4 (1.00) | e4 |
+| c1 | met | 5/r1 | MET 1.00 | a=0.98 m=0.99 → MET 0.99 | e1 (1.00) | e1 (1.00) | e1 |
+| c2 | not_met | 1 | NOT_MET 1.00 | a=0.16 m=0.01 → NOT_REPORTED 0.84 | e1 (0.96) | e1 (0.96) | e1 |
+| c2 | not_met | 5/r0 | NOT_MET 1.00 | a=0.10 m=0.01 → NOT_REPORTED 0.90 | e1 (0.99) | e1 (0.98) | e1 |
+| c2 | not_met | 5/r1 | NOT_MET 1.00 | a=0.10 m=0.01 → NOT_REPORTED 0.90 | e2 (0.98) | e2 (0.98) | e2 |
+| c3 | no_info | 1 | NOT_REPORTED 1.00 | a=0.07 m=0.03 → NOT_REPORTED 0.93 | NONE (1.00) | NONE (1.00) | NONE |
+| c3 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.03 m=0.02 → NOT_REPORTED 0.97 | NONE (1.00) | NONE (1.00) | NONE |
+| c3 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| s1 | met | 1 | MET 1.00 | a=0.95 m=0.94 → MET 0.94 | e1 (1.00) | e1 (1.00) | e1 |
+| s2 | not_met | 1 | NOT_REPORTED 0.76 | a=0.08 m=0.01 → NOT_REPORTED 0.92 | NONE (1.00) | NONE (1.00) | e1 |
+| s3 | no_info | 1 | NOT_REPORTED 1.00 | a=0.07 m=0.03 → NOT_REPORTED 0.93 | NONE (1.00) | NONE (1.00) | NONE |
+| k1 | not_met | 1 | NOT_MET 1.00 | a=0.25 m=0.01 → NOT_REPORTED 0.75 | e1 (0.98) | e1 (0.98) | e1 |
+| k1 | not_met | 5/r0 | NOT_MET 1.00 | a=0.21 m=0.01 → NOT_REPORTED 0.79 | e4 (0.99) | e4 (0.99) | e4 |
+| k1 | not_met | 5/r1 | NOT_MET 1.00 | a=0.22 m=0.01 → NOT_REPORTED 0.78 | e4 (0.99) | e4 (0.99) | e4 |
+| k2 | not_met | 1 | NOT_MET 1.00 | a=0.35 m=0.01 → UNCLEAR 0.65 | e1 (0.98) | e1 (0.98) | e1 |
+| k2 | not_met | 5/r0 | NOT_MET 1.00 | a=0.27 m=0.02 → NOT_REPORTED 0.73 | e3 (0.99) | e3 (0.99) | e3 |
+| k2 | not_met | 5/r1 | NOT_MET 1.00 | a=0.31 m=0.02 → UNCLEAR 0.69 | e5 (0.99) | e5 (0.99) | e5 |
+| k3 | not_met | 1 | NOT_MET 1.00 | a=0.31 m=0.01 → UNCLEAR 0.69 | e1 (0.98) | e1 (1.00) | e1 |
+| k3 | not_met | 5/r0 | NOT_MET 1.00 | a=0.26 m=0.01 → NOT_REPORTED 0.74 | e1 (1.00) | e1 (0.99) | e1 |
+| k3 | not_met | 5/r1 | NOT_MET 1.00 | a=0.23 m=0.01 → NOT_REPORTED 0.77 | e5 (0.99) | e5 (0.99) | e5 |
+| k4 | not_met | 1 | NOT_MET 1.00 | a=0.36 m=0.01 → UNCLEAR 0.64 | e1 (0.98) | e1 (0.98) | e1 |
+| k4 | not_met | 5/r0 | NOT_MET 1.00 | a=0.30 m=0.01 → NOT_REPORTED 0.70 | e1 (0.96) | e1 (0.98) | e1 |
+| k4 | not_met | 5/r1 | NOT_MET 1.00 | a=0.32 m=0.01 → UNCLEAR 0.68 | e4 (0.98) | e4 (0.98) | e4 |
+| k5 | not_met | 1 | NOT_MET 1.00 | a=0.70 m=0.02 → NOT_MET 0.70 | e1 (1.00) | e1 (1.00) | e1 |
+| k5 | not_met | 5/r0 | NOT_MET 1.00 | a=0.44 m=0.02 → UNCLEAR 0.56 | e2 (1.00) | e2 (1.00) | e2 |
+| k5 | not_met | 5/r1 | NOT_MET 1.00 | a=0.36 m=0.01 → UNCLEAR 0.64 | e4 (1.00) | e4 (1.00) | e4 |
+| k6 | not_met | 1 | NOT_MET 1.00 | a=0.28 m=0.01 → NOT_REPORTED 0.72 | e1 (0.98) | e1 (1.00) | e1 |
+| k6 | not_met | 5/r0 | NOT_MET 1.00 | a=0.18 m=0.01 → NOT_REPORTED 0.82 | e4 (1.00) | e4 (1.00) | e4 |
+| k6 | not_met | 5/r1 | NOT_MET 1.00 | a=0.17 m=0.01 → NOT_REPORTED 0.83 | e4 (1.00) | e4 (1.00) | e4 |
+| k7 | not_met | 1 | NOT_MET 1.00 | a=0.20 m=0.01 → NOT_REPORTED 0.80 | e1 (1.00) | e1 (1.00) | e1 |
+| k7 | not_met | 5/r0 | NOT_MET 1.00 | a=0.28 m=0.02 → NOT_REPORTED 0.72 | e3 (1.00) | e3 (1.00) | e3 |
+| k7 | not_met | 5/r1 | NOT_MET 1.00 | a=0.27 m=0.02 → NOT_REPORTED 0.73 | e3 (1.00) | e3 (1.00) | e3 |
+| k8 | not_met | 1 | NOT_MET 1.00 | a=0.38 m=0.01 → UNCLEAR 0.62 | e1 (0.98) | e1 (0.98) | e1 |
+| k8 | not_met | 5/r0 | NOT_MET 1.00 | a=0.24 m=0.01 → NOT_REPORTED 0.76 | e5 (1.00) | e5 (1.00) | e5 |
+| k8 | not_met | 5/r1 | NOT_MET 1.00 | a=0.21 m=0.01 → NOT_REPORTED 0.79 | e3 (1.00) | e3 (1.00) | e3 |
+| k9 | not_met | 1 | NOT_MET 1.00 | a=0.11 m=0.01 → NOT_REPORTED 0.89 | e1 (0.92) | e1 (0.94) | e1 |
+| k9 | not_met | 5/r0 | NOT_MET 1.00 | a=0.10 m=0.01 → NOT_REPORTED 0.90 | e2 (0.99) | e2 (0.98) | e2 |
+| k9 | not_met | 5/r1 | NOT_MET 1.00 | a=0.08 m=0.01 → NOT_REPORTED 0.92 | e4 (0.96) | e4 (0.95) | e4 |
+| n1 | no_info | 1 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n1 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.05 m=0.03 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n1 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.05 m=0.02 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n2 | no_info | 1 | NOT_REPORTED 1.00 | a=0.08 m=0.02 → NOT_REPORTED 0.92 | NONE (1.00) | NONE (1.00) | NONE |
+| n2 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.05 m=0.03 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n2 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.06 m=0.03 → NOT_REPORTED 0.94 | NONE (1.00) | NONE (1.00) | NONE |
+| n3 | no_info | 1 | NOT_REPORTED 1.00 | a=0.03 m=0.01 → NOT_REPORTED 0.97 | NONE (1.00) | NONE (1.00) | NONE |
+| n3 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n3 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n4 | no_info | 1 | NOT_REPORTED 1.00 | a=0.05 m=0.01 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n4 | no_info | 5/r0 | NOT_REPORTED 0.98 | a=0.04 m=0.01 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n4 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.02 m=0.01 → NOT_REPORTED 0.98 | NONE (1.00) | NONE (1.00) | NONE |
+| n5 | no_info | 1 | NOT_REPORTED 1.00 | a=0.05 m=0.02 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n5 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.06 m=0.03 → NOT_REPORTED 0.94 | NONE (1.00) | NONE (1.00) | NONE |
+| n5 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.05 m=0.02 → NOT_REPORTED 0.95 | NONE (1.00) | NONE (1.00) | NONE |
+| n6 | no_info | 1 | NOT_REPORTED 1.00 | a=0.04 m=0.01 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n6 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.04 m=0.02 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| n6 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.04 m=0.01 → NOT_REPORTED 0.96 | NONE (1.00) | NONE (1.00) | NONE |
+| w1 | no_info | 1 | NOT_REPORTED 0.82 | a=0.43 m=0.27 → UNCLEAR 0.57 | NONE (0.70) | NONE (0.66) | NONE |
+| w1 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.13 m=0.07 → NOT_REPORTED 0.87 | NONE (1.00) | NONE (1.00) | NONE |
+| w1 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.13 m=0.07 → NOT_REPORTED 0.87 | NONE (0.99) | NONE (0.99) | NONE |
+| w2 | no_info | 1 | NOT_REPORTED 1.00 | a=0.09 m=0.03 → NOT_REPORTED 0.91 | NONE (1.00) | NONE (1.00) | NONE |
+| w2 | no_info | 5/r0 | NOT_REPORTED 1.00 | a=0.10 m=0.03 → NOT_REPORTED 0.90 | NONE (1.00) | NONE (1.00) | NONE |
+| w2 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.09 m=0.05 → NOT_REPORTED 0.91 | NONE (1.00) | NONE (1.00) | NONE |
+| w3 | no_info | 1 | NOT_REPORTED 1.00 | a=0.09 m=0.06 → NOT_REPORTED 0.91 | NONE (0.98) | NONE (0.98) | NONE |
+| w3 | no_info | 5/r0 | NOT_REPORTED 0.85 | a=0.14 m=0.10 → NOT_REPORTED 0.86 | NONE (0.87) | NONE (0.92) | NONE |
+| w3 | no_info | 5/r1 | NOT_REPORTED 1.00 | a=0.13 m=0.09 → NOT_REPORTED 0.87 | NONE (1.00) | NONE (1.00) | NONE |
+
+### Custo
+
+| forma | ctx | input_tokens médio | output_tokens médio |
+|---|---|---|---|
+| A | 1 | 661 | 74 |
+| A | 5 | 1508 | 106 |
+| B | 1 | 601 | 66 |
+| B | 5 | 1449 | 98 |
+
+Ressalvas: (1) s2 é o único caso em que a forma A erra o veredito (NOT_REPORTED 0,76, âncora NONE); o rótulo `not_met` herdado do J0 não é uma contradição explícita (o resumo fala de um robô com pernas, não nega Atari), então a resposta do Jev é defensável e o caso não conta como 'sem informação' no aceite. (2) 0 erros críticos em 37 chamadas sem sustentação limita a taxa verdadeira a cerca de 8% (regra dos três, 95%), e as 37 chamadas são 13 casos com no máximo 3 variantes de contexto, não 37 amostras independentes. (3) A forma B perde por causa da redação de `addressed?`: o Noul trata 'contradiz' como 'não diz', e `addressed` fica em 0,08–0,44 nas contradições; outra redação não foi testada e não está descartada.
+
+Limites do que este spike sustenta: 30 casos curados, três artigos de um mesmo domínio, parágrafos truncados em 1.500 caracteres, instruções em inglês; as probabilidades são as da API, sem calibração própria. Nada aqui fixa limiares finais do produto; c_min = 0,70 é provisório.
+<!-- J1A:END -->

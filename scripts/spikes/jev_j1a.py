@@ -355,6 +355,9 @@ def section(entries: list[dict]) -> str:
             sub = [r for r in rows if r["form"] == form and r["ctx"] == ctx]
             if sub:
                 L.append(f"| {form} | {ctx} | {statistics.mean(r['tok'] for r in sub):.0f} | {statistics.mean(r['otok'] for r in sub):.0f} |")
+    L += ["", "Ressalvas: (1) s2 é o único caso em que a forma A erra o veredito (NOT_REPORTED 0,76, âncora NONE); o rótulo `not_met` herdado do J0 não é uma contradição explícita (o resumo fala de um robô com pernas, não nega Atari), então a resposta do Jev é defensável e o caso não conta como 'sem informação' no aceite. "
+          "(2) 0 erros críticos em 37 chamadas sem sustentação limita a taxa verdadeira a cerca de 8% (regra dos três, 95%), e as 37 chamadas são 13 casos com no máximo 3 variantes de contexto, não 37 amostras independentes. "
+          "(3) A forma B perde por causa da redação de `addressed?`: o Noul trata 'contradiz' como 'não diz', e `addressed` fica em 0,08–0,44 nas contradições; outra redação não foi testada e não está descartada."]
     L += ["", "Limites do que este spike sustenta: 30 casos curados, três artigos de um mesmo domínio, parágrafos truncados em 1.500 caracteres, instruções em inglês; "
           "as probabilidades são as da API, sem calibração própria. Nada aqui fixa limiares finais do produto; c_min = 0,70 é provisório."]
     return "\n".join(L)
