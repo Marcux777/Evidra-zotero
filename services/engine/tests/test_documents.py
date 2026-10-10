@@ -1045,8 +1045,10 @@ def test_owned_worker_cancellation_timeout_and_memory_posix(tmp_path: Path, monk
             )
             # RLIMIT_DATA + the VmData watchdog report exhaustion; a bare PDFium abort is
             # PARSER_FAILED because no cause was demonstrated (ADR 0004).
-            assert memory["state"] == "PAUSED", memory
-            assert memory["reason"] in {"PARSER_MEMORY_LIMIT", "PARSER_FAILED"}, memory
+            assert (memory["state"], memory["reason"]) in {
+                ("PAUSED", "PARSER_MEMORY_LIMIT"),  # the VmData watchdog or MemoryError saw it
+                ("FAILED", "PARSER_FAILED"),  # a bare PDFium abort: no cause was demonstrated
+            }, memory
             assert unrelated.poll() is None, "Cancellation killed an unrelated process"
             assert all_gone()
             with app.state.services.database.transaction() as connection:
