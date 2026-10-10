@@ -3,20 +3,15 @@
 import hashlib
 import json
 import logging
-import msvcrt
 import os
 import secrets
 import sqlite3
-import stat
+import sys
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
-
-import pywintypes  # type: ignore[import-untyped]
-import win32con  # type: ignore[import-untyped]
-import win32file  # type: ignore[import-untyped]
 
 from evidra.domain.documents import (
     AttachmentRegister,
@@ -28,6 +23,23 @@ from evidra.domain.errors import EvidraError
 from evidra.domain.sources import Source, SourceContent, content_version, metadata_version
 from evidra.scope.service import ScopeContext, ScopeService
 
+if sys.platform == "win32":
+    from evidra.documents._registry_windows import (
+        OPEN_ERRORS,
+        classify_error,
+        file_identity,
+        open_stream,
+        validate_components,
+    )
+else:
+    from evidra.documents._registry_posix import (
+        OPEN_ERRORS,
+        classify_error,
+        file_identity,
+        open_stream,
+        validate_components,
+    )
+
 logger = logging.getLogger(__name__)
 FILE_OBSERVATION_ERRORS = {
     "MISSING_FILE",
@@ -36,6 +48,7 @@ FILE_OBSERVATION_ERRORS = {
     "INVALID_DOCUMENT_PATH",
     "REPARSE_POINT",
     "NOT_REGULAR_FILE",
+    "LINKED_FILE",
 }
 
 
@@ -62,78 +75,21 @@ class VerifiedFile:
         return digest.hexdigest()
 
 
-def validate_components(path: Path) -> None:
-    # No alternate streams, device namespace, network path or relative path resolution.
-    if not path.is_absolute() or len(path.drive) != 2 or path.drive[1] != ":":
-        raise EvidraError("INVALID_DOCUMENT_PATH", "A local absolute file is required.")
-    if any(":" in p or p in {".", ".."} for p in path.parts[1:]):
-        raise EvidraError("INVALID_DOCUMENT_PATH", "The attachment path is invalid.")
-    for component in [*reversed(path.parents), path]:
-        value = component.lstat()
-        if value.st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT:
-            raise EvidraError(
-                "REPARSE_POINT", "Linked or redirected attachments are not permitted."
-            )
-        if component != path and not stat.S_ISDIR(value.st_mode):
-            raise EvidraError("INVALID_DOCUMENT_PATH", "An attachment parent is not a directory.")
-    if not stat.S_ISREG(value.st_mode):
-        raise EvidraError("NOT_REGULAR_FILE", "The attachment is not a regular file.")
-
-
-def file_identity(stream: BinaryIO, path: Path) -> str:
-    handle = msvcrt.get_osfhandle(stream.fileno())
-    if win32file.GetFileType(handle) != win32file.FILE_TYPE_DISK:
-        raise EvidraError("NOT_REGULAR_FILE", "The attachment is not a regular disk file.")
-    info = win32file.GetFileInformationByHandle(handle)
-    if info[0] & stat.FILE_ATTRIBUTE_REPARSE_POINT:
-        raise EvidraError("REPARSE_POINT", "The opened attachment is redirected.")
-    final = win32file.GetFinalPathNameByHandle(handle, 0)
-    if not final.startswith("\\\\?\\") or os.path.normcase(final[4:]) != os.path.normcase(
-        str(path)
-    ):
-        raise EvidraError("DOCUMENT_STALE", "The attachment path changed while opening it.")
-    value = os.fstat(stream.fileno())
-    return json.dumps(
-        [info[4], info[8], info[9], value.st_size, value.st_mtime_ns], separators=(",", ":")
-    )
-
-
 @contextmanager
 def open_verified(path: Path, expected: str | None = None) -> Iterator[VerifiedFile]:
     try:
         validate_components(path)
-        handle = win32file.CreateFile(
-            str(path),
-            win32con.GENERIC_READ,
-            win32con.FILE_SHARE_READ,
-            None,
-            win32con.OPEN_EXISTING,
-            win32file.FILE_FLAG_OPEN_REPARSE_POINT | win32con.FILE_FLAG_SEQUENTIAL_SCAN,
-            None,
-        )
-        try:
-            fd = msvcrt.open_osfhandle(int(handle), os.O_RDONLY | os.O_BINARY)
-        except BaseException:
-            handle.Close()
-            raise
-        handle.Detach()  # The CRT file descriptor now owns this exact handle.
-        with os.fdopen(fd, "rb") as stream:
+        with open_stream(path) as stream:
             identity = file_identity(stream, path)
             if expected is not None and expected != identity:
                 raise EvidraError("DOCUMENT_STALE", "The registered file changed.")
-            opened = VerifiedFile(stream, path, identity, os.fstat(fd).st_size)
+            opened = VerifiedFile(stream, path, identity, os.fstat(stream.fileno()).st_size)
             yield opened
             opened.recheck()
     except FileNotFoundError as exc:
         raise EvidraError("MISSING_FILE", "The local attachment is missing.") from exc
-    except (OSError, pywintypes.error) as exc:
-        if getattr(exc, "winerror", None) in {2, 3}:
-            raise EvidraError("MISSING_FILE", "The local attachment is missing.") from exc
-        raise EvidraError(
-            "DOCUMENT_FILE_ERROR",
-            "The attachment could not be opened safely.",
-            details={"winerror": getattr(exc, "winerror", None)},
-        ) from exc
+    except OPEN_ERRORS as exc:
+        raise classify_error(exc) from exc
 
 
 class DocumentRegistry:
