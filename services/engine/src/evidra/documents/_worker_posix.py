@@ -5,11 +5,19 @@ parent-side equivalent, so isolation is split between the child, which constrain
 imports PDFium or reads a byte, and the parent, which owns its process group.
 
 Child (`apply_child_limits`, first action of `worker_main`, before `pypdfium2` is imported)
-* its own user, PID and network namespaces (`os.unshare`): the worker has no network (a fresh
-  loopback only, unrelated to the engine's) and runs as PID 2 under a PID 1 that exits with it, so
-  every descendant, `setsid` or not, is killed with it. All capabilities are dropped. When the
-  kernel refuses (`os.unshare` unavailable or denied) the worker fails with
-  `PARSER_SANDBOX_UNAVAILABLE`; there is no unsandboxed fallback;
+* its own user, PID, mount and network namespaces (`os.unshare`): the worker has no network (a
+  fresh loopback only, unrelated to the engine's) and runs as PID 2 under a PID 1 that exits with
+  it, so every descendant, `setsid` or not, is killed with it. A fresh procfs is mounted in the
+  new mount namespace, so the worker sees only PIDs 1 and 2 and none of the user's processes
+  (their command lines, environments and memory). All capabilities are dropped;
+* a Landlock ruleset that handles every write-like filesystem right, plus connecting to pathname
+  UNIX sockets (ABI 9 `RESOLVE_UNIX`), and allows none: the worker can still read what the user
+  can read (and write to the descriptors it inherited), but it can not create, modify, truncate,
+  rename or delete any file, and it can not reach the user's D-Bus, agents or `docker.sock`
+  (pathname sockets cross the network namespace), so a compromised parser can neither plant
+  persistence nor ask another process to act for it;
+* when the kernel refuses any of this (`os.unshare`, mounting procfs, Landlock) the worker fails
+  with `PARSER_SANDBOX_UNAVAILABLE`; there is no unsandboxed fallback;
 * `RLIMIT_DATA`, `RLIMIT_CPU`, `RLIMIT_NOFILE`, `RLIMIT_FSIZE` with soft == hard, so they cannot
   be raised, and `RLIMIT_CORE = 0`; `PR_SET_DUMPABLE = 0`; `PR_SET_NO_NEW_PRIVS`;
 * `PR_SET_PDEATHSIG = SIGKILL`, then `getppid()` is compared with the PID received on the command
@@ -50,6 +58,7 @@ import platform
 import re
 import resource
 import signal
+import struct
 import subprocess
 import sys
 import tempfile
@@ -69,6 +78,30 @@ from evidra.domain.errors import EvidraError
 
 _STDERR_LIMIT = 65536
 _SECRET_NAME = re.compile(r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL", re.IGNORECASE)
+_MS_NOSUID, _MS_NODEV, _MS_NOEXEC = 2, 4, 8
+_MS_REC, _MS_PRIVATE = 16384, 1 << 18
+_PROC_FSTYPE = "proc"
+# Landlock syscalls (same numbers on x86_64 and aarch64) and the write-like access rights.
+_LANDLOCK_SYSCALLS = (444, 445, 446)  # create_ruleset, add_rule, restrict_self
+_LANDLOCK_WRITE_RIGHTS = (  # (first ABI that has it, bit)
+    (1, 1 << 1),  # WRITE_FILE
+    (1, 1 << 4),  # REMOVE_DIR
+    (1, 1 << 5),  # REMOVE_FILE
+    (1, 1 << 6),  # MAKE_CHAR
+    (1, 1 << 7),  # MAKE_DIR
+    (1, 1 << 8),  # MAKE_REG
+    (1, 1 << 9),  # MAKE_SOCK
+    (1, 1 << 10),  # MAKE_FIFO
+    (1, 1 << 11),  # MAKE_BLOCK
+    (1, 1 << 12),  # MAKE_SYM
+    (2, 1 << 13),  # REFER
+    (3, 1 << 14),  # TRUNCATE
+    (5, 1 << 15),  # IOCTL_DEV
+    (9, 1 << 16),  # RESOLVE_UNIX: connect to pathname UNIX sockets (D-Bus, agents, docker.sock)
+)
+# Without RESOLVE_UNIX a sandboxed worker can still reach any pathname UNIX socket of the user
+# (verified), which crosses the network namespace; so an older kernel is refused, not degraded.
+_LANDLOCK_MIN_ABI = 9
 _PR_SET_DUMPABLE = 4
 _PR_SET_PDEATHSIG = 1
 _PR_SET_NO_NEW_PRIVS = 38
@@ -194,6 +227,48 @@ def _drop_capabilities() -> None:
         raise _sandbox_unavailable("capset failed", OSError(ctypes.get_errno(), "capset"))
 
 
+def _private_proc(library: Any) -> None:
+    """In the new mount namespace: stop propagation, then mount a procfs of the new PID ns."""
+    for source, target, fstype, flags in (
+        (None, b"/", None, _MS_REC | _MS_PRIVATE),
+        (b"proc", b"/proc", _PROC_FSTYPE.encode(), _MS_NOSUID | _MS_NODEV | _MS_NOEXEC),
+    ):
+        done = library.mount(source, target, fstype, ctypes.c_ulong(flags), None)
+        if done != 0:
+            raise _sandbox_unavailable(
+                "mount", OSError(ctypes.get_errno(), "mount " + target.decode())
+            )
+
+
+def _deny_filesystem_writes(library: Any) -> None:
+    """Landlock: handle every write-like right and grant none (reads are not restricted)."""
+    create, _add, restrict = _LANDLOCK_SYSCALLS
+    abi = library.syscall(create, None, 0, 1)  # LANDLOCK_CREATE_RULESET_VERSION
+    if abi < 1:
+        raise _sandbox_unavailable(
+            "landlock", OSError(ctypes.get_errno(), "landlock is not available")
+        )
+    if abi < _LANDLOCK_MIN_ABI:
+        raise _sandbox_unavailable(f"landlock ABI {abi} < {_LANDLOCK_MIN_ABI} (RESOLVE_UNIX)")
+    handled = 0
+    for first_abi, bit in _LANDLOCK_WRITE_RIGHTS:
+        if abi >= first_abi:
+            handled |= bit
+    attribute = struct.pack("Q", handled)
+    ruleset = library.syscall(create, attribute, len(attribute), 0)
+    if ruleset < 0:
+        raise _sandbox_unavailable(
+            "landlock", OSError(ctypes.get_errno(), "landlock_create_ruleset")
+        )
+    try:
+        if library.syscall(restrict, ruleset, 0) != 0:
+            raise _sandbox_unavailable(
+                "landlock", OSError(ctypes.get_errno(), "landlock_restrict_self")
+            )
+    finally:
+        os.close(ruleset)
+
+
 def _enter_sandbox(library: Any) -> None:
     """Move into new user, PID and network namespaces and become PID 2 below a reaping PID 1.
 
@@ -202,7 +277,7 @@ def _enter_sandbox(library: Any) -> None:
     the two supervisor processes above it never return.
     """
     try:
-        os.unshare(os.CLONE_NEWUSER | os.CLONE_NEWPID | os.CLONE_NEWNET)
+        os.unshare(os.CLONE_NEWUSER | os.CLONE_NEWNS | os.CLONE_NEWPID | os.CLONE_NEWNET)
     except (AttributeError, OSError) as exc:
         raise _sandbox_unavailable("unshare", exc) from exc
     init = os.fork()
@@ -212,6 +287,8 @@ def _enter_sandbox(library: Any) -> None:
     _prctl(library, _PR_SET_PDEATHSIG, signal.SIGKILL, "PR_SET_PDEATHSIG")
     if os.getpid() != 1:
         raise _sandbox_unavailable("the child is not PID 1 of its namespace")
+    _private_proc(library)  # needs the namespace's capabilities, so before they are dropped
+    _drop_capabilities()  # PID 1 only waits: it keeps nothing
     worker = os.fork()
     if worker:
         _supervise(worker, reraise=False)
@@ -220,6 +297,7 @@ def _enter_sandbox(library: Any) -> None:
     if os.getppid() != 1:
         raise EvidraError("PARSER_PARENT_GONE", "The namespace init exited before the worker ran.")
     _drop_capabilities()
+    _deny_filesystem_writes(library)
 
 
 def apply_child_limits(limits: ParserLimits, parent_pid: int | None = None) -> None:

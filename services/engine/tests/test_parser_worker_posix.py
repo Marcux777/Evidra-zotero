@@ -117,6 +117,38 @@ def gone(*pids: int, within: float = 3.0) -> bool:
     return False
 
 
+def descendants(root: int) -> list[int]:
+    """Host PIDs below `root`, read from the engine's own /proc (the worker can not see them)."""
+    found: list[int] = []
+    pending = [root]
+    while pending:
+        pid = pending.pop()
+        try:
+            tasks = os.listdir(f"/proc/{pid}/task")
+        except OSError:
+            continue
+        for task in tasks:
+            try:
+                children = Path(f"/proc/{pid}/task/{task}/children").read_text().split()
+            except OSError:
+                continue
+            for child in map(int, children):
+                if child not in found:
+                    found.append(child)
+                    pending.append(child)
+    return found
+
+
+def wait_for_tree(root: int, size: int, within: float = 20.0) -> list[int]:
+    deadline = time.monotonic() + within
+    while time.monotonic() < deadline:
+        tree = descendants(root)
+        if len(tree) >= size:
+            return tree
+        time.sleep(0.02)
+    raise AssertionError(f"the worker tree never reached {size} processes: {descendants(root)}")
+
+
 def bomb_pdf(decompressed: int) -> bytes:
     packer = zlib.compressobj(9)
     parts = [packer.compress(b" " * MIB) for _ in range(decompressed // MIB)] + [packer.flush()]
@@ -270,34 +302,25 @@ def test_kernel_cpu_limit_kills_the_child_with_no_parent_involved(tmp_path: Path
 
 # --- process group, parent death ---------------------------------------------------------------
 def test_cancellation_kills_the_whole_process_group(tmp_path: Path, worker: Any) -> None:
-    marker = tmp_path / "pids.json"
-    grandchild_file = tmp_path / "grandchild.pid"
-    worker.scenario(f"""
+    worker.scenario("""
 import subprocess
-GRANDCHILD = (
-    "import os, time\\n"
-    "for l in open('/proc/self/status'):\\n"
-    "    if l.startswith('NSpid:'): open({str(grandchild_file)!r}, 'w').write(l.split()[1])\\n"
-    "time.sleep(300)\\n"
-)
-subprocess.Popen([sys.executable, "-c", GRANDCHILD])
-while not os.path.exists({str(grandchild_file)!r}) or not open({str(grandchild_file)!r}).read():
-    time.sleep(0.01)
-GC = int(open({str(grandchild_file)!r}).read())
-open({str(marker)!r}, "w").write(json.dumps([host_pid(), GC]))
+subprocess.Popen([sys.executable, "-c", "import time; time.sleep(300)"])
 time.sleep(300)
 """)
+    seen: list[int] = []
 
     def cancelled() -> None:
-        if marker.exists() and marker.read_text().endswith("]"):
-            raise EvidraError("CANCELLED", "The operation was cancelled.")
+        if worker.pids and not seen:
+            tree = descendants(worker.pids[0])
+            if len(tree) >= 3:  # PID 1, the worker and its child
+                seen.extend(tree)
+                raise EvidraError("CANCELLED", "The operation was cancelled.")
 
     with pytest.raises(EvidraError) as failure:
         run(tmp_path, ParserLimits(timeout_seconds=60), check=cancelled)
     assert failure.value.code == "CANCELLED"
-    worker_pid, grandchild = json.loads(marker.read_text())
-    assert worker_pid != worker.pids[0]  # the worker is below two supervisors
-    assert gone(worker.pids[0], worker_pid, grandchild)
+    assert len(seen) >= 3
+    assert gone(worker.pids[0], *seen)
 
 
 def test_child_runs_in_its_own_session_and_group(tmp_path: Path, worker: Any) -> None:
@@ -316,16 +339,14 @@ def test_child_runs_in_its_own_session_and_group(tmp_path: Path, worker: Any) ->
 
 
 def test_parent_death_kills_the_child(tmp_path: Path) -> None:
-    marker = tmp_path / "child.pid"
     source = tmp_path / "source.pdf"
     source.write_bytes(b"%PDF-1.4\n")
     harness = f"""
 import sys, time
-from pathlib import Path
 from evidra.documents import _worker_posix as platform
 from evidra.documents._worker_posix import run_worker
 from evidra.domain.documents import ParserLimits
-code = {PRELUDE!r} + "open({str(marker)!r}, 'w').write(str(host_pid()))\\ntime.sleep(300)\\n"
+code = {PRELUDE!r} + "time.sleep(300)\\n"
 platform._command = lambda parent_pid: [sys.executable, "-c", code, str(parent_pid)]
 with open({str(source)!r}, "rb") as stream:
     limits = ParserLimits(timeout_seconds=120)
@@ -333,14 +354,11 @@ with open({str(source)!r}, "rb") as stream:
         pass
 """
     parent = subprocess.Popen([sys.executable, "-c", harness])
-    deadline = time.monotonic() + 20
-    while time.monotonic() < deadline and not (marker.exists() and marker.read_text()):
-        time.sleep(0.05)
-    child = int(marker.read_text())
-    assert alive(child)
+    tree = wait_for_tree(parent.pid, 3)  # supervisor, PID 1, worker
+    assert all(alive(pid) for pid in tree)
     parent.kill()
     parent.wait()
-    assert gone(child, within=5), "PDEATHSIG must kill the worker when the engine dies"
+    assert gone(*tree, within=5), "PDEATHSIG must kill the whole worker tree when the engine dies"
 
 
 def test_child_refuses_to_run_when_its_parent_is_not_the_expected_one(tmp_path: Path) -> None:
@@ -477,7 +495,7 @@ print(json.dumps({
     report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
     for name in ("user", "pid", "net"):
         assert report["ns"][name] != mine[name], f"the worker shares the engine's {name} namespace"
-    assert report["nspid"][1:] == ["2"]  # PID 2, below the namespace's init
+    assert report["nspid"] == ["2"]  # its own procfs: PID 2, below the namespace's init
     assert report["ppid"] == 1
     assert int(report["cap_eff"], 16) == 0 and int(report["cap_prm"], 16) == 0
     assert report["no_new_privs"] == "1"
@@ -516,28 +534,32 @@ print(json.dumps({{"outcomes": outcomes, "interfaces": interfaces}}))
 
 
 def test_grandchild_with_setsid_dies_with_the_worker(tmp_path: Path, worker: Any) -> None:
-    marker = tmp_path / "pids.json"
-    grandchild_file = tmp_path / "grandchild.pid"
-    worker.scenario(f"""
-import signal, subprocess
-GRANDCHILD = (
-    "import os, time\\n"
-    "for l in open('/proc/self/status'):\\n"
-    "    if l.startswith('NSpid:'): open({str(grandchild_file)!r}, 'w').write(l.split()[1])\\n"
-    "time.sleep(300)\\n"
-)
-subprocess.Popen([sys.executable, "-c", GRANDCHILD], start_new_session=True)  # escapes the group
-while not os.path.exists({str(grandchild_file)!r}) or not open({str(grandchild_file)!r}).read():
-    time.sleep(0.01)
-GC = int(open({str(grandchild_file)!r}).read())
-open({str(marker)!r}, "w").write(json.dumps([host_pid(), GC]))
-os.kill(os.getpid(), signal.SIGKILL)  # the worker dies; nobody kills the grandchild's group
+    worker.scenario("""
+import subprocess
+subprocess.Popen(
+    [sys.executable, "-c", "import time; time.sleep(300)"], start_new_session=True
+)  # leaves the process group
+time.sleep(300)
 """)
+    victims: dict[str, int] = {}
+
+    def kill_the_worker() -> None:
+        if worker.pids and not victims:
+            tree = descendants(worker.pids[0])
+            if len(tree) >= 3:
+                # tree order: init (child of the supervisor), worker, grandchild
+                init = int(
+                    Path(f"/proc/{worker.pids[0]}/task/{worker.pids[0]}/children").read_text()
+                )
+                workers = Path(f"/proc/{init}/task/{init}/children").read_text().split()
+                victims["worker"] = int(workers[0])
+                victims["grandchild"] = next(p for p in tree if p not in {init, victims["worker"]})
+                os.kill(victims["worker"], signal.SIGKILL)  # only the worker is killed
+
     with pytest.raises(EvidraError):
-        run(tmp_path, ParserLimits(timeout_seconds=60))
-    worker_pid, grandchild = json.loads(marker.read_text())
-    assert os.getsid(os.getpid()) != grandchild  # sanity: a host pid, not a namespace pid
-    assert gone(worker_pid, grandchild), "a setsid grandchild survived the worker"
+        run(tmp_path, ParserLimits(timeout_seconds=60), check=kill_the_worker)
+    assert victims, "the test never observed the grandchild"
+    assert gone(victims["worker"], victims["grandchild"]), "a setsid grandchild survived"
 
 
 def test_sandbox_unavailable_fails_explicitly_without_running_the_worker(
@@ -567,3 +589,171 @@ def test_supervisors_mirror_the_workers_exit_code_and_signal(tmp_path: Path, wor
     with pytest.raises(EvidraError) as signalled:
         run(tmp_path, ParserLimits(timeout_seconds=30))
     assert signalled.value.details["signal"] == signal.SIGSEGV  # type: ignore[index]
+
+
+# --- procfs of its own, and no way to modify the filesystem -----------------------------------
+def test_worker_sees_only_its_own_pid_namespace_in_proc(tmp_path: Path, worker: Any) -> None:
+    secret_holder = subprocess.Popen(
+        [sys.executable, "-c", "import time; time.sleep(60)"],
+        env={**os.environ, "ENGINE_SIDE_SECRET": "visible-only-to-the-engine"},
+    )
+    try:
+        worker.scenario(f"""
+pids = sorted(int(d) for d in os.listdir("/proc") if d.isdigit())
+other = {{}}
+for path in ("/proc/{secret_holder.pid}/environ", "/proc/{secret_holder.pid}/cmdline",
+             "/proc/{os.getpid()}/environ", "/proc/{os.getpid()}/mem"):
+    try:
+        open(path, "rb").read(1)
+        other[path] = "READABLE"
+    except OSError as exc:
+        other[path] = exc.errno
+caps = [l for l in open("/proc/1/status") if l.startswith("CapEff")][0].split()[1]
+print(json.dumps({{"pids": pids, "other": other, "init_cap_eff": caps}}))
+""")
+        report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
+    finally:
+        secret_holder.kill()
+        secret_holder.wait()
+    assert report["pids"] == [1, 2]
+    assert "READABLE" not in report["other"].values(), report
+    assert int(report["init_cap_eff"], 16) == 0  # the namespace's PID 1 keeps nothing either
+
+
+def test_the_engines_own_proc_is_untouched_by_the_workers_mount(
+    tmp_path: Path, worker: Any
+) -> None:
+    worker.scenario("print('ok')")
+    run(tmp_path, ParserLimits(timeout_seconds=30))
+    visible = [d for d in os.listdir("/proc") if d.isdigit()]
+    assert str(os.getpid()) in visible and len(visible) > 5
+    assert Path(f"/proc/{os.getpid()}/status").read_text().startswith("Name:")
+
+
+def test_worker_cannot_create_modify_or_delete_files(tmp_path: Path, worker: Any) -> None:
+    existing = tmp_path / "existing.txt"
+    existing.write_text("original")
+    victim_dir = tmp_path / "victim"
+    victim_dir.mkdir()
+    (victim_dir / "inside.txt").write_text("keep")
+    worker.scenario(f"""
+import pathlib
+base = pathlib.Path({str(tmp_path)!r})
+attempts = {{
+    "create": lambda: open(base / "new.txt", "w").write("x"),
+    "overwrite": lambda: open(base / "existing.txt", "w").write("x"),
+    "append": lambda: open(base / "existing.txt", "a").write("x"),
+    "truncate": lambda: os.truncate(base / "existing.txt", 0),
+    "mkdir": lambda: os.mkdir(base / "newdir"),
+    "unlink": lambda: os.unlink(base / "existing.txt"),
+    "rmdir": lambda: os.rmdir(base / "victim"),
+    "rename": lambda: os.rename(base / "existing.txt", base / "renamed.txt"),
+    "symlink": lambda: os.symlink("/etc/passwd", base / "link"),
+    "hardlink": lambda: os.link(base / "existing.txt", base / "hard"),
+    "mkfifo": lambda: os.mkfifo(base / "fifo"),
+    "home": lambda: open(os.path.expanduser("~/evidra-worker-write-probe"), "w").write("x"),
+    "tmp": lambda: open("/tmp/evidra-worker-write-probe", "w").write("x"),
+    "shm": lambda: open("/dev/shm/evidra-worker-write-probe", "w").write("x"),
+}}
+outcome = {{}}
+for name, action in attempts.items():
+    try:
+        action()
+        outcome[name] = "DONE"
+    except OSError as exc:
+        outcome[name] = exc.errno
+outcome["read_existing"] = open(base / "existing.txt").read()
+outcome["read_system"] = len(open("/etc/os-release").read()) > 0
+print(json.dumps(outcome))  # an inherited descriptor stays writable
+""")
+    report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
+    refused = {k: v for k, v in report.items() if k not in {"read_existing", "read_system"}}
+    assert all(v == 13 for v in refused.values()), refused  # EACCES for every write-like action
+    assert report["read_existing"] == "original" and report["read_system"] is True
+    assert existing.read_text() == "original" and (victim_dir / "inside.txt").read_text() == "keep"
+    assert sorted(entry.name for entry in tmp_path.iterdir()) == [
+        "existing.txt",
+        "source.pdf",
+        "victim",
+    ]
+
+
+def test_landlock_unavailable_fails_closed(tmp_path: Path, worker: Any) -> None:
+    worker.raw(
+        PRELUDE.replace(
+            "try:\n    apply_child_limits",
+            "import evidra.documents._worker_posix as _w\n"
+            "_w._LANDLOCK_SYSCALLS = (99990, 99991, 99992)\n"
+            "try:\n    apply_child_limits",
+        )
+        + "print('the worker ran without a filesystem sandbox')\n"
+    )
+    with pytest.raises(EvidraError) as failure:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert failure.value.code == "PARSER_SANDBOX_UNAVAILABLE"
+    assert "without a filesystem sandbox" not in json.dumps(failure.value.details)
+
+
+def test_procfs_mount_failure_fails_closed(tmp_path: Path, worker: Any) -> None:
+    worker.raw(
+        PRELUDE.replace(
+            "try:\n    apply_child_limits",
+            "import evidra.documents._worker_posix as _w\n_w._PROC_FSTYPE = 'no-such-filesystem'\n"
+            "try:\n    apply_child_limits",
+        )
+        + "print('the worker ran with the host procfs')\n"
+    )
+    with pytest.raises(EvidraError) as failure:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert failure.value.code == "PARSER_SANDBOX_UNAVAILABLE"
+
+
+def test_worker_cannot_reach_pathname_unix_sockets(tmp_path: Path, worker: Any) -> None:
+    """D-Bus, ssh-agent or docker.sock are pathname sockets: they cross the network namespace."""
+    import socket
+
+    stream_path, dgram_path = tmp_path / "agent.sock", tmp_path / "log.sock"
+    with (
+        socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as stream_server,
+        socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as dgram_server,
+    ):
+        stream_server.bind(str(stream_path))
+        stream_server.listen()
+        dgram_server.bind(str(dgram_path))
+        worker.scenario(f"""
+import socket
+outcome = {{}}
+for name, kind, target in (("stream", socket.SOCK_STREAM, {str(stream_path)!r}),
+                           ("dgram", socket.SOCK_DGRAM, {str(dgram_path)!r})):
+    try:
+        probe = socket.socket(socket.AF_UNIX, kind)
+        probe.settimeout(2)
+        probe.connect(target)
+        probe.send(b"hello")
+        outcome[name] = "CONNECTED"
+    except OSError as exc:
+        outcome[name] = exc.errno
+print(json.dumps(outcome))
+""")
+        report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
+        dgram_server.settimeout(0.3)
+        with pytest.raises(OSError):  # no datagram ever arrived
+            dgram_server.recv(16)
+        stream_server.settimeout(0.3)
+        with pytest.raises(OSError):  # and no connection
+            stream_server.accept()
+    assert report == {"stream": 13, "dgram": 13}, report  # EACCES for both
+
+
+def test_a_kernel_without_resolve_unix_fails_closed(tmp_path: Path, worker: Any) -> None:
+    worker.raw(
+        PRELUDE.replace(
+            "try:\n    apply_child_limits",
+            "import evidra.documents._worker_posix as _w\n_w._LANDLOCK_MIN_ABI = 99\n"
+            "try:\n    apply_child_limits",
+        )
+        + "print('the worker ran with pathname sockets reachable')\n"
+    )
+    with pytest.raises(EvidraError) as failure:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert failure.value.code == "PARSER_SANDBOX_UNAVAILABLE"
