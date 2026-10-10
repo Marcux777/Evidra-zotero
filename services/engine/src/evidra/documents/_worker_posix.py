@@ -5,6 +5,11 @@ parent-side equivalent, so isolation is split between the child, which constrain
 imports PDFium or reads a byte, and the parent, which owns its process group.
 
 Child (`apply_child_limits`, first action of `worker_main`, before `pypdfium2` is imported)
+* its own user, PID and network namespaces (`os.unshare`): the worker has no network (a fresh
+  loopback only, unrelated to the engine's) and runs as PID 2 under a PID 1 that exits with it, so
+  every descendant, `setsid` or not, is killed with it. All capabilities are dropped. When the
+  kernel refuses (`os.unshare` unavailable or denied) the worker fails with
+  `PARSER_SANDBOX_UNAVAILABLE`; there is no unsandboxed fallback;
 * `RLIMIT_DATA`, `RLIMIT_CPU`, `RLIMIT_NOFILE`, `RLIMIT_FSIZE` with soft == hard, so they cannot
   be raised, and `RLIMIT_CORE = 0`; `PR_SET_DUMPABLE = 0`; `PR_SET_NO_NEW_PRIVS`;
 * `PR_SET_PDEATHSIG = SIGKILL`, then `getppid()` is compared with the PID received on the command
@@ -41,6 +46,7 @@ import ctypes
 import json
 import math
 import os
+import platform
 import re
 import resource
 import signal
@@ -52,7 +58,7 @@ import time
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from typing import Any, BinaryIO, cast
+from typing import Any, BinaryIO, NoReturn, cast
 
 if sys.platform == "win32":
     raise ImportError("evidra.documents._worker_posix requires a POSIX host")
@@ -133,6 +139,89 @@ def _memory_watchdog(limit: int) -> None:
         time.sleep(_WATCHDOG_INTERVAL)
 
 
+def _sandbox_unavailable(reason: str, exc: BaseException | None = None) -> EvidraError:
+    error = EvidraError(
+        "PARSER_SANDBOX_UNAVAILABLE",
+        "The worker cannot be isolated in its own namespaces; refusing to run unsandboxed.",
+        details={"reason": reason, "errno": getattr(exc, "errno", None)},
+    )
+    if exc is not None:
+        error.__cause__ = exc
+    return error
+
+
+def _supervise(child: int, *, reraise: bool) -> NoReturn:
+    """Wait for `child` and end this process the same way (exit code, or the same signal)."""
+    while True:
+        try:
+            _, status = os.waitpid(child, 0)
+            break
+        except ChildProcessError:
+            os._exit(1)
+    if os.WIFSIGNALED(status):
+        number, code = os.WTERMSIG(status), 128 + os.WTERMSIG(status)
+    else:
+        number, code = 0, os.WEXITSTATUS(status)
+    if not number and reraise and 128 < code < 128 + signal.NSIG:
+        number = code - 128  # PID 1 reports a signal death of the worker as 128 + n
+    if number and reraise:
+        if number not in (signal.SIGKILL, signal.SIGSTOP):  # their action cannot be changed
+            signal.signal(number, signal.SIG_DFL)
+        os.kill(os.getpid(), number)  # the engine sees the worker's own signal
+    os._exit(code)
+
+
+def _drop_capabilities() -> None:
+    """Empty the effective, permitted and inheritable sets (a new user namespace grants all)."""
+    numbers = {"x86_64": 126, "aarch64": 91}
+    number = numbers.get(platform.machine())
+    if number is None:
+        raise _sandbox_unavailable(f"capset is not known for {platform.machine()}")
+
+    class Header(ctypes.Structure):
+        _fields_ = [("version", ctypes.c_uint32), ("pid", ctypes.c_int)]
+
+    class Data(ctypes.Structure):
+        _fields_ = [
+            ("effective", ctypes.c_uint32),
+            ("permitted", ctypes.c_uint32),
+            ("inheritable", ctypes.c_uint32),
+        ]
+
+    header, data = Header(0x20080522, 0), (Data * 2)()  # _LINUX_CAPABILITY_VERSION_3
+    library = ctypes.CDLL(None, use_errno=True)
+    if library.syscall(number, ctypes.byref(header), ctypes.byref(data)) != 0:
+        raise _sandbox_unavailable("capset failed", OSError(ctypes.get_errno(), "capset"))
+
+
+def _enter_sandbox(library: Any) -> None:
+    """Move into new user, PID and network namespaces and become PID 2 below a reaping PID 1.
+
+    The caller must still be single-threaded (a user namespace cannot be unshared otherwise), so
+    this runs before the watchdog thread and the alarm. Returns only in the final worker process;
+    the two supervisor processes above it never return.
+    """
+    try:
+        os.unshare(os.CLONE_NEWUSER | os.CLONE_NEWPID | os.CLONE_NEWNET)
+    except (AttributeError, OSError) as exc:
+        raise _sandbox_unavailable("unshare", exc) from exc
+    init = os.fork()
+    if init:  # still in the engine's PID namespace: end the way PID 1 ends
+        _supervise(init, reraise=True)
+    # PID 1 of the new namespace: when it exits the kernel kills every process in it.
+    _prctl(library, _PR_SET_PDEATHSIG, signal.SIGKILL, "PR_SET_PDEATHSIG")
+    if os.getpid() != 1:
+        raise _sandbox_unavailable("the child is not PID 1 of its namespace")
+    worker = os.fork()
+    if worker:
+        _supervise(worker, reraise=False)
+    # PID 2: the worker proper. A fresh PDEATHSIG, then verify the reaper is still its parent.
+    _prctl(library, _PR_SET_PDEATHSIG, signal.SIGKILL, "PR_SET_PDEATHSIG")
+    if os.getppid() != 1:
+        raise EvidraError("PARSER_PARENT_GONE", "The namespace init exited before the worker ran.")
+    _drop_capabilities()
+
+
 def apply_child_limits(limits: ParserLimits, parent_pid: int | None = None) -> None:
     library = ctypes.CDLL(None, use_errno=True)
     # Armed first: if the engine is already gone the group would otherwise run unattended.
@@ -153,6 +242,7 @@ def apply_child_limits(limits: ParserLimits, parent_pid: int | None = None) -> N
         (resource.RLIMIT_NOFILE, files),
     ):
         resource.setrlimit(which, (value, value))
+    _enter_sandbox(library)  # forks: timers and threads are created after it, in the worker
     signal.alarm(cpu + 10)  # wall-clock backstop independent of the engine
     threading.Thread(
         target=_memory_watchdog, args=(limits.memory_bytes,), name="memory-watchdog", daemon=True
@@ -168,6 +258,24 @@ def _vm_hwm_mib(pid: int) -> int | None:
     except OSError:
         pass
     return None
+
+
+def _tree_hwm_mib(root: int) -> int | None:
+    """Largest `VmHWM` over the spawned process and its descendants (supervisors + worker)."""
+    peak: int | None = None
+    pending, seen = [root], 0
+    while pending and seen < 16:
+        pid = pending.pop()
+        seen += 1
+        sample = _vm_hwm_mib(pid)
+        if sample is not None:
+            peak = max(sample, peak or 0)
+        try:
+            with open(f"/proc/{pid}/task/{pid}/children") as children:
+                pending.extend(int(child) for child in children.read().split())
+        except OSError:
+            pass
+    return peak
 
 
 def _size(stream: Any) -> int:
@@ -282,7 +390,7 @@ def run_worker(
                 usage = _reap(process, block=False)
                 if usage is not None:
                     break
-                sample = _vm_hwm_mib(process.pid)
+                sample = _tree_hwm_mib(process.pid)
                 if sample is not None:
                     sampled_peak = max(sample, sampled_peak or 0)
                 check()

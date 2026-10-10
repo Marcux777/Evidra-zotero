@@ -31,6 +31,13 @@ except BaseException as exc:
     print(json.dumps(diagnostic(exc)), file=sys.stderr)
     raise SystemExit(1)
 HANDLE = request["handle"]
+
+
+def host_pid():
+    # This process's PID as the engine's namespace sees it (first NSpid entry).
+    for line in open("/proc/self/status"):
+        if line.startswith("NSpid:"):
+            return int(line.split()[1])
 """
 
 
@@ -59,6 +66,12 @@ def worker(monkeypatch: pytest.MonkeyPatch) -> Any:
             platform, "_command", lambda parent_pid: [sys.executable, "-c", code, str(parent_pid)]
         )
 
+    def raw(code: str) -> None:  # a child that does NOT call apply_child_limits itself
+        monkeypatch.setattr(
+            platform, "_command", lambda parent_pid: [sys.executable, "-c", code, str(parent_pid)]
+        )
+
+    spawned.raw = raw  # type: ignore[attr-defined]
     spawned.scenario = scenario  # type: ignore[attr-defined]
     spawned.platform = platform  # type: ignore[attr-defined]
     return spawned
@@ -258,10 +271,20 @@ def test_kernel_cpu_limit_kills_the_child_with_no_parent_involved(tmp_path: Path
 # --- process group, parent death ---------------------------------------------------------------
 def test_cancellation_kills_the_whole_process_group(tmp_path: Path, worker: Any) -> None:
     marker = tmp_path / "pids.json"
+    grandchild_file = tmp_path / "grandchild.pid"
     worker.scenario(f"""
 import subprocess
-grandchild = subprocess.Popen(["sleep", "300"])
-open({str(marker)!r}, "w").write(json.dumps([os.getpid(), grandchild.pid]))
+GRANDCHILD = (
+    "import os, time\\n"
+    "for l in open('/proc/self/status'):\\n"
+    "    if l.startswith('NSpid:'): open({str(grandchild_file)!r}, 'w').write(l.split()[1])\\n"
+    "time.sleep(300)\\n"
+)
+subprocess.Popen([sys.executable, "-c", GRANDCHILD])
+while not os.path.exists({str(grandchild_file)!r}) or not open({str(grandchild_file)!r}).read():
+    time.sleep(0.01)
+GC = int(open({str(grandchild_file)!r}).read())
+open({str(marker)!r}, "w").write(json.dumps([host_pid(), GC]))
 time.sleep(300)
 """)
 
@@ -272,15 +295,24 @@ time.sleep(300)
     with pytest.raises(EvidraError) as failure:
         run(tmp_path, ParserLimits(timeout_seconds=60), check=cancelled)
     assert failure.value.code == "CANCELLED"
-    child, grandchild = json.loads(marker.read_text())
-    assert child == worker.pids[0]
-    assert gone(child, grandchild)
+    worker_pid, grandchild = json.loads(marker.read_text())
+    assert worker_pid != worker.pids[0]  # the worker is below two supervisors
+    assert gone(worker.pids[0], worker_pid, grandchild)
 
 
 def test_child_runs_in_its_own_session_and_group(tmp_path: Path, worker: Any) -> None:
-    worker.scenario("print(json.dumps([os.getsid(0), os.getpgid(0), os.getpid()]))")
-    out = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
-    assert out[0] == out[1] == out[2] != os.getsid(0)
+    worker.scenario("time.sleep(1)")
+    seen: list[tuple[int, int]] = []
+
+    def observe() -> None:
+        if worker.pids and not seen:
+            pid = worker.pids[0]
+            seen.append((os.getsid(pid), os.getpgid(pid)))
+
+    run(tmp_path, ParserLimits(timeout_seconds=30), check=observe)
+    session, group = seen[0]
+    assert session == group == worker.pids[0]
+    assert group != os.getpgid(0) and session != os.getsid(0)
 
 
 def test_parent_death_kills_the_child(tmp_path: Path) -> None:
@@ -293,7 +325,7 @@ from pathlib import Path
 from evidra.documents import _worker_posix as platform
 from evidra.documents._worker_posix import run_worker
 from evidra.domain.documents import ParserLimits
-code = {PRELUDE!r} + "open({str(marker)!r}, 'w').write(str(os.getpid()))\\ntime.sleep(300)\\n"
+code = {PRELUDE!r} + "open({str(marker)!r}, 'w').write(str(host_pid()))\\ntime.sleep(300)\\n"
 platform._command = lambda parent_pid: [sys.executable, "-c", code, str(parent_pid)]
 with open({str(source)!r}, "rb") as stream:
     limits = ParserLimits(timeout_seconds=120)
@@ -353,7 +385,8 @@ print(json.dumps({"targets": targets, "handle": HANDLE}))
         for fd, target in targets.items()
         if fd not in {"0", "1", "2", str(report["handle"])}
     }
-    assert set(other.values()) <= {"/dev/urandom", "<closed>"}, other  # interpreter, listing
+    allowed = {"/dev/urandom", "<closed>"}  # interpreter, the listing itself
+    assert all(v in allowed or v.endswith("/status") for v in other.values()), other  # watchdog
 
 
 def test_child_limits_are_visible_in_proc_and_core_is_zero(tmp_path: Path, worker: Any) -> None:
@@ -423,3 +456,114 @@ time.sleep(30)
         run(tmp_path, ParserLimits(timeout_seconds=30))
     assert failure.value.code == "PARSER_OUTPUT_LIMIT"
     assert gone(*worker.pids)
+
+
+# --- namespaces: PID, network, user, capabilities ---------------------------------------------
+def test_worker_runs_in_its_own_user_pid_and_net_namespaces(tmp_path: Path, worker: Any) -> None:
+    mine = {name: os.readlink(f"/proc/self/ns/{name}") for name in ("user", "pid", "net")}
+    worker.scenario("""
+import ctypes
+status = {}
+for line in open("/proc/self/status"):
+    key, _, value = line.partition(":")
+    status[key] = value.split()
+print(json.dumps({
+    "ns": {n: os.readlink("/proc/self/ns/" + n) for n in ("user", "pid", "net")},
+    "nspid": status["NSpid"], "cap_eff": status["CapEff"][0], "cap_prm": status["CapPrm"][0],
+    "cap_bnd": status["CapBnd"][0], "no_new_privs": status["NoNewPrivs"][0],
+    "ppid": os.getppid(),
+}))
+""")
+    report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
+    for name in ("user", "pid", "net"):
+        assert report["ns"][name] != mine[name], f"the worker shares the engine's {name} namespace"
+    assert report["nspid"][1:] == ["2"]  # PID 2, below the namespace's init
+    assert report["ppid"] == 1
+    assert int(report["cap_eff"], 16) == 0 and int(report["cap_prm"], 16) == 0
+    assert report["no_new_privs"] == "1"
+
+
+def test_worker_cannot_reach_the_engine_loopback_or_anything_outside(
+    tmp_path: Path, worker: Any
+) -> None:
+    import socket
+
+    with socket.socket() as server:
+        server.bind(("127.0.0.1", 0))
+        server.listen()
+        port = server.getsockname()[1]
+        worker.scenario(f"""
+import socket
+outcomes = {{}}
+for name, address in {{"engine-loopback": ("127.0.0.1", {port}), "external": ("192.0.2.1", 80),
+                      "dns-server": ("1.1.1.1", 53)}}.items():
+    try:
+        with socket.create_connection(address, timeout=2):
+            outcomes[name] = "connected"
+    except OSError as exc:
+        outcomes[name] = exc.errno
+interfaces = sorted(
+    line.split(":")[0].strip() for line in open("/proc/net/dev").read().splitlines()[2:]
+)
+print(json.dumps({{"outcomes": outcomes, "interfaces": interfaces}}))
+""")
+        report = json.loads(run(tmp_path, ParserLimits(timeout_seconds=30)))
+        server.settimeout(0.2)
+        with pytest.raises(OSError):  # nothing ever reached the engine's listening socket
+            server.accept()
+    assert "connected" not in report["outcomes"].values(), report
+    assert set(report["interfaces"]) <= {"lo"}, report  # only a fresh, unconfigured loopback
+
+
+def test_grandchild_with_setsid_dies_with_the_worker(tmp_path: Path, worker: Any) -> None:
+    marker = tmp_path / "pids.json"
+    grandchild_file = tmp_path / "grandchild.pid"
+    worker.scenario(f"""
+import signal, subprocess
+GRANDCHILD = (
+    "import os, time\\n"
+    "for l in open('/proc/self/status'):\\n"
+    "    if l.startswith('NSpid:'): open({str(grandchild_file)!r}, 'w').write(l.split()[1])\\n"
+    "time.sleep(300)\\n"
+)
+subprocess.Popen([sys.executable, "-c", GRANDCHILD], start_new_session=True)  # escapes the group
+while not os.path.exists({str(grandchild_file)!r}) or not open({str(grandchild_file)!r}).read():
+    time.sleep(0.01)
+GC = int(open({str(grandchild_file)!r}).read())
+open({str(marker)!r}, "w").write(json.dumps([host_pid(), GC]))
+os.kill(os.getpid(), signal.SIGKILL)  # the worker dies; nobody kills the grandchild's group
+""")
+    with pytest.raises(EvidraError):
+        run(tmp_path, ParserLimits(timeout_seconds=60))
+    worker_pid, grandchild = json.loads(marker.read_text())
+    assert os.getsid(os.getpid()) != grandchild  # sanity: a host pid, not a namespace pid
+    assert gone(worker_pid, grandchild), "a setsid grandchild survived the worker"
+
+
+def test_sandbox_unavailable_fails_explicitly_without_running_the_worker(
+    tmp_path: Path, worker: Any
+) -> None:
+    worker.raw(
+        PRELUDE.replace(
+            "try:\n    apply_child_limits",
+            "def _denied(flags):\n    raise PermissionError(1, 'unshare denied')\n"
+            "os.unshare = _denied\ntry:\n    apply_child_limits",
+        )
+        + "print('the worker ran unsandboxed')\n"
+    )
+    with pytest.raises(EvidraError) as failure:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert failure.value.code == "PARSER_SANDBOX_UNAVAILABLE"
+    assert failure.value.details is not None
+    assert "the worker ran unsandboxed" not in json.dumps(failure.value.details)
+
+
+def test_supervisors_mirror_the_workers_exit_code_and_signal(tmp_path: Path, worker: Any) -> None:
+    worker.scenario("raise SystemExit(7)")
+    with pytest.raises(EvidraError) as failure:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert failure.value.details["returncode"] == 7  # type: ignore[index]
+    worker.scenario("import signal\nos.kill(os.getpid(), signal.SIGSEGV)")
+    with pytest.raises(EvidraError) as signalled:
+        run(tmp_path, ParserLimits(timeout_seconds=30))
+    assert signalled.value.details["signal"] == signal.SIGSEGV  # type: ignore[index]
