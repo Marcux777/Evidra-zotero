@@ -27,9 +27,7 @@ from evidra.storage.note_html import note_html
 
 
 class OutboxService:
-    def __init__(
-        self, research: ResearchService, external: ExternalNoteService
-    ) -> None:
+    def __init__(self, research: ResearchService, external: ExternalNoteService) -> None:
         self.research, self.scopes = research, research.scopes
         self.external = external
 

@@ -12,9 +12,7 @@ from evidra.domain.errors import EvidraError
 class CacheLimits(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     derived_cache_bytes: int = Field(default=512 * 1024 * 1024, ge=1024 * 1024)
-    image_cache_bytes: int = Field(
-        default=100 * 1024 * 1024, ge=1024 * 1024, le=100 * 1024 * 1024
-    )
+    image_cache_bytes: int = Field(default=100 * 1024 * 1024, ge=1024 * 1024, le=100 * 1024 * 1024)
 
     @model_validator(mode="after")
     def within_disk_budget(self) -> "CacheLimits":
@@ -79,9 +77,7 @@ def prune_derived(connection: sqlite3.Connection, limits: CacheLimits) -> dict[s
             connection.execute(
                 "UPDATE document_operations SET preview=NULL WHERE id=?", (identity,)
             )
-            connection.execute(
-                "DELETE FROM preview_cache_access WHERE operation_id=?", (identity,)
-            )
+            connection.execute("DELETE FROM preview_cache_access WHERE operation_id=?", (identity,))
             preview_bytes -= size
             removed_images += 1
         else:

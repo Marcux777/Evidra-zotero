@@ -211,12 +211,16 @@ def test_database_backup_rollback_future_schema_and_close(
             legacy.execute("PRAGMA user_version=2")
             if legacy_version >= 3:
                 legacy.executescript(
-                    storage.files("evidra.storage.migrations").joinpath("003_initial.sql").read_text()
+                    storage.files("evidra.storage.migrations")
+                    .joinpath("003_initial.sql")
+                    .read_text()
                 )
                 legacy.execute("PRAGMA user_version=3")
             if legacy_version == 4:
                 legacy.executescript(
-                    storage.files("evidra.storage.migrations").joinpath("004_initial.sql").read_text()
+                    storage.files("evidra.storage.migrations")
+                    .joinpath("004_initial.sql")
+                    .read_text()
                 )
                 legacy.execute("PRAGMA user_version=4")
         preserved = {

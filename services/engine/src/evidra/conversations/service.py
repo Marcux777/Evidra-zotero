@@ -416,8 +416,7 @@ class ConversationService:
             ):
                 raise EvidraError("REVISION_CONFLICT", "Prepared history changed.")
             if connection.execute(
-                "SELECT 1 FROM conversation_runs WHERE "
-                "json_extract(payload,'$.state')='RUNNING'",
+                "SELECT 1 FROM conversation_runs WHERE json_extract(payload,'$.state')='RUNNING'",
             ).fetchone():
                 raise EvidraError("RUN_BUSY", "A conversation run is already active.")
             if connection.execute(

@@ -79,7 +79,8 @@ async def test_fragmented_utf8_and_protocol_line_endings(kind, ending):
     ) as client:
         provider = adapter(Profile(**profile_data(kind)), client, None)
         events = [
-            e async for e in provider.generate(
+            e
+            async for e in provider.generate(
                 Request(messages=[{"role": "user", "text": "synthetic"}], max_output_tokens=32),
                 asyncio.Event(),
             )
@@ -107,10 +108,13 @@ async def test_stalled_body_cancellation_and_total_deadline_close_response(
         async def invoke():
             if operation == "json":
                 return await provider.json_request("GET", "/models")
-            return [e async for e in provider.generate(
-                Request(messages=[{"role": "user", "text": "synthetic"}], max_output_tokens=32),
-                cancel,
-            )]
+            return [
+                e
+                async for e in provider.generate(
+                    Request(messages=[{"role": "user", "text": "synthetic"}], max_output_tokens=32),
+                    cancel,
+                )
+            ]
 
         task = asyncio.create_task(invoke())
         await asyncio.wait_for(wire.waiting.wait(), 1)

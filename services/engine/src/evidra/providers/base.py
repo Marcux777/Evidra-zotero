@@ -51,9 +51,7 @@ async def bounded_bytes(
     while True:
         try:
             chunk = (
-                await anext(chunks)
-                if cancel is None
-                else await cancellable(anext(chunks), cancel)
+                await anext(chunks) if cancel is None else await cancellable(anext(chunks), cancel)
             )
         except StopAsyncIteration:
             return
@@ -413,6 +411,7 @@ class NativeProvider:
                     headers={**self.headers(), "Accept-Encoding": "identity"},
                     timeout=30,
                 )
+
                 async def send() -> None:
                     nonlocal response
                     # Own the response even if cancellation wins at header arrival.
