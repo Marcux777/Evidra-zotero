@@ -30,7 +30,7 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 2. **Regras de decisão por código**:
    - `NOT_REPORTED` ou âncora `NONE` → **UNCLEAR**, sempre.
    - Só `NOT_MET` com confiança ≥ c_min **e** âncora em um trecho preparado sustenta exclusão. Âncora fora dos IDs preparados, ausente ou `NONE` não sustenta nada.
-   - `MET` com âncora válida é a única base de inclusão firme.
+   - `MET` firme exige **confiança ≥ c_min e** âncora válida em um trecho preparado; é a única base de inclusão firme. `MET` abaixo de c_min ou sem âncora válida é UNCLEAR.
    - A resposta que não escolhe trecho não sustenta veredito firme (A13).
 3. **Grau**: score na rubrica do protocolo (por critério ou por estudo). *Não medido na J0 nem na J1a*: a forma exata é decisão da J2/J3 e precisa de medição própria antes de qualquer limiar.
 4. **Perguntas aproveitáveis por trecho**: choice com as opções `method`, `data`, `result`, `baseline`, `metric`, `code`, `NONE`. *Não medido na J0 nem na J1a*; entra no leque medido na J3.
@@ -45,7 +45,8 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 ## Orçamento de contexto
 
 - Modelo de custo: `input_tokens ≈ 178 + 0,278 × caracteres` (J0, r = 0,9996).
-- Limite de planejamento: **97 mil caracteres** para state + maior pergunta. Pela reta isso é ≈ 27.100 tokens com 1 pergunta e ≈ 27.300 com 10 (intercepto 178 a 312 nas medições da J0), isto é, cerca de 85% de 32k tokens (15% de folga). O 32k de contexto é o valor informado no pedido da J1; a fonte dele no provedor não está registrada aqui.
+- Limite do provedor: segundo [docs.typesafe.ai/models](https://docs.typesafe.ai/models) (lido em 2026-10-10), o `jev-1.13.0` aceita **64k tokens por requisição** (state + todas as perguntas) e **32k tokens para o state + a maior pergunta**. A página recomenda fixar o ID versionado em vez do alias, e a resposta informa o `model` que respondeu.
+- Limite de planejamento: **97 mil caracteres** para state + maior pergunta. Pela reta isso é ≈ 27.100 tokens com 1 pergunta e ≈ 27.300 com 10 (intercepto 178 a 312 nas medições da J0), isto é, cerca de 85% dos 32k tokens (15% de folga). O orçamento total de 64k por requisição também vale: state + todas as perguntas, cada uma contada no custo da reta.
 - **Provisório**: a reta foi ajustada até 16,6 mil caracteres, e 97 mil é extrapolação; vale até a J3 medir o leque real de perguntas. Calibração contínua pelo `usage.input_tokens` de cada resposta, que é a medida de verdade.
 - O controle de contexto é do engine (corta ou divide o state antes do envio), nunca do modelo.
 
@@ -54,7 +55,8 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 - **Conteúdo enviado**: *excerpts* (trechos escolhidos por regra local) e *metadata* mínima do protocolo. Nada de biblioteca inteira, notas, anotações ou caminhos de arquivo.
 - **Consentimento por caderno**: o envio ao Jev exige consentimento explícito do usuário em cada caderno, registrado e revogável.
 - **Retenção/treino**: a TypeSafe declara não treinar com dados de clientes; retenção zero só no plano enterprise. Isso é declaração do provedor, **não verificada por este projeto**.
-- **Em aberto (decisão do usuário)**: (a) plano contratado (e, portanto, retenção); (b) permissão institucional para enviar texto completo de artigos a um serviço externo. **Bloqueiam a J7 (execução com texto completo real), não a J2.**
+- **Decisão do usuário (2026-10-10): plano TypeSafe comum**, **condicionado à leitura da cláusula de retenção do DPA**. Enquanto o DPA não for lido e a cláusula registrada aqui, o envio de conteúdo real não está liberado (bloqueia a J7, não a J2). O plano comum não tem retenção zero.
+- **Texto completo**: só para artigos de acesso aberto ou o que a biblioteca do usuário liberar. Os demais ficam `NO_CONTENT` (o estudo é avaliado sem texto, sem envio de conteúdo e sem veredito firme).
 
 ## Erros e cancelamento
 
@@ -74,8 +76,10 @@ Configurável, não embutido no código: **US$ 0,042 por milhão de tokens de en
 ## Consequências
 
 - A matriz de aceitação é revisada (ver `ACCEPTANCE_MATRIX.md`): A15 (semântica), A21 (auditoria) e A25 (modo LOCAL) ficam `OUT_OF_SCOPE_V1` com justificativa deste ADR; A13, A24 e A26 são reescritos; A08, A10, A20, A22, A36 e outras linhas são auditadas. Os 36 IDs permanecem e **nenhum critério é marcado aprovado**.
+- **Pendência da J3 (medição)**: a âncora com **dezenas de IDs semelhantes** e **várias perguntas de critério na mesma chamada**. A J0/J1a mediram k ≤ 10 opções e 1 pergunta de critério por chamada (≤ 3 perguntas Noul na J1a, forma B); a acurácia e o custo fora disso não estão medidos.
+- **Regra de `OUT_OF_SCOPE_V1`** (decisão do usuário, 2026-10-10): a linha **não conta no aceite** nem como pendência da v1, e **cada linha exige um teste de inacessibilidade**: a UI não oferece a função e o engine a recusa com código de erro explícito. **Trazer de volta uma função fora do escopo exige um novo ADR.** Os testes de inacessibilidade ainda não existem; criá-los é trabalho de código (A15, A21, A25 e a parte de notas do A22).
 - Pendências de código (não feitas aqui): perfil/UI do Jev, adaptador `jev` com `model` fixado, desativação das superfícies de conversa/síntese/auditoria/semântica, contratos regenerados.
 - SPEC não é emendado por este ADR; a emenda é tarefa da J2. Até lá, onde o SPEC descreve multi-provedor, este ADR prevalece para a v1.
 - `LINUX_DEV_ENVIRONMENT.md`: Ollama e modelos locais deixam de ser pendências do ambiente (obsoletos pelo ADR 0005). O Zotero pelo tarball continua pendente de autorização.
-- **Em aberto (decisão do usuário), além dos bloqueios da J7**: a criação de notas do Zotero permanece na v1 com a síntese desativada? (afeta o A22).
+- **Notas do Zotero (decisão do usuário, 2026-10-10)**: a criação de notas sai da v1. O A22 fica restrito a "retoma sem duplicar unidades nem chamadas"; a parte de notas é `OUT_OF_SCOPE_V1`. A infraestrutura de notas (outbox, ponte) é preservada no código, sem uso.
 - A chave da API fica **somente** no Secret Service (`service=typesafe`), nunca em variável de ambiente persistente, arquivo de perfil ou repositório.
