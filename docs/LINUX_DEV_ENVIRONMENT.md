@@ -43,6 +43,21 @@ Autorizado pelo usuário. Instalado em `~/opt/zotero-10`; `/opt/zotero` (9.0.6) 
 | Executável | `~/opt/zotero-10/Zotero_linux-x86_64/zotero` |
 | Tarball | mantido em `~/opt/zotero-10/Zotero-10.0.6_linux-x86_64.tar.xz` |
 
+## Recibo da F3: `check.sh` completo em clone limpo (2026-10-10)
+
+| Item | Valor |
+|---|---|
+| Revisão | `f6044d275cd786cf1d4853bda9216d4e5d5ebd16` (clone limpo por `git clone --no-hardlinks`, árvore limpa antes e depois: 0 alterações) |
+| `input_sha256` | `33a014bb3d29a558b5eab5f3cee1ff40989c923f9ea5c0a7a27bd20064670292` (entradas antes e depois idênticas) |
+| Status | `PASSED`; `unrun` vazio; todos os passos com código 0: npm-ci, uv-sync, typecheck, vitest, ruff, pytest, mypy, contracts, plugin |
+| vitest | 111 testes, 111 passam, 0 falham |
+| pytest | 429 testes, 0 falhas, 0 erros, 3 skips |
+| mypy extra | `--platform linux` e `--platform win32` limpos (114 arquivos), fora do `check.sh` |
+| Skips (só Windows) | `tests/test_documents.py::test_file_error_and_reparse_boundary_preserve_cause` (negação de compartilhamento e junção), `tests/test_documents.py::test_owned_worker_cancellation_timeout_and_memory` (Job Object), `tests/test_runtime_notebooks.py::test_windows_handshake_claim_acl_and_receipt` (ACLs do Windows) |
+| Substitutos em Linux | `test_owned_worker_cancellation_timeout_and_memory_posix`, `tests/test_registry_posix.py`, `tests/test_handshake_posix.py`, `tests/test_parser_worker_posix.py` |
+
+Relatório bruto no clone: `.local/checks/20261010T090314038013Z/report.json` (diretório ignorado pelo Git, fora do repositório principal).
+
 ## PENDENTE de autorização
 
 1. **Perfil de teste isolado do Zotero**: não criado. Procedimento proposto, a executar só após autorização: diretório novo e vazio fora de `~/.zotero`, iniciar com `-no-remote -profile <novo>` e `-datadir <novo>` (flags a confirmar na ajuda do Zotero instalado), conferir `ProfD` e o diretório de dados reais **antes** de qualquer escrita e abortar se algum apontar para `~/.zotero` ou `~/Zotero`. Biblioteca sintética apenas.
