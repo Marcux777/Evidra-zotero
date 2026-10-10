@@ -158,7 +158,8 @@ def test_real_worker_contains_a_decompression_bomb(
         assert error.details["signal"] == signal.SIGABRT
         assert error.details["evidence"] == "none"  # no cause is claimed without evidence
         assert error.details["memory_limit_mib"] == 128
-        assert error.details["peak_rss_mib"] < 128 + 150  # unbounded it would inflate to 256 MiB
+        peak = error.details["peak_rss_mib"]  # the child's own VmHWM; ru_maxrss is the engine's
+        assert peak is None or peak < 128 + 150  # unbounded it would inflate to 256+ MiB
 
 
 # --- classification, with children that fail in a controlled way ------------------------------

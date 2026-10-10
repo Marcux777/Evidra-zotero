@@ -1,5 +1,6 @@
 """Real HTTP/SQLite checks for session isolation and durable notebook identity."""
 
+import errno
 import importlib.util
 import json
 import sqlite3
@@ -416,7 +417,7 @@ def test_receipt_cleanup_rejects_substitution(tmp_path: Path) -> None:
 @pytest.mark.parametrize("failure", ["missing-handshake", "invalid-handshake", "occupied-port"])
 def test_cli_failure_diagnostics_are_causal_and_secret_safe(tmp_path: Path, failure: str) -> None:
     from evidra.__main__ import bind_loopback
-    from evidra.security.handshake import protect_path
+    from evidra.security.handshake import create_private_file, protect_path
 
     private = tmp_path / "session"
     private.mkdir()
@@ -440,12 +441,13 @@ def test_cli_failure_diagnostics_are_causal_and_secret_safe(tmp_path: Path, fail
             body["session_token"] = invalid_secret
             body[provider_secret] = provider_secret
         if failure != "missing-handshake":
-            handshake.write_text(json.dumps(body), encoding="utf-8")
+            with create_private_file(handshake) as stream:
+                stream.write(json.dumps(body))
         process = subprocess.run(
             [sys.executable, "-m", "evidra", "serve", "--handshake", str(handshake)],
             capture_output=True,
             timeout=15,
-            creationflags=subprocess.CREATE_NO_WINDOW,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
         )
     assert process.returncode != 0
     assert process.stdout == b""
@@ -459,10 +461,13 @@ def test_cli_failure_diagnostics_are_causal_and_secret_safe(tmp_path: Path, fail
     if failure == "missing-handshake":
         assert diagnostic["causes"][0]["code"] == "ACL_ERROR"
         cause = diagnostic["causes"][-1]
-        assert cause["type"] == "CalledProcessError" and cause["returncode"] != 0
-        assert cause["acl"]["category"] == "ObjectNotFound"
-        assert cause["acl"]["line"] > 0
-        assert cause["acl"]["exception_type"].endswith("ItemNotFoundException")
+        if sys.platform == "win32":
+            assert cause["type"] == "CalledProcessError" and cause["returncode"] != 0
+            assert cause["acl"]["category"] == "ObjectNotFound"
+            assert cause["acl"]["line"] > 0
+            assert cause["acl"]["exception_type"].endswith("ItemNotFoundException")
+        else:
+            assert cause["type"] == "FileNotFoundError" and cause["errno"] == errno.ENOENT
     elif failure == "invalid-handshake":
         assert diagnostic["causes"][0]["code"] == "INVALID_HANDSHAKE"
         cause = diagnostic["causes"][-1]
@@ -474,5 +479,9 @@ def test_cli_failure_diagnostics_are_causal_and_secret_safe(tmp_path: Path, fail
     else:
         cause = diagnostic["causes"][-1]
         assert cause["type"] == "OSError"
-        assert cause["errno"] != 0 and cause["winerror"] == 10048
+        assert cause["errno"] != 0
+        if sys.platform == "win32":
+            assert cause["winerror"] == 10048
+        else:
+            assert cause["errno"] == errno.EADDRINUSE
     print(json.dumps({"case": failure, "exit_code": process.returncode, "diagnostic": diagnostic}))

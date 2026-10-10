@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import sys
 import time
 import zipfile
 from pathlib import Path
@@ -235,14 +236,16 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
         restored = ""
         while len(restored) < len(text):
             segment = client.post(
-                prefix + "/documents/text-view", headers=HEADERS,
+                prefix + "/documents/text-view",
+                headers=HEADERS,
                 json=original | {"offset": len(restored)},
             ).json()
             assert segment["offset"] == len(restored) and segment["text"]
             restored += segment["text"]
         assert restored == text
         wrong = client.post(
-            prefix + "/documents/text-view", headers=HEADERS,
+            prefix + "/documents/text-view",
+            headers=HEADERS,
             json=original | {"path": str(tmp_path / "other")},
         )
         assert wrong.status_code == 409 and wrong.json()["code"] == "DOCUMENT_STALE"
@@ -271,9 +274,10 @@ def test_text_attachment_ingestion_preserves_file_evidence_and_full_scan(tmp_pat
         assert (
             client.get(prefix + "/evidence/" + evidence["id"], headers=HEADERS).status_code == 403
         )
-        assert client.post(
-            prefix + "/documents/text-view", headers=HEADERS, json=original
-        ).status_code == 403
+        assert (
+            client.post(prefix + "/documents/text-view", headers=HEADERS, json=original).status_code
+            == 403
+        )
 
 
 def test_registered_pdf_becomes_verifiable_scoped_evidence(tmp_path: Path):
@@ -510,6 +514,7 @@ def test_text_staging_and_version_verified_preview(tmp_path: Path):
         )
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows share denial and junctions")
 def test_file_error_and_reparse_boundary_preserve_cause(tmp_path: Path):
     """Real Windows share denial and symlink redirection never become arbitrary file reads."""
     import win32con
@@ -813,6 +818,7 @@ def test_failed_native_text_hash_and_changed_stage_never_publish(tmp_path: Path)
             assert connection.execute("SELECT count(*) FROM document_versions").fetchone()[0] == 0
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows Job Object ownership")
 def test_owned_worker_cancellation_timeout_and_memory(tmp_path: Path, monkeypatch):
     """Actual suspended worker ownership and hard limits survive every terminal path."""
     import _winapi
@@ -939,6 +945,138 @@ def test_owned_worker_cancellation_timeout_and_memory(tmp_path: Path, monkeypatc
         unrelated.wait(timeout=5)
         for handle in owned_handles:
             handle.Close()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX process-group ownership")
+def test_owned_worker_cancellation_timeout_and_memory_posix(tmp_path: Path, monkeypatch):
+    """The Linux worker is owned by the engine: every terminal path leaves no process behind."""
+    import subprocess
+    import threading
+
+    from evidra.documents import _worker_posix as platform
+
+    path = tmp_path / "large.pdf"
+    path.write_bytes(pdf_bytes([{"lines": [(40, 440, "a" * 1000)]} for _ in range(500)]))
+    spawn = platform._spawn
+    owned: list[int] = []
+    launched = threading.Event()
+
+    def observed(command, **options):
+        process = spawn(command, **options)
+        owned.append(process.pid)
+        launched.set()
+        return process
+
+    def alive(pid: int) -> bool:
+        try:
+            state = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[0]
+        except FileNotFoundError:
+            return False
+        return state != "Z"
+
+    def all_gone(within: float = 5.0) -> bool:
+        deadline = time.monotonic() + within
+        while time.monotonic() < deadline:
+            if not any(alive(pid) for pid in owned):
+                return True
+            time.sleep(0.02)
+        return False
+
+    unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+    monkeypatch.setattr(platform, "_spawn", observed)
+    clock = [0.0]
+    app = make_app(tmp_path / "engine", clock)
+    try:
+        with TestClient(app, base_url="http://127.0.0.1:49200") as client:
+            _, _, preview, prefix = document_scope(client)
+            document = register(client, prefix, preview["items"][0]["id"], path)
+            operation = ingest(client, prefix, document, key="cancel")
+            assert launched.wait(5), "Real parser process was not launched"
+            assert (
+                client.post(
+                    prefix + "/operations/" + operation["id"] + "/cancel", headers=HEADERS
+                ).status_code
+                == 200
+            )
+            result = finished(client, prefix, operation)
+            assert result["state"] == "CANCELLED" and result["document_version_id"] is None
+            assert all_gone(), "cancellation left an owned worker running"
+            timed = finished(
+                client,
+                prefix,
+                ingest(client, prefix, document, key="timeout", limits={"timeout_seconds": 0.1}),
+            )
+            assert timed["state"] == "PAUSED" and timed["reason"] == "PARSER_TIMEOUT", timed
+            launched.clear()
+            changing = ingest(client, prefix, document, key="changing-registration")
+            assert launched.wait(5)
+            another = tmp_path / "another.pdf"
+            write_pdf(another, "replacement observation")
+            register(client, prefix, preview["items"][0]["id"], another)
+            stale = finished(client, prefix, changing)
+            assert stale["state"] == "PAUSED" and stale["reason"] == "DOCUMENT_STALE", stale
+            assert (
+                client.get(prefix + "/documents", headers=HEADERS).json()["items"][0]["coverage"]
+                == "STALE"
+            )
+            path.write_bytes(
+                pdf_bytes(
+                    [
+                        {
+                            "lines": [
+                                (40 + i % 10, 40 + i % 400, "limited allocation")
+                                for i in range(100_000)
+                            ]
+                        }
+                    ]
+                )
+            )
+            document = register(client, prefix, preview["items"][0]["id"], path)
+            memory = finished(
+                client,
+                prefix,
+                ingest(
+                    client,
+                    prefix,
+                    document,
+                    key="memory",
+                    limits={"memory_bytes": 64 * 1024 * 1024},
+                ),
+            )
+            # RLIMIT_DATA + the VmData watchdog report exhaustion; a bare PDFium abort is
+            # PARSER_FAILED because no cause was demonstrated (ADR 0004).
+            assert memory["state"] == "PAUSED", memory
+            assert memory["reason"] in {"PARSER_MEMORY_LIMIT", "PARSER_FAILED"}, memory
+            assert unrelated.poll() is None, "Cancellation killed an unrelated process"
+            assert all_gone()
+            with app.state.services.database.transaction() as connection:
+                assert (
+                    connection.execute("SELECT count(*) FROM document_versions").fetchone()[0] == 0
+                )
+            launched.clear()
+            expired = ingest(client, prefix, document, key="expired")
+            assert launched.wait(5)
+            clock[0] = 31.0
+            assert (
+                client.get(prefix + "/operations/" + expired["id"], headers=HEADERS).status_code
+                == 503
+            )
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                with app.state.services.database.transaction() as connection:
+                    receipt = json.loads(
+                        connection.execute(
+                            "SELECT payload FROM document_operations WHERE id=?", (expired["id"],)
+                        ).fetchone()[0]
+                    )
+                if receipt["state"] == "PAUSED":
+                    break
+                time.sleep(0.02)
+            assert receipt["reason"] == "BRIDGE_EXPIRED", receipt
+            assert all_gone()
+    finally:
+        unrelated.terminate()
+        unrelated.wait(timeout=5)
 
 
 @pytest.mark.parametrize(

@@ -21,8 +21,12 @@ Parent (`run_worker`)
 * the child is spawned from one process-lifetime thread, because `PDEATHSIG` is tied to the
   *thread* that forked and a recycled pool thread would otherwise kill a healthy worker;
 * wall-clock timeout, cancellation and any error send SIGKILL to the whole group, then reap;
-* the child is reaped with `os.wait4` so the exit signal, CPU time and `ru_maxrss` are known, and
-  a termination is attributed to a limit only with positive evidence (see `_classify_signal`):
+* the child is reaped with `os.wait4` so the exit signal and CPU time are known. `ru_maxrss` is
+  recorded but is NOT the child's own peak: at `exec` the kernel folds the pre-exec address space
+  (the engine's) into it, so a 130 MiB worker started by a 700 MiB engine reports ~700 MiB. The
+  child's peak is sampled from `/proc/<pid>/status` `VmHWM` (a lower bound: the last sample before
+  death);
+* a termination is attributed to a limit only with positive evidence (see `_classify_signal`):
   a Python `MemoryError`, the watchdog report, the CPU limit, or the file-size limit. A bare native
   abort stays `PARSER_FAILED` with the facts (signal, peak RSS, CPU time, armed limits).
 
@@ -155,6 +159,17 @@ def apply_child_limits(limits: ParserLimits, parent_pid: int | None = None) -> N
     ).start()
 
 
+def _vm_hwm_mib(pid: int) -> int | None:
+    try:
+        with open(f"/proc/{pid}/status", "rb") as status:
+            for line in status:
+                if line.startswith(b"VmHWM:"):
+                    return int(line.split()[1]) // 1024
+    except OSError:
+        pass
+    return None
+
+
 def _size(stream: Any) -> int:
     return os.fstat(stream.fileno()).st_size
 
@@ -192,13 +207,16 @@ def _terminate_group(process: "subprocess.Popen[bytes]") -> None:
 
 
 def _classify_signal(
-    number: int, usage: Any, limits: ParserLimits, error_output: bytes
+    number: int, usage: Any, limits: ParserLimits, error_output: bytes, sampled_peak: int | None
 ) -> EvidraError:
     """Attribute a signal death to a limit only with positive evidence; never invent a cause."""
     cpu = usage.ru_utime + usage.ru_stime
     facts: dict[str, Any] = {
         "signal": number,
-        "peak_rss_mib": round(usage.ru_maxrss / 1024),  # KiB -> MiB on Linux
+        "peak_rss_mib": sampled_peak,  # the child's own VmHWM, sampled; None if never readable
+        "ru_maxrss_mib": round(
+            usage.ru_maxrss / 1024
+        ),  # includes the pre-exec parent address space
         "cpu_seconds": round(cpu, 2),
         "memory_limit_mib": limits.memory_bytes // _MIB,
         "cpu_limit_seconds": _cpu_seconds(limits),
@@ -236,6 +254,7 @@ def run_worker(
     """Run one bounded child; yield its spooled stdout only if it exited cleanly and in bounds."""
     process: subprocess.Popen[bytes] | None = None
     usage: Any = None
+    sampled_peak: int | None = None
     started = time.monotonic()
     with (
         tempfile.TemporaryFile("w+b") as stdin,
@@ -263,6 +282,9 @@ def run_worker(
                 usage = _reap(process, block=False)
                 if usage is not None:
                     break
+                sample = _vm_hwm_mib(process.pid)
+                if sample is not None:
+                    sampled_peak = max(sample, sampled_peak or 0)
                 check()
                 if time.monotonic() - started > limits.timeout_seconds:
                     raise EvidraError(
@@ -283,7 +305,7 @@ def run_worker(
             stderr.seek(0)
             error_output = stderr.read(_STDERR_LIMIT + 1)
             if returncode < 0:
-                raise _classify_signal(-returncode, usage, limits, error_output)
+                raise _classify_signal(-returncode, usage, limits, error_output, sampled_peak)
             if returncode:
                 details = child_diagnostic(error_output)
                 causes = details.get("causes", [])
