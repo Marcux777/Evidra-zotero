@@ -13,7 +13,7 @@ O desenho anterior dependia de modelos locais (Ollama, `qwen3:4b`, `qwen3-embedd
 | J1a forma A (choice `MET/NOT_MET/NOT_REPORTED` + âncora com `NONE`; 84 chamadas, 30 casos) | 0 erros críticos; 37/37 sem sustentação com `NONE`; exclusão firme em 36/37 contradições; 1 veredito diferente do rótulo (s2, rótulo fraco do J0) |
 | J1a forma B (dois nouls `addressed?`/`met?`; 84 chamadas) | 0 erros críticos, mas exclusão firme em 1/37: o Noul trata "contradiz" como "não diz" (`addressed` 0,08–0,44) |
 | Custo medido | `input_tokens ≈ 178 + 0,278 × caracteres` (r = 0,9996, 4 pontos, até 16.574 caracteres); forma A ≈ 661 tokens (1 trecho) a ≈ 1.508 (5 trechos) |
-| Modelo | a API aceita `model: "jev-1.13.0"` (HTTP 200, `req_01a1232e7fc2740f86798ed0a3931eb1`); `/v1/models` lista só `jev-latest` e `jev-preview` |
+| Modelo | `/v1/models` lista só `jev-latest` e `jev-preview` (J0, `.local/spike/models.json`, não versionado). Sondagem posterior de 1 chamada (fora dos ledgers versionados, registro bruto em `.local/spike/ledger_pin_raw.jsonl`): `model: "jev-1.13.0"` devolveu HTTP 200 e `model` = `jev-1.13.0`, `req_01a1232e7fc2740f86798ed0a3931eb1`, 694 `input_tokens` |
 
 Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domínio, parágrafos truncados em 1.500 caracteres, instruções em inglês, c_min = 0,70 provisório. As frequências de erro reais não estão medidas; 0 erros em 37 chamadas limita a taxa a cerca de 8% (95%).
 
@@ -45,7 +45,7 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 ## Orçamento de contexto
 
 - Modelo de custo: `input_tokens ≈ 178 + 0,278 × caracteres` (J0, r = 0,9996).
-- Limite de planejamento: **97 mil caracteres** para state + maior pergunta (equivale a ≈ 27.200 tokens, 15% de folga sobre 32k tokens de contexto).
+- Limite de planejamento: **97 mil caracteres** para state + maior pergunta. Pela reta isso é ≈ 27.100 tokens com 1 pergunta e ≈ 27.300 com 10 (intercepto 178 a 312 nas medições da J0), isto é, cerca de 85% de 32k tokens (15% de folga). O 32k de contexto é o valor informado no pedido da J1; a fonte dele no provedor não está registrada aqui.
 - **Provisório**: a reta foi ajustada até 16,6 mil caracteres, e 97 mil é extrapolação; vale até a J3 medir o leque real de perguntas. Calibração contínua pelo `usage.input_tokens` de cada resposta, que é a medida de verdade.
 - O controle de contexto é do engine (corta ou divide o state antes do envio), nunca do modelo.
 
@@ -77,4 +77,5 @@ Configurável, não embutido no código: **US$ 0,042 por milhão de tokens de en
 - Pendências de código (não feitas aqui): perfil/UI do Jev, adaptador `jev` com `model` fixado, desativação das superfícies de conversa/síntese/auditoria/semântica, contratos regenerados.
 - SPEC não é emendado por este ADR; a emenda é tarefa da J2. Até lá, onde o SPEC descreve multi-provedor, este ADR prevalece para a v1.
 - `LINUX_DEV_ENVIRONMENT.md`: Ollama e modelos locais deixam de ser pendências do ambiente (obsoletos pelo ADR 0005). O Zotero pelo tarball continua pendente de autorização.
+- **Em aberto (decisão do usuário), além dos bloqueios da J7**: a criação de notas do Zotero permanece na v1 com a síntese desativada? (afeta o A22).
 - A chave da API fica **somente** no Secret Service (`service=typesafe`), nunca em variável de ambiente persistente, arquivo de perfil ou repositório.
