@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 # The frozen executable dispatches its private child mode before importing the web app.
-if __name__ == "__main__" and sys.argv[1:] == ["--parser-worker"]:
+if __name__ == "__main__" and sys.argv[1:2] == ["--parser-worker"]:
     from evidra.documents.parser_worker import worker_main
 
     worker_main()
@@ -100,7 +100,9 @@ def bind_loopback(port: int) -> socket.socket:
         raise EvidraError("INVALID_RUNTIME", "Invalid engine port.")
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
-        listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        if sys.platform == "win32":
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        # POSIX: neither SO_REUSEADDR nor SO_REUSEPORT is set, so no other socket can share it.
         listener.bind(("127.0.0.1", port))
         if listener.getsockname()[1] == 23119:
             raise EvidraError("RESERVED_PORT", "The operating system selected a reserved port.")

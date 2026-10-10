@@ -6,7 +6,7 @@ if __name__ == "__main__":
     multiprocessing.freeze_support()
     import sys
 
-    if sys.argv[1:] == ["--parser-worker"]:
+    if sys.argv[1:2] == ["--parser-worker"]:
         from evidra.documents.parser_worker import worker_main
 
         worker_main()

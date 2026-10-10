@@ -63,6 +63,27 @@ Contrato do **escritor** (plugin, F4), que o engine não pode impor por conta pr
 3. Nenhum symlink, hardlink ou subdiretório compartilhado dentro de `Evidra/`.
 4. Remover o `handshake.json` e o temporário em qualquer falha (o engine não apaga um handshake recusado).
 
+## Limite de memória do worker do PDFium em Linux (F2, medido em 2026-10-10)
+
+Host: Fedora 43, kernel 7.1.5, Python 3.12.12, PDFium 153.0.7999.0 (pypdfium2 5.13.0). Sonda: `scripts/spikes/worker_memory_probe.py`. Cada linha é uma execução do worker real (`worker_main`) em um filho com **um** limite aplicado antes de ler o documento, depois de importar o interpretador, pydantic e o módulo do worker. Células: desfecho e, entre parênteses, o pico de RSS do filho em MiB (`wait4` → `ru_maxrss`). `ok` = o worker imprimiu `done`; `MemoryError` = exceção Python capturada pelo worker; `SIGABRT` = morte do processo sem diagnóstico (stderr vazio). Bombas: um `content stream` Flate que expande para 256 MiB / 1 GiB / 4 GiB de espaços (poucos KiB comprimidos).
+
+| fixture | tamanho | sem limite: RSS pico / VmPeak (MiB) | AS 64 | AS 128 | AS 256 | AS 512 | AS 1024 | DATA 64 | DATA 128 | DATA 256 | DATA 512 | DATA 1024 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| small-5p | 2 KiB | 70 / 282 | MemoryError | MemoryError | MemoryError | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) |
+| text-500p | 637 KiB | 70 / 284 | MemoryError | MemoryError | MemoryError | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) | ok (70) |
+| dense-100k-lines | 5.5 MiB | 108 / 352 | MemoryError | MemoryError | MemoryError | ok (108) | ok (108) | SIGABRT (82) | ok (108) | ok (108) | ok (108) | ok (108) |
+| bomb-256MiB | 255 KiB | 551 / 795 | MemoryError | MemoryError | MemoryError | SIGABRT (267) | ok (551) | SIGABRT (81) | SIGABRT (145) | SIGABRT (273) | SIGABRT (295) | ok (551) |
+| bomb-1GiB | 1020 KiB | 2089 / 2333 | MemoryError | MemoryError | MemoryError | SIGABRT (266) | SIGABRT (778) | SIGABRT (79) | SIGABRT (143) | SIGABRT (272) | SIGABRT (527) | SIGABRT (1039) |
+| bomb-4GiB | 4.0 MiB | 5170 / 5415 | MemoryError | MemoryError | MemoryError | SIGABRT (260) | SIGABRT (778) | SIGABRT (77) | SIGABRT (141) | SIGABRT (268) | SIGABRT (523) | SIGABRT (1033) |
+
+Leituras:
+
+- **`RLIMIT_AS` é inutilizável**: o interpretador mais o PDFium chegam a `VmPeak` ≈ 272–284 MiB antes de qualquer byte do documento. Um PDF de 5 páginas já falha com `MemoryError` em 64, 128 e 256 MiB e só roda a partir de 512 MiB. O contrato de `ParserLimits.memory_bytes` aceita 64 MiB a 4 GiB.
+- **`RLIMIT_DATA` roda PDFs normais desde 64 MiB** (`VmData` ≈ 21–23 MiB) e contém as bombas: o filho morre com pico de RSS ≈ limite + 13–18 MiB (o RSS inclui ≈ 50 MiB de páginas de arquivo, que `RLIMIT_DATA` não conta). A bomba de 256 MiB roda com limite de 1 GiB (pico 551 MiB), como esperado.
+- **O PDFium aborta (SIGABRT, stderr vazio) quando uma alocação falha.** Não há `MemoryError` Python nem mensagem. Uma alocação única maior que a folga (ex.: 256 MiB com limite de 512 MiB, pico de RSS 295 MiB) aborta sem que o consumo tenha se aproximado do limite.
+- **Decisão**: `RLIMIT_DATA = memory_bytes` (soft = hard), mais um vigia no filho que lê `VmData` a cada 10 ms e, a 97% do limite, escreve um diagnóstico `MemoryError` e sai. O pai atribui `PARSER_MEMORY_LIMIT` somente com evidência positiva (`MemoryError` Python, relato do vigia). Um abort nativo sem diagnóstico é `PARSER_FAILED` com os fatos (`signal`, `peak_rss_mib`, `cpu_seconds`, limites armados), porque a causa não foi demonstrada. A RSS sozinha não é evidência: em limites pequenos o RSS de uma exaustão real e o de um crash qualquer se confundem (medido: 77–82 MiB contra 70 MiB de linha de base com limite de 64 MiB).
+- **Limites que o Windows tinha e o Linux não tem**: `ActiveProcessLimit = 1` (o filho pode criar processos; o grupo inteiro é morto no fim, mas um neto que escape ao grupo com `setsid` não é contido) e uma sandbox por syscall/namespace. Ficam registrados como pendência da fase de endurecimento.
+
 ## Fora de escopo desta decisão
 
 Não altera código, scripts nem contratos. `README.md` e `docs/INSTALL_WINDOWS.md` têm um aviso apontando para este ADR; o conteúdo de instalação Windows foi mantido como histórico, sem suporte, até as fases que implementarem o fluxo Linux.
