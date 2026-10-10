@@ -103,54 +103,166 @@ def test_foreign_owner_is_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(os, "geteuid", lambda: os.stat(file).st_uid + 1)
     with pytest.raises(EvidraError) as validated:
         validate_private_path(file)
-    assert reason(validated) == "UNEXPECTED_OWNER"
+    assert reason(validated) in {"FOREIGN_OWNER", "UNEXPECTED_OWNER"}  # path walk or fstat
     with pytest.raises(EvidraError) as protected:
         protect_path(directory)
-    assert reason(protected) == "UNEXPECTED_OWNER"
+    assert reason(protected) in {"FOREIGN_OWNER", "UNEXPECTED_OWNER"}
 
 
 # --- symbolic links, hard links, special files -----------------------------------------------
-def test_symlink_final_and_intermediate_are_refused(tmp_path: Path) -> None:
+def evidra_root(tmp_path: Path) -> Path:
+    root = tmp_path / "Evidra"
+    root.mkdir(mode=0o700)
+    return root
+
+
+def refusal(failure: pytest.ExceptionInfo[EvidraError]) -> dict[str, object]:
+    assert failure.value.code == "UNSAFE_PATH"
+    assert failure.value.details is not None
+    return failure.value.details
+
+
+def test_final_component_symlink_is_always_refused(tmp_path: Path) -> None:
     from evidra.security.handshake import assert_no_reparse_points, validate_private_path
 
-    real = private_dir(tmp_path, "real")
-    file = private_file(real / "f")
-    final_link = tmp_path / "final-link"
-    final_link.symlink_to(file)
-    dir_link = tmp_path / "dir-link"
-    dir_link.symlink_to(real, target_is_directory=True)
-    for candidate in (final_link, dir_link / "f", dir_link):
-        with pytest.raises(EvidraError) as failure:
-            assert_no_reparse_points(candidate)
-        assert failure.value.code == "UNSAFE_PATH"
-        with pytest.raises(EvidraError):
-            validate_private_path(candidate)
+    file = private_file(private_dir(tmp_path, "real") / "f")
+    link = tmp_path / "final-link"
+    link.symlink_to(file)
+    with pytest.raises(EvidraError) as failure:
+        assert_no_reparse_points(link)
+    assert refusal(failure)["reason"] == "FINAL_COMPONENT_SYMLINK"
+    assert refusal(failure)["component"] == "final-link"
+    with pytest.raises(EvidraError):
+        validate_private_path(link)
 
 
-def test_root_owned_symlink_is_accepted_but_user_owned_is_not(
+def test_user_symlink_above_evidra_root_is_accepted_and_works(tmp_path: Path) -> None:
+    """~/.local/share may be a symlink to another disk; the private tree below is unaffected."""
+    from evidra.security.handshake import consume_handshake, validate_private_path
+
+    real_share = tmp_path / "disk2-share"
+    real_share.mkdir(mode=0o700)
+    (tmp_path / "share").symlink_to(real_share, target_is_directory=True)
+    root = tmp_path / "share" / "Evidra"
+    root.mkdir(mode=0o700)
+    session = private_dir(root)
+    validate_private_path(session)
+    handshake = private_file(session / "handshake.json", json.dumps(handshake_body(session)))
+    assert consume_handshake(handshake).profile_instance_id == "profile-a"
+
+
+def test_symlink_inside_evidra_root_is_refused_and_named(tmp_path: Path) -> None:
+    from evidra.security.handshake import assert_no_reparse_points
+
+    root = evidra_root(tmp_path)
+    real = private_dir(root, "real")
+    (root / "link").symlink_to(real, target_is_directory=True)
+    with pytest.raises(EvidraError) as failure:
+        assert_no_reparse_points(root / "link" / "session" / "handshake.json")
+    details = refusal(failure)
+    assert details["reason"] == "SYMLINK_INSIDE_EVIDRA_ROOT"
+    assert details["component"] == "link"
+    assert details["inside_evidra_root"] is True
+    assert str(tmp_path) not in json.dumps(failure.value.details)
+
+
+def test_symlink_named_evidra_is_refused(tmp_path: Path) -> None:
+    from evidra.security.handshake import assert_no_reparse_points
+
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir(mode=0o700)
+    (tmp_path / "Evidra").symlink_to(elsewhere, target_is_directory=True)
+    with pytest.raises(EvidraError) as failure:
+        assert_no_reparse_points(tmp_path / "Evidra" / "session")
+    assert refusal(failure)["reason"] == "SYMLINK_AS_EVIDRA_ROOT"
+
+
+def test_root_owned_symlink_inside_evidra_root_is_still_refused(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """System layouts such as /home -> /var/home are root-owned; a user cannot plant one."""
     from evidra.security import _platform_posix as platform
 
-    target = private_dir(tmp_path, "target")
-    link = tmp_path / "link"
-    link.symlink_to(target, target_is_directory=True)
-    path = link / "f"
-    with pytest.raises(EvidraError):
-        platform.assert_no_reparse_points(path)
+    root = evidra_root(tmp_path)
+    (root / "link").symlink_to(root, target_is_directory=True)
     real_lstat = os.lstat
 
     def as_root(candidate: object, *args: object, **kwargs: object) -> os.stat_result:
         info = real_lstat(candidate, *args, **kwargs)  # type: ignore[arg-type]
-        if str(candidate) == str(link):
-            fields = list(info)
-            fields[4] = 0  # st_uid
-            return os.stat_result(fields)
-        return info
+        return os.stat_result([*list(info)[:4], 0, *list(info)[5:]])
 
     monkeypatch.setattr(platform.os, "lstat", as_root)
-    platform.assert_no_reparse_points(path)
+    with pytest.raises(EvidraError) as failure:
+        platform.assert_no_reparse_points(root / "link" / "x")
+    assert refusal(failure)["reason"] == "SYMLINK_INSIDE_EVIDRA_ROOT"
+
+
+def test_foreign_owned_symlink_above_root_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the link looks foreign (as in a sticky /tmp); every directory is the user's."""
+    from evidra.security import _platform_posix as platform
+
+    target = tmp_path / "target"
+    target.mkdir(mode=0o700)
+    planted = tmp_path / "planted"
+    planted.symlink_to(target, target_is_directory=True)
+    real_lstat = os.lstat
+
+    def foreign(candidate: object, *args: object, **kwargs: object) -> os.stat_result:
+        info = real_lstat(candidate, *args, **kwargs)  # type: ignore[arg-type]
+        if str(candidate) == str(planted):
+            return os.stat_result([*list(info)[:4], os.geteuid() + 1, *list(info)[5:]])
+        return info
+
+    monkeypatch.setattr(platform.os, "lstat", foreign)
+    with pytest.raises(EvidraError) as failure:
+        platform.assert_no_reparse_points(planted / "x")
+    details = refusal(failure)
+    assert details["reason"] == "SYMLINK_FOREIGN_OWNER"
+    assert details["component"] == "planted"
+
+
+def test_ancestor_owned_by_another_user_is_refused_and_named(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from evidra.security import _platform_posix as platform
+
+    me = os.getuid()
+    monkeypatch.setattr(os, "geteuid", lambda: me + 1)
+    with pytest.raises(EvidraError) as failure:
+        platform.assert_no_reparse_points(tmp_path / "Evidra" / "session")
+    details = refusal(failure)
+    assert details["reason"] == "FOREIGN_OWNER"
+    first_user_owned = next(
+        part for part in [*reversed(tmp_path.parents), tmp_path] if os.lstat(part).st_uid == me
+    )
+    assert details["component"] == first_user_owned.name
+
+
+def test_group_or_other_writable_container_is_refused_and_named(tmp_path: Path) -> None:
+    from evidra.security.handshake import assert_no_reparse_points
+
+    shared = tmp_path / "shared"
+    shared.mkdir()
+    os.chmod(shared, 0o775)
+    (shared / "Evidra").mkdir(mode=0o700)
+    with pytest.raises(EvidraError) as failure:
+        assert_no_reparse_points(shared / "Evidra" / "session")
+    details = refusal(failure)
+    assert details["reason"] == "WRITABLE_DIRECTORY"
+    assert details["component"] == "shared"
+    os.chmod(shared, 0o755)
+    assert_no_reparse_points(shared / "Evidra" / "session")
+
+
+def test_sticky_world_writable_container_is_accepted(tmp_path: Path) -> None:
+    from evidra.security.handshake import assert_no_reparse_points
+
+    sticky = tmp_path / "sticky"
+    sticky.mkdir()
+    os.chmod(sticky, 0o1777)
+    (sticky / "Evidra").mkdir(mode=0o700)
+    assert_no_reparse_points(sticky / "Evidra" / "session")
 
 
 def test_hard_linked_file_is_refused(tmp_path: Path) -> None:
@@ -164,6 +276,60 @@ def test_hard_linked_file_is_refused(tmp_path: Path) -> None:
     assert shape.value.code == "UNSAFE_PATH"
     with pytest.raises(EvidraError):
         validate_private_path(file)
+
+
+def test_descriptor_check_refuses_hard_link_without_the_path_walk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Second barrier on its own: fstat/st_nlink on the open descriptor, path walk disabled."""
+    from evidra.security import _platform_posix as platform
+
+    directory = private_dir(tmp_path)
+    file = private_file(directory / "f")
+    os.link(file, directory / "alias")
+    descriptor = os.open(file, os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        with pytest.raises(EvidraError) as direct:
+            platform.verify_descriptor(descriptor)
+        assert reason(direct) == "LINKED_FILE"
+    finally:
+        os.close(descriptor)
+    monkeypatch.setattr(platform, "walk_path", lambda path: path)
+    monkeypatch.setattr(platform, "assert_no_reparse_points", lambda path: None)
+    with pytest.raises(EvidraError) as through_validate:
+        platform.validate_private_path(file)
+    assert reason(through_validate) == "LINKED_FILE"
+
+
+def test_descriptor_check_covers_type_owner_and_mode_directly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from evidra.security import _platform_posix as platform
+
+    directory = private_dir(tmp_path)
+    cases = {
+        "NOT_PRIVATE_MODE": private_file(directory / "wide"),
+        "NOT_REGULAR_OR_DIRECTORY": directory / "pipe",
+    }
+    os.chmod(cases["NOT_PRIVATE_MODE"], 0o640)
+    os.mkfifo(cases["NOT_REGULAR_OR_DIRECTORY"], 0o600)
+    for expected, path in cases.items():
+        descriptor = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        try:
+            with pytest.raises(EvidraError) as failure:
+                platform.verify_descriptor(descriptor)
+            assert reason(failure) == expected
+        finally:
+            os.close(descriptor)
+    good = private_file(directory / "good")
+    descriptor = os.open(good, os.O_RDONLY)
+    try:
+        monkeypatch.setattr(os, "geteuid", lambda: os.fstat(descriptor).st_uid + 1)
+        with pytest.raises(EvidraError) as failure:
+            platform.verify_descriptor(descriptor)
+        assert reason(failure) == "UNEXPECTED_OWNER"
+    finally:
+        os.close(descriptor)
 
 
 def test_fifo_is_refused_without_blocking(tmp_path: Path) -> None:

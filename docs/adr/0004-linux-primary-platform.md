@@ -46,6 +46,23 @@ Os módulos que prendem o engine ao Windows: `documents/registry.py` (abertura v
 | Suíte de testes | `check.ps1` | `scripts/check.sh` completo (pytest do engine incluso) |
 | Aceite nativo | 6 critérios ao vivo | A01, A12, A23, A27, A34, A36 reexecutados em Zotero no Linux |
 
+## Contrato do handshake no Linux (engine verifica; escritor cumpre na F4)
+
+Verificado pelo engine (`security/_platform_posix.py`, `tests/test_handshake_posix.py`):
+
+- **Ancestrais até a raiz de dados do Evidra** (o primeiro componente chamado `Evidra`): cada componente tem dono root ou o uid efetivo, e o diretório que o contém não tem escrita para grupo/outros (diretório com sticky, como `/tmp`, é aceito). Um symlink do usuário acima da raiz (por exemplo `~/.local/share`) é aceito.
+- **De `Evidra/` para baixo**: nenhum symlink, nem de root. Um symlink chamado `Evidra` é recusado. O componente final nunca é symlink e um arquivo regular tem exatamente 1 link.
+- **Objetos privados**: diretório exatamente `0700`, arquivo exatamente `0600`, dono igual ao uid efetivo, sem ACL POSIX estendida. A checagem autoritativa é feita no descritor aberto com `O_NOFOLLOW` (`fstat`, `st_nlink`), separada da caminhada pelo caminho.
+- **Claim e recibo**: `renameat2(RENAME_NOREPLACE)`, criação com `O_EXCL` e `fchmod 0600`. Sem suporte, erro explícito, sem rename comum.
+- **Diagnóstico**: nomeia o componente recusado (`details.component`, `depth`, `reason`), nunca o caminho completo.
+
+Contrato do **escritor** (plugin, F4), que o engine não pode impor por conta própria:
+
+1. Criar o diretório de sessão com modo `0700` **antes** de escrever qualquer coisa nele (`mkdir` com modo e `chmod` conferido), e dentro da raiz `Evidra/` do usuário.
+2. Escrever o `handshake.json` e **só depois** garantir `0600` (`chmod` após escrever). `IOUtils` aplica a umask do processo do Zotero: o arquivo pode nascer `0644`, e o engine o recusa e não o consome. Não confiar na umask.
+3. Nenhum symlink, hardlink ou subdiretório compartilhado dentro de `Evidra/`.
+4. Remover o `handshake.json` e o temporário em qualquer falha (o engine não apaga um handshake recusado).
+
 ## Fora de escopo desta decisão
 
 Não altera código, scripts nem contratos. `README.md` e `docs/INSTALL_WINDOWS.md` têm um aviso apontando para este ADR; o conteúdo de instalação Windows foi mantido como histórico, sem suporte, até as fases que implementarem o fluxo Linux.
