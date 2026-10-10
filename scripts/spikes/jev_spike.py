@@ -27,7 +27,6 @@ import hashlib
 import json
 import random
 import re
-import statistics
 import subprocess
 import sys
 import time
@@ -73,7 +72,7 @@ H1_QUESTIONS = [
     ("q05", "PMC11074813", "lists the limitations of the study", r"several limitations in our study"),
     ("q06", "PMC11186782", "reports how many participants were screened for inclusion", r"316 participants were screened"),
     ("q07", "PMC11186782", "reports how many participants developed eosinophilia", r"Eosinophilia occurred in ten participants"),
-    ("q08", "PMC11186782", "gives the clinical trial registration numbers", r"NCT03069014"),
+    ("q08", "PMC11186782", "reports at how many sites and in which countries the trial was initiated", r"initiated at 21 sites"),
     ("q09", "PMC11186782", "reports the conclusion of the Data Safety Monitoring Board", r"Data Safety Monitoring Board concluded"),
     ("q10", "PMC11059071", "names the software used for the statistical analysis", r"SAS, version 9\.4"),
     ("q11", "PMC11059071", "reports the mean age of the participants analyzed", r"mean \[SD\] age, 44"),
