@@ -95,13 +95,13 @@ NEW_CASES = [
 
 def all_cases() -> list[dict]:
     cases = []
-    for cid, klass, source, regex, statement, _ in j.H2_CASES:
+    for cid, klass, source, regex, statement, forbidden in j.H2_CASES:
         origin = "J0"
         if source.startswith("SYN:"):
             cases.append({"id": cid, "cls": {"met": "met", "not_met": "not_met", "no_info": "no_info"}[klass], "src": source, "regex": None, "statement": statement, "forbid": None, "origin": origin})
         else:
             cases.append({"id": cid, "cls": klass, "src": source, "regex": regex, "statement": statement, "forbid": J0_FORBID[cid], "origin": origin,
-                          "near": klass == "no_info"})
+                          "near": klass == "no_info", "near_forbid": forbidden})
     for cid, klass, source, regex, statement, forbid in NEW_CASES:
         origin = "withheld" if cid.startswith("w") else ("contradiction" if klass == "not_met" else "no_info")
         cases.append({"id": cid, "cls": klass, "src": source, "regex": regex, "statement": statement, "forbid": forbid, "origin": origin, "near": False})
@@ -120,8 +120,9 @@ def build_excerpts(case: dict, ctx: int, rep: int, cache: dict[str, list[dict]])
     anchor_para = None  # o trecho que entra sempre (contraditório/atendido, ou o "próximo" do J0)
     if case["regex"] is not None:
         anchor_para = j.find_unique(paras, case["regex"])
-        if case["cls"] == "no_info" and forbid.search(anchor_para["text"]):
-            raise SystemExit(f"erro: caso {case['id']}: o trecho 'próximo' contém termo proibido")
+        low = anchor_para["text"].lower()
+        if case["cls"] == "no_info" and any(t.lower() in low for t in case.get("near_forbid", ())):
+            raise SystemExit(f"erro: caso {case['id']}: o trecho 'próximo' contém termo proibido do J0")
     pool = [p for p in paras if p is not anchor_para and not forbid.search(p["text"])]
     need = ctx - (1 if anchor_para is not None else 0)
     if len(pool) < need:
