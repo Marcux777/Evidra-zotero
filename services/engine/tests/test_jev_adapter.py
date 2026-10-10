@@ -30,12 +30,23 @@ def ok_body(answers: dict[str, Any], *, model: str = "jev-1.13.0", tokens: int =
     ).encode()
 
 
-def choice(value: str, confidence: float, **probabilities: float) -> dict[str, Any]:
+def choice(
+    value: str,
+    confidence: float,
+    *,
+    options: tuple[str, ...] | None = None,
+    **probabilities: float,
+) -> dict[str, Any]:
+    """A well-formed answer: probabilities over exactly the offered options, summing to 1."""
+    if not probabilities:
+        others = [o for o in (options or (value,)) if o != value]
+        share = (1 - confidence) / len(others) if others else 0.0
+        probabilities = {value: confidence, **{o: share for o in others}}
     return {
         "type": "choice",
         "choice": value,
         "confidence": confidence,
-        "probabilities": probabilities or {value: confidence},
+        "probabilities": probabilities,
     }
 
 
@@ -44,11 +55,14 @@ class FakeJev:
 
     def __init__(self) -> None:
         self.requests: list[dict[str, Any]] = []
+        self.written = 0
         self.script: list[dict[str, Any]] = []
         self.lock = threading.Lock()
         fake = self
 
         class Handler(BaseHTTPRequestHandler):
+            protocol_version = "HTTP/1.1"
+
             def log_message(self, *_args: object) -> None:
                 pass
 
@@ -67,8 +81,36 @@ class FakeJev:
                 time.sleep(step.get("delay", 0))
                 body = step.get("body", b"")
                 self.send_response(step.get("status", 200))
+                self.send_header("Connection", "close")
                 for name, value in step.get("headers", {}).items():
                     self.send_header(name, value)
+                if step.get("chunked"):  # no Content-Length: the bound must apply while streaming
+                    spec = step["chunked"]
+                    self.send_header("Transfer-Encoding", "chunked")
+                    self.end_headers()
+                    try:
+                        while fake.written < spec["total"]:
+                            piece = b"x" * spec["chunk"]
+                            self.wfile.write(b"%x\r\n" % len(piece) + piece + b"\r\n")
+                            self.wfile.flush()
+                            fake.written += len(piece)
+                            time.sleep(spec.get("delay", 0))
+                        self.wfile.write(b"0\r\n\r\n")
+                    except OSError:
+                        pass
+                    return
+                if step.get("slow_body"):
+                    spec = step["slow_body"]
+                    self.send_header("Content-Length", str(spec["total"]))
+                    self.end_headers()
+                    try:
+                        for _ in range(spec["pieces"]):
+                            self.wfile.write(b" " * (spec["total"] // spec["pieces"]))
+                            self.wfile.flush()
+                            time.sleep(spec["delay"])
+                    except OSError:
+                        pass
+                    return
                 if step.get("stream_bytes"):
                     self.send_header("Content-Length", str(step["stream_bytes"]))
                     self.end_headers()
@@ -269,7 +311,7 @@ def test_malformed_responses_are_protocol_errors(fake: FakeJev, body: bytes) -> 
 
 
 def test_choice_outside_the_offered_options_is_a_protocol_error(fake: FakeJev) -> None:
-    fake.script = [{"body": ok_body({"c": choice("e9", 0.9)})}]
+    fake.script = [{"body": ok_body({"c": choice("e9", 0.9, e9=0.9, e1=0.1)})}]
     error = refused(lambda: client(fake).ask({}, {"c": ChoiceQuestion("Pick", {"e1": None})}))
     assert error.code == "PROVIDER_PROTOCOL_ERROR"
 
@@ -408,13 +450,17 @@ def test_secret_service_lookup_has_no_environment_fallback(
 EXCERPTS = {"e1": "The trial was randomized.", "e2": "Other text."}
 
 
+VERDICT_OPTIONS = ("MET", "NOT_MET", "NOT_REPORTED")
+ANCHOR_OPTIONS = ("e1", "e2", "NONE")
+
+
 def criterion_script(verdict: tuple[str, float], anchor: tuple[str, float]) -> list[dict[str, Any]]:
     return [
         {
             "body": ok_body(
                 {
-                    "verdict": choice(verdict[0], verdict[1]),
-                    "anchor": choice(anchor[0], anchor[1]),
+                    "verdict": choice(verdict[0], verdict[1], options=VERDICT_OPTIONS),
+                    "anchor": choice(anchor[0], anchor[1], options=ANCHOR_OPTIONS),
                 }
             )
         }
