@@ -1,6 +1,6 @@
 # Ambiente de desenvolvimento Linux — recibo da Fase 1
 
-Medido em 2026-10-08, no branch `linux-port` (base `29bf3ab9feb96e7d0fda432d4dc63d773bb3c1b7`, ver ADR 0004). Somente leitura: nada foi instalado, nenhum perfil ou instalação existente foi alterado. Todo item marcado **PENDENTE** exige autorização antes de ser executado.
+Medido em 2026-10-08, no branch `linux-port` (base `29bf3ab9feb96e7d0fda432d4dc63d773bb3c1b7`, ver ADR 0004). Somente leitura: nada foi instalado, nenhum perfil ou instalação existente foi alterado. Todo item marcado **PENDENTE** exige autorização antes de ser executado; o Zotero 10.0.6 foi autorizado e instalado em 2026-10-10.
 
 ## Recibo (medido)
 
@@ -29,13 +29,26 @@ Obsoleto pelo [ADR 0005](adr/0005-jev-sole-analysis-provider.md): o Jev (TypeSaf
 ### Comandos executados (todos de leitura, exceto os do projeto)
 `node --version`, `npm --version`, `uv --version`, `git --version`, `uv python list --only-installed`, `flatpak list | grep -i zotero`, `flatpak info org.zotero.Zotero`, `which zotero`, `ls -l /usr/local/bin/zotero`, `grep Version /opt/zotero/app/application.ini`, `pgrep -a zotero`, `secret-tool --version`, `busctl --user list | grep secrets`, `uv run python -c "import keyring; print(keyring.get_keyring())"`, `nvidia-smi --query-gpu=…`, `command -v ollama`, `systemctl is-active ollama`, `ss -ltn | grep 11434`, `df`, `free`. Antes, para as medições da Fase 0: `npm ci`, `uv sync --frozen`, `tsc`, `vitest`, `pytest`, `ruff`, `mypy`.
 
+## Zotero 10.0.6 instalado pelo tarball oficial (2026-10-10)
+
+Autorizado pelo usuário. Instalado em `~/opt/zotero-10`; `/opt/zotero` (9.0.6) e o Flatpak (10.0.6) não foram tocados. O Zotero **não foi executado** e nenhum perfil foi criado.
+
+| Item | Valor |
+|---|---|
+| URL | `https://download.zotero.org/client/release/10.0.6/Zotero-10.0.6_linux-x86_64.tar.xz` (HTTP 200; `.tar.bz2` responde 403) |
+| Tamanho | 118.303.588 bytes (113 MiB) |
+| SHA-256 | `246c2574a9ac526abeaf3027ffd22fc45536a5ab25f227bb1df932fca9cedd63` (calculado localmente; o Zotero não publica checksum no mesmo caminho) |
+| `application.ini` | `Version=10.0.6`, `BuildID=20261007153824` |
+| Conteúdo | 102 entradas, todas sob `Zotero_linux-x86_64/`, sem caminho absoluto nem `..` (conferido antes de extrair) |
+| Executável | `~/opt/zotero-10/Zotero_linux-x86_64/zotero` |
+| Tarball | mantido em `~/opt/zotero-10/Zotero-10.0.6_linux-x86_64.tar.xz` |
+
 ## PENDENTE de autorização
 
-1. **Zotero 10.0.x pelo tarball oficial**, em diretório próprio (proposta: `~/opt/zotero-10`), sem tocar em `/opt/zotero` (9.0.6) nem no Flatpak (10.0.6). Download ainda **não** feito, então URL, versão e SHA-256 do tarball ficam registrados só depois da autorização e do download. Alternativa a decidir: usar o Flatpak 10.0.6 já instalado, o que dispensa o download, mas o sandbox do Flatpak altera o acesso a diretórios e a passagem de `-profile`; o ADR e o SPEC pedem o tarball.
-2. **Perfil de teste isolado do Zotero**: não criado. Procedimento proposto, a executar só após autorização: diretório novo e vazio fora de `~/.zotero`, iniciar com `-no-remote -profile <novo>` e `-datadir <novo>` (flags a confirmar na ajuda do Zotero instalado), conferir `ProfD` e o diretório de dados reais **antes** de qualquer escrita e abortar se algum apontar para `~/.zotero` ou `~/Zotero`. Biblioteca sintética apenas.
-3. `uv python install 3.12`: **dispensado**, o Python 3.12.12 já está instalado.
+1. **Perfil de teste isolado do Zotero**: não criado. Procedimento proposto, a executar só após autorização: diretório novo e vazio fora de `~/.zotero`, iniciar com `-no-remote -profile <novo>` e `-datadir <novo>` (flags a confirmar na ajuda do Zotero instalado), conferir `ProfD` e o diretório de dados reais **antes** de qualquer escrita e abortar se algum apontar para `~/.zotero` ou `~/Zotero`. Biblioteca sintética apenas.
+2. `uv python install 3.12`: **dispensado**, o Python 3.12.12 já está instalado.
 
 ## Aceite da Fase 1
 
-- Recibo com versões, caminhos, estado do Secret Service e da GPU: acima. Hash do tarball do Zotero: **pendente** (nada foi baixado). Modelos locais: obsoletos pelo ADR 0005.
+- Recibo com versões, caminhos, estado do Secret Service e da GPU: acima. Tarball do Zotero 10.0.6: baixado e verificado (seção acima). Modelos locais: obsoletos pelo ADR 0005.
 - Harness nativo antigo: registrado como ausente.
