@@ -23,8 +23,8 @@ Medido em 2026-10-08, no branch `linux-port` (base `29bf3ab9feb96e7d0fda432d4dc6
 | Dados do Evidra | `XDG_DATA_HOME` vazio; `~/.local/share/Evidra` não existe (fallback do SPEC §3: `~/.local/share/Evidra/profiles/<id>`) |
 | Harness nativo antigo | **ausente**: não existem `.local/native-smoke`, `task12` nem `http-bounds` (Fase 0 já havia buscado em `~`, `/run/media`, `/mnt`). O `.local/` do checkout contém só um `task11/` vazio criado pelo teste `exports-bridge` |
 
-### Referências esperadas para os modelos (não medidas aqui)
-De `docs/LOCAL_MODEL_TEST_ENVIRONMENT.md`: `qwen3:4b` digest `359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7` (2.497.293.931 bytes), `qwen3-embedding:0.6b` digest `ac6da0dfba84a81fdbfbaf330198c33cd77c4cdfc53e8bc50eb581914a15621d`. Só valem depois de baixados e conferidos com `ollama list`. Os 2.497.293.931 bytes de `qwen3:4b` excedem os 2 GiB de VRAM da MX350: parte ou toda a execução ficará na CPU.
+### Modelos locais
+Obsoleto pelo [ADR 0005](adr/0005-jev-sole-analysis-provider.md): o Jev (TypeSafe) é o provedor único de análise e `qwen3:4b`/`qwen3-embedding:0.6b` não fazem mais parte do ambiente. As linhas medidas de Ollama e GPU acima ficam como registro do host, sem pendência associada. A chave do Jev fica só no Secret Service (`service=typesafe`).
 
 ### Comandos executados (todos de leitura, exceto os do projeto)
 `node --version`, `npm --version`, `uv --version`, `git --version`, `uv python list --only-installed`, `flatpak list | grep -i zotero`, `flatpak info org.zotero.Zotero`, `which zotero`, `ls -l /usr/local/bin/zotero`, `grep Version /opt/zotero/app/application.ini`, `pgrep -a zotero`, `secret-tool --version`, `busctl --user list | grep secrets`, `uv run python -c "import keyring; print(keyring.get_keyring())"`, `nvidia-smi --query-gpu=…`, `command -v ollama`, `systemctl is-active ollama`, `ss -ltn | grep 11434`, `df`, `free`. Antes, para as medições da Fase 0: `npm ci`, `uv sync --frozen`, `tsc`, `vitest`, `pytest`, `ruff`, `mypy`.
@@ -32,11 +32,10 @@ De `docs/LOCAL_MODEL_TEST_ENVIRONMENT.md`: `qwen3:4b` digest `359d7dd4bcdab3d86b
 ## PENDENTE de autorização
 
 1. **Zotero 10.0.x pelo tarball oficial**, em diretório próprio (proposta: `~/opt/zotero-10`), sem tocar em `/opt/zotero` (9.0.6) nem no Flatpak (10.0.6). Download ainda **não** feito, então URL, versão e SHA-256 do tarball ficam registrados só depois da autorização e do download. Alternativa a decidir: usar o Flatpak 10.0.6 já instalado, o que dispensa o download, mas o sandbox do Flatpak altera o acesso a diretórios e a passagem de `-profile`; o ADR e o SPEC pedem o tarball.
-2. **Ollama** (binário ausente) e os modelos `qwen3:4b` e `qwen3-embedding:0.6b`. Envolve download de cerca de 2,5 GB mais o embedding, e a forma de instalação do Ollama (pacote do sistema, instalador oficial ou binário portátil em diretório próprio) ainda precisa de escolha sua.
-3. **Perfil de teste isolado do Zotero**: não criado. Procedimento proposto, a executar só após autorização: diretório novo e vazio fora de `~/.zotero`, iniciar com `-no-remote -profile <novo>` e `-datadir <novo>` (flags a confirmar na ajuda do Zotero instalado), conferir `ProfD` e o diretório de dados reais **antes** de qualquer escrita e abortar se algum apontar para `~/.zotero` ou `~/Zotero`. Biblioteca sintética apenas.
-4. `uv python install 3.12`: **dispensado**, o Python 3.12.12 já está instalado.
+2. **Perfil de teste isolado do Zotero**: não criado. Procedimento proposto, a executar só após autorização: diretório novo e vazio fora de `~/.zotero`, iniciar com `-no-remote -profile <novo>` e `-datadir <novo>` (flags a confirmar na ajuda do Zotero instalado), conferir `ProfD` e o diretório de dados reais **antes** de qualquer escrita e abortar se algum apontar para `~/.zotero` ou `~/Zotero`. Biblioteca sintética apenas.
+3. `uv python install 3.12`: **dispensado**, o Python 3.12.12 já está instalado.
 
 ## Aceite da Fase 1
 
-- Recibo com versões, caminhos, estado do Secret Service e da GPU: acima. Hashes de tarball e de modelos: **pendentes** (nada foi baixado).
+- Recibo com versões, caminhos, estado do Secret Service e da GPU: acima. Hash do tarball do Zotero: **pendente** (nada foi baixado). Modelos locais: obsoletos pelo ADR 0005.
 - Harness nativo antigo: registrado como ausente.

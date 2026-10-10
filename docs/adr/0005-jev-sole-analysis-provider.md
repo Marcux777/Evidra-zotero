@@ -38,7 +38,7 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 
 ## Limiares
 
-- c_min e eventuais τ (graus, reconciliação entre criterios) **fazem parte da versão do protocolo**: mudar um valor muda a versão do protocolo e invalida decisões derivadas dele.
+- c_min e eventuais τ (graus, reconciliação entre critérios) **fazem parte da versão do protocolo**: mudar um valor muda a versão do protocolo e invalida decisões derivadas dele.
 - Valores provisórios: **c_min = 0,70**, origem J0 (`LIMIAR` do `jev_decide.py`, "decisivo" = max(p, 1−p) ≥ 0,7) e J1a (pré-registrado no script; 0 erros críticos com esse valor). Nenhum outro limiar tem valor ainda.
 - Os valores são **congelados antes do piloto**, em material de desenvolvimento (não no piloto nem no RL-20). Os casos da J0/J1a não fixam limiar final; só ajudam a escolher a forma.
 
@@ -46,7 +46,7 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 
 - Modelo de custo: `input_tokens ≈ 178 + 0,278 × caracteres` (J0, r = 0,9996).
 - Limite de planejamento: **97 mil caracteres** para state + maior pergunta (equivale a ≈ 27.200 tokens, 15% de folga sobre 32k tokens de contexto).
-- **Provisório**: a reta foi ajustada até 16,6 mil caracteres, e 97 mil é extrapolação; vale até a J3 medir o leque real de perguntas. Calibração contínua pelo `usage.input_tokens` de cada resposta, que é a medida de verdade; divergência acima de 10% do previsto sinaliza recalibração.
+- **Provisório**: a reta foi ajustada até 16,6 mil caracteres, e 97 mil é extrapolação; vale até a J3 medir o leque real de perguntas. Calibração contínua pelo `usage.input_tokens` de cada resposta, que é a medida de verdade.
 - O controle de contexto é do engine (corta ou divide o state antes do envio), nunca do modelo.
 
 ## Dados e privacidade
@@ -62,8 +62,8 @@ Limites dessas medidas: 30 casos curados de três artigos CC BY do mesmo domíni
 |---|---|
 | 401, 422 | sem nova tentativa; falha identificada na unidade, sem fallback silencioso |
 | 429, 529 | backoff com teto; o lote pausa e retoma por decisão do usuário ou ao fim do teto |
-| Resposta malformada ou grande demais | recusada, sem nova tentativa automática |
-| Timeout | falha da unidade; custo tratado como incerto se a requisição foi enviada |
+| Resposta malformada ou grande demais | recusada, sem nova tentativa automática *(proposta; confirmar na J2)* |
+| Timeout | falha da unidade; custo tratado como incerto se a requisição foi enviada *(proposta; confirmar na J2)* |
 | Cancelamento após envio | `BILLING_UNKNOWN` (custo/uso nulos), nunca estimado |
 | Qualquer falha | **sem provedor alternativo** |
 
